@@ -121,7 +121,7 @@ function Panel.Lines()
     add(string.format(L.DIAG_ERRORS, errors, last))
     local api = ns.SelfCheck.Last()
     if api then
-        add(string.format(L.DIAG_API, api.checked, #api.missing))
+        add(string.format(L.DIAG_API, api.checked, #api.missing, api.failing or 0))
     end
     local d = KaLiQuestDevDB or {}
     add(string.format(L.DIAG_DEBUG, yesNo(d.debug), yesNo(d.events), yesNo(d.chat), #(d.log or {})))

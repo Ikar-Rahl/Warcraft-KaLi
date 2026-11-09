@@ -81,15 +81,150 @@ function SelfCheck.Headers()
     return looked, wrong
 end
 
-local function headers()
-    local ok, looked, wrong = pcall(SelfCheck.Headers)
-    if ok then
-        return looked, wrong
+-- Every quest shows in the log's rows, even under a header collapsed in the game's own log, as QuestLog reads only
+-- those rows. Hidden quests count as rows too, so whether the game counts them makes no false alarm.
+function SelfCheck.Listing()
+    local entries, quests = C_QuestLog.GetNumQuestLogEntries()
+    local rows, collapsed = 0, 0
+    for i = 1, entries do
+        local info = C_QuestLog.GetInfo(i)
+        if info and info.isHeader then
+            collapsed = collapsed + (info.isCollapsed and 1 or 0)
+        elseif info then
+            rows = rows + 1
+        end
     end
-    return 0, { "the check failed: " .. tostring(looked) }
+    local wrong = {}
+    if rows < quests then
+        wrong[1] = string.format("%d quests listed of %d", rows, quests)
+    end
+    return quests, wrong, collapsed .. " headers collapsed in the game's log"
 end
 
--- { checked, skipped, missing = { "kind name", sorted }, headers, wrong } for this client now.
+-- The game's own numbers the addon reads, against the game's enums and constants for them.
+function SelfCheck.Numbers()
+    local F = ns.Filter
+    local list = {
+        { "Constants.QuestInfoLuaConsts.QUEST_INFO_ELITE_ID", F.TAG.elite },
+        { "Constants.QuestInfoLuaConsts.QUEST_INFO_PVP_ID", F.TAG.pvp },
+        { "Constants.QuestInfoLuaConsts.QUEST_INFO_RAID_ID", F.TAG.raid },
+        { "Constants.QuestInfoLuaConsts.QUEST_INFO_DUNGEON_ID", F.TAG.dungeon },
+        { "Enum.QuestTag.Legendary", F.TAG.legendary },
+        { "Enum.QuestTag.Raid10", F.TAG.raid10 },
+        { "Enum.QuestTag.Raid25", F.TAG.raid25 },
+        { "Enum.QuestClassification.Questline", F.QUESTLINE },
+        { "Constants.QuestWatchConsts.MAX_QUEST_WATCHES", ns.Model.WATCH_LIMIT },
+    }
+    for name, value in pairs(F.FREQUENCY) do
+        list[#list + 1] = { "Enum.QuestFrequency." .. name, value }
+    end
+    for i, name in ipairs(F.DIFFICULTY) do
+        list[#list + 1] = { "Enum.RelativeContentDifficulty." .. name, i - 1 }
+    end
+    for i, name in ipairs(F.CLASSIFICATION) do
+        list[#list + 1] = { "Enum.QuestClassification." .. name, i - 1 }
+    end
+    local wrong = {}
+    for _, pair in ipairs(list) do
+        local game = resolve(pair[1])
+        if game ~= pair[2] then
+            wrong[#wrong + 1] = string.format("%s is %s, the addon reads %s", pair[1], tostring(game), tostring(pair[2]))
+        end
+    end
+    table.sort(wrong)
+    return #list, wrong
+end
+
+-- GetZoneText() is the name of the area your map shows, as that zone's log header is: Monde puts the header first,
+-- and the filter's "Zone actuelle" finds it, by that text. Each zone is tried once a session.
+local zones = { looked = 0, seen = {}, wrong = {} }
+local function noteZone()
+    local area = ns.MAP_AREAS[ns.Call(C_Map.GetBestMapForUnit, "player") or 0]
+    local zone = GetZoneText()
+    if not area or zones.seen[area] or zone == nil or zone == "" then
+        return
+    end
+    zones.seen[area] = true
+    zones.looked = zones.looked + 1
+    local name = ns.Call(C_Map.GetAreaInfo, area)
+    if name ~= zone then
+        zones.wrong[#zones.wrong + 1] = string.format("area %d is named %s, GetZoneText() says %s", area, tostring(name),
+            tostring(zone))
+    end
+end
+
+-- An addon may set auto-tracking, and Shift is the game's key for tracking and for links, as the tips and hints say.
+function SelfCheck.Settings()
+    local wrong = {}
+    local value, _, _, _, locked, secure, readOnly = C_CVar.GetCVarInfo("autoQuestWatch")
+    if value == nil or locked or secure or readOnly then
+        wrong[#wrong + 1] = string.format("autoQuestWatch: value %s, locked %s, secure %s, read-only %s", tostring(value),
+            tostring(locked), tostring(secure), tostring(readOnly))
+    end
+    for _, action in ipairs({ "QUESTWATCHTOGGLE", "CHATLINK" }) do
+        local key = GetModifiedClick(action)
+        if key ~= "SHIFT" then
+            wrong[#wrong + 1] = string.format("%s is %s, not SHIFT", action, tostring(key))
+        end
+    end
+    return 3, wrong
+end
+
+-- Blizzard's tracker and its sections, and the addon's own frames, aren't protected: they're parked, moved and
+-- changed in a fight.
+function SelfCheck.Frames()
+    local looked, wrong = 0, {}
+    local function free(name, f)
+        if type(f) == "table" and f.IsProtected then
+            looked = looked + 1
+            if f:IsProtected() then
+                wrong[#wrong + 1] = name .. " is protected"
+            end
+        end
+    end
+    free("ObjectiveTrackerFrame", ObjectiveTrackerFrame)
+    for _, group in ipairs({ ns.Coverage.DRAWN, ns.Coverage.SECTIONS }) do
+        for _, s in ipairs(group) do
+            free(s.frame, _G[s.frame])
+        end
+    end
+    free("KaLiQuestTracker", KaLiQuestTracker)
+    return looked, wrong
+end
+
+-- Each refusal of AddQuestWatch this session, which the model reads as the game's limit reached.
+local refusals = { looked = 0, wrong = {} }
+
+local ASSUMPTIONS = {
+    { "log headers", SelfCheck.Headers },
+    { "log listing", SelfCheck.Listing },
+    { "game numbers", SelfCheck.Numbers },
+    { "zone name", function()
+        noteZone()
+        return zones.looked, zones.wrong
+    end },
+    { "settings", SelfCheck.Settings },
+    { "frames", SelfCheck.Frames },
+    { "tracking limit", function()
+        return refusals.looked, refusals.wrong
+    end },
+}
+
+-- Each assumption as it stands: { name, looked, wrong, note }, and how many things don't hold in all.
+function SelfCheck.Assumptions()
+    local out, failing = {}, 0
+    for _, a in ipairs(ASSUMPTIONS) do
+        local ok, looked, wrong, note = pcall(a[2])
+        if not ok then
+            wrong, looked, note = { "the check failed: " .. tostring(looked) }, 0, nil
+        end
+        out[#out + 1] = { name = a[1], looked = looked, wrong = wrong, note = note }
+        failing = failing + #wrong
+    end
+    return out, failing
+end
+
+-- { checked, skipped, missing = { "kind name", sorted }, assumed, failing } for this client now.
 function SelfCheck.Run()
     local needs = ns.NEEDS or {}
     local result = { checked = 0, skipped = 0, missing = {} }
@@ -132,8 +267,11 @@ function SelfCheck.Run()
             end
         end
     end
+    for _, name in ipairs(needs.strings or {}) do
+        check("string", name, type(_G[name]) == "string")
+    end
     table.sort(result.missing)
-    result.headers, result.wrong = headers()
+    result.assumed, result.failing = SelfCheck.Assumptions()
     last = result
     return result
 end
@@ -142,19 +280,42 @@ function SelfCheck.Last()
     return last
 end
 
--- The log is usually still empty at login, so its headers are tried once it has some, into this build's entry.
-local function headersLater()
-    local looked, wrong = headers()
-    if looked == 0 and #wrong == 0 then
+local current -- this build's entry in KaLiQuestDevDB.apiChecks, from login
+
+-- Brings this build's entry, and the diagnostics' copy, up to date with the assumptions as they stand.
+local function store()
+    if not current then
         return
     end
-    ns.Off("QUEST_LOG_UPDATE", headersLater)
-    local list = KaLiQuestDevDB and KaLiQuestDevDB.apiChecks
-    local entry = type(list) == "table" and list[#list]
-    if type(entry) == "table" then
-        entry.headers, entry.wrong = looked, wrong
+    current.assumed, current.failing = SelfCheck.Assumptions()
+    if last then
+        last.assumed, last.failing = current.assumed, current.failing
     end
 end
+
+-- The log is usually still empty at login, and the tracker and the zone not there yet, so all is tried again once
+-- the log has something in it.
+local function later()
+    if (C_QuestLog.GetNumQuestLogEntries() or 0) == 0 then
+        return
+    end
+    ns.Off("QUEST_LOG_UPDATE", later)
+    store()
+end
+
+function SelfCheck.NoteRefusal(questID, tracked)
+    refusals.looked = refusals.looked + 1
+    if (tracked or 0) < ns.Model.WATCH_LIMIT and #refusals.wrong < 10 then
+        refusals.wrong[#refusals.wrong + 1] = string.format("AddQuestWatch(%d) refused with %s tracked", questID,
+            tostring(tracked))
+    end
+    store()
+end
+
+ns.On("ZONE_CHANGED_NEW_AREA", function()
+    noteZone()
+    store()
+end)
 
 -- At login: this build's result, replacing an older one for the same build and version, a few builds kept.
 function SelfCheck.AtLogin()
@@ -170,15 +331,14 @@ function SelfCheck.AtLogin()
             table.remove(list, i)
         end
     end
-    list[#list + 1] = { build = build, version = ns.VERSION, when = date("%Y-%m-%d %H:%M"), checked = result.checked,
-        missing = result.missing, headers = result.headers, wrong = result.wrong }
+    current = { build = build, version = ns.VERSION, when = date("%Y-%m-%d %H:%M"), checked = result.checked,
+        missing = result.missing, assumed = result.assumed, failing = result.failing }
+    list[#list + 1] = current
     while #list > BUILDS_KEPT do
         table.remove(list, 1)
     end
     d.apiChecks = list
-    if result.headers == 0 then
-        ns.On("QUEST_LOG_UPDATE", headersLater)
-    end
+    ns.On("QUEST_LOG_UPDATE", later)
 end
 ns.On("PLAYER_LOGIN", SelfCheck.AtLogin)
 

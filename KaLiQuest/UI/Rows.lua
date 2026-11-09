@@ -12,6 +12,7 @@ ns.Rows = Rows
 
 local LINE_GAP = 4
 local POI_ROOM = 24 -- with map buttons, the level sits this much further left
+local FREQUENCY = ns.Filter.FREQUENCY
 local picked = {} -- quests picked with Ctrl+click, until a click without it. Not saved
 local pickOrder = {} -- the quest rows of the last layout, top to bottom
 local hovered -- the quest row or moved line under the pointer
@@ -665,15 +666,15 @@ local function markersOf(q, inGroup)
             add(m.kind, m.atlas, ns.G(m.name, m.fallback))
         end
     end
-    local frequency = q.frequency or 0
-    if q.repeatable and frequency == 0 then
+    local frequency = q.frequency or FREQUENCY.Default
+    if q.repeatable and frequency == FREQUENCY.Default then
         add("repeatable", "questrepeatableturnin", L.FILTER_V_REPEATABLE)
-    elseif frequency == 1 or frequency == 3 then
-        add("daily", "questlog-questtypeicon-daily", frequency == 3 and L.FILTER_V_SCHEDULED or L.FILTER_V_DAILY)
-    elseif frequency == 2 then
+    elseif frequency == FREQUENCY.Daily or frequency == FREQUENCY.ResetByScheduler then
+        add("daily", "questlog-questtypeicon-daily", frequency == FREQUENCY.ResetByScheduler and L.FILTER_V_SCHEDULED or L.FILTER_V_DAILY)
+    elseif frequency == FREQUENCY.Weekly then
         add("weekly", "questlog-questtypeicon-weekly", L.FILTER_V_WEEKLY)
     end
-    if tagID == 83 then
+    if tagID == ns.Filter.TAG.legendary then
         add("legendary", "questlog-questtypeicon-legendary", L.FILTER_V_LEGENDARY)
     end
     -- In Suivi a class quest's place no longer says so.

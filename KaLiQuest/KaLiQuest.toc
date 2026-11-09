@@ -19,6 +19,7 @@ Core\Init.lua
 Core\Debug.lua
 Core\Locale.lua
 Data\Sorts.lua
+Data\Maps.lua
 Data\Needs.lua
 Core\DB.lua
 Core\Categories.lua

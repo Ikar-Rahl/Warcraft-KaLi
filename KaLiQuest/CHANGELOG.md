@@ -8,10 +8,10 @@ First version.
 - Journal sorts the log's headers by their IDs, so in any client language, and remembers which are open the same way.
 - Groups: create, rename, delete with undo, reorder, open one and close the others.
 - Drag and drop for quests, groups and the Journal's bars; Ctrl+click to act on several quests at once.
-- Shift+click tracks or untracks; the game's tracking and your groups follow each other.
+- Shift+click tracks or untracks; the game's tracking and your groups follow each other. Holding Shift or Ctrl over a quest says what a click will do.
 - Padlock, locked by combat; four key bindings.
 - Search and filters; markers; the quests of your area; a glow on progress.
 - Quest items, popups, timers, recipes and achievements, as in Blizzard's tracker.
 - Options in the game's settings, with a Tips page and a reset for each section; the addon compartment; `/kq`.
-- A bug report to copy, from the gear's menu or `/kq report`, with a check that the game still has all the addon uses.
+- A bug report to copy, from the gear's menu or `/kq report`, with a check that the game still has all the addon uses and still answers as the addon assumes.
 - Blizzard's tracker comes back on an error, or when a section the addon doesn't draw fills.

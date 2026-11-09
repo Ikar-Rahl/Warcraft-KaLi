@@ -13,6 +13,8 @@ ns.Model = Model
 Model.FOLLOW_UP_SECONDS = 120
 -- Letters in a group's name, as the rename box allows.
 Model.NAME_MAX = 40
+-- Quests the game tracks at most, as the off-list marker's text says. The model only reads AddWatch's refusal.
+Model.WATCH_LIMIT = 25
 
 function Model.New(db, world, firstGroupName)
     return setmetatable({

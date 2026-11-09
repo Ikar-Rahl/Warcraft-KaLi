@@ -62,6 +62,13 @@ end
 -- Menu order. A label is a string or a function of the value's suffix.
 local DIFFICULTY = { "Trivial", "Easy", "Fair", "Difficult", "Impossible" }
 local CLASSIFICATION = { "Important", "Legendary", "Campaign", "Calling", "Meta", "Recurring" }
+
+-- The game's own numbers the filter reads. The two lists above are in the game's order, from 0. In game the API
+-- check holds each against the game's enums, and offline run_lua_tests.py holds the tags against its QuestInfo table.
+Filter.DIFFICULTY, Filter.CLASSIFICATION, Filter.QUESTLINE = DIFFICULTY, CLASSIFICATION, 6
+Filter.TAG = { elite = 1, life = 21, pvp = 41, raid = 62, dungeon = 81, worldevent = 82, legendary = 83, raid10 = 88, raid25 = 89 }
+Filter.FREQUENCY = { Default = 0, Daily = 1, Weekly = 2, ResetByScheduler = 3 }
+local TAG, FREQUENCY = Filter.TAG, Filter.FREQUENCY
 Filter.CATEGORIES = {
     { id = "type", values = { "elite", "dungeon", "raid", "pvp", "legendary", "worldevent", "tag21" } },
     { id = "size" },
@@ -204,31 +211,32 @@ function Filter.CanFindGroup(id)
 end
 
 -- Quest tags by kind. Raids of 10 and 25 players have tags of their own, which Blizzard shows as raids.
-Filter.TAGS = { dungeon = { [81] = true }, raid = { [62] = true, [88] = true, [89] = true }, pvp = { [41] = true } }
+Filter.TAGS = { dungeon = { [TAG.dungeon] = true }, raid = { [TAG.raid] = true, [TAG.raid10] = true, [TAG.raid25] = true },
+    pvp = { [TAG.pvp] = true } }
 
 -- A quest's values in every category. ctx: { zone, inParty }. names collects labels the game gives.
 function Filter.Traits(q, ctx, names)
     local id = q.id
     local tag = call(C_QuestLog.GetQuestTagInfo, id)
     local tagID = tag and tag.tagID
-    if tagID == 21 and names then
+    if tagID == TAG.life and names then
         names.tag21 = tag.tagName
     end
-    local elite = call(C_QuestLog.IsEliteQuest, id) or tagID == 1
+    local elite = call(C_QuestLog.IsEliteQuest, id) or tagID == TAG.elite
     local t = {}
     t.type = set(
         elite and "elite",
         (Filter.TAGS.dungeon[tagID] or q.headerKind == "instance") and "dungeon",
         Filter.TAGS.raid[tagID] and "raid",
         (Filter.TAGS.pvp[tagID] or q.headerKind == "battleground") and "pvp",
-        tagID == 83 and "legendary",
-        tagID == 82 and "worldevent",
-        tagID == 21 and "tag21")
+        tagID == TAG.legendary and "legendary",
+        tagID == TAG.worldevent and "worldevent",
+        tagID == TAG.life and "tag21")
     t.size = set((q.suggestedGroup or 0) > 1 and ("size" .. q.suggestedGroup))
     t["repeat"] = set(
-        q.frequency == 1 and "daily",
-        q.frequency == 2 and "weekly",
-        q.frequency == 3 and "scheduled",
+        q.frequency == FREQUENCY.Daily and "daily",
+        q.frequency == FREQUENCY.Weekly and "weekly",
+        q.frequency == FREQUENCY.ResetByScheduler and "scheduled",
         q.repeatable and "repeatable" or "once")
     t.state = set(
         q.failed and "failed" or (q.complete and "ready" or "progress"),
@@ -239,7 +247,7 @@ function Filter.Traits(q, ctx, names)
     t.diff = set(diff and DIFFICULTY[diff + 1])
     local class = C_QuestInfoSystem and call(C_QuestInfoSystem.GetQuestClassification, id)
     t.class = set(class and CLASSIFICATION[class + 1])
-    t.story = set(q.isStory and "story", class == 6 and "questline")
+    t.story = set(q.isStory and "story", class == Filter.QUESTLINE and "questline")
     local faction = call(GetQuestFactionGroup, id)
     t.account = set(
         call(C_QuestLog.IsAccountQuest, id) and "account",

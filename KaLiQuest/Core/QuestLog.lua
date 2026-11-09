@@ -35,8 +35,9 @@ function QuestLog.Read(classify)
                     headerKind = headerKind,
                     complete = C_QuestLog.IsComplete(id),
                     failed = C_QuestLog.IsFailed(id),
-                    -- Any frequency but Default (0) repeats: daily, weekly, or reset by the scheduler.
-                    repeatable = (info.frequency ~= nil and info.frequency ~= 0) or C_QuestLog.IsRepeatableQuest(id) == true,
+                    -- Any frequency but Default repeats: daily, weekly, or reset by the scheduler.
+                    repeatable = (info.frequency ~= nil and info.frequency ~= ns.Filter.FREQUENCY.Default)
+                        or C_QuestLog.IsRepeatableQuest(id) == true,
                 }
                 order[#order + 1] = id
             end

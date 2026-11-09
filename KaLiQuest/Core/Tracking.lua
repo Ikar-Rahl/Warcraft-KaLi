@@ -31,6 +31,9 @@ end
 function World:AddWatch(questID)
     local ok = C_QuestLog.AddQuestWatch(questID)
     log("AddQuestWatch(%d) -> %s", questID, tostring(ok))
+    if not ok then
+        ns.SelfCheck.NoteRefusal(questID, C_QuestLog.GetNumQuestWatches())
+    end
     return ok
 end
 

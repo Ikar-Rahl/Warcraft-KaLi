@@ -52,15 +52,18 @@ local function apiText()
     for _, m in ipairs(r.missing) do
         lines[#lines + 1] = "  missing: " .. m
     end
-    lines[#lines + 1] = string.format("quest log headers: looked at %d, not as the addon assumes %d", r.headers or 0, #(r.wrong or {}))
-    for _, w in ipairs(r.wrong or {}) do
-        lines[#lines + 1] = "  not as assumed: " .. w
+    lines[#lines + 1] = string.format("assumptions: %d tried, %d things not as the addon assumes", #r.assumed, r.failing)
+    for _, a in ipairs(r.assumed) do
+        lines[#lines + 1] = string.format("  %s: looked at %d%s", a.name, a.looked, a.note and (", " .. a.note) or "")
+        for _, w in ipairs(a.wrong) do
+            lines[#lines + 1] = "    not as assumed: " .. w
+        end
     end
     local history = KaLiQuestDevDB and KaLiQuestDevDB.apiChecks
     history = type(history) == "table" and history or {}
     for _, e in ipairs(history) do
-        lines[#lines + 1] = string.format("  at login, build %s, %s, %s: %d missing; %d of %d headers not as assumed",
-            tostring(e.build), tostring(e.version), tostring(e.when), #(e.missing or {}), #(e.wrong or {}), e.headers or 0)
+        lines[#lines + 1] = string.format("  at login, build %s, %s, %s: %d missing, %d not as assumed", tostring(e.build),
+            tostring(e.version), tostring(e.when), #(e.missing or {}), e.failing or 0)
     end
     -- What a patch broke: the difference with the last other build seen.
     local _, build = GetBuildInfo()
