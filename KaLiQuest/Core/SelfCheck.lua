@@ -1,7 +1,7 @@
 -- What the addon takes from the game, looked for in this client: the list in Data/Needs.lua, made from the code
 -- offline, and what it assumes of the game's answers, tried on the player's quest log. Run at login, kept per build
--- in KaLiQuestDevDB.apiChecks, and again for each bug report; it changes nothing. Also keeps what the game reports
--- against the addon: an action it blocked, a Lua warning in its files.
+-- in KaLiQuestDevDB.apiChecks, and again for each bug report. It changes nothing, but says once in chat when something
+-- isn't as assumed. Also keeps what the game reports against the addon: a blocked action, a Lua warning in its files.
 local ADDON, ns = ...
 
 local SelfCheck = {}
@@ -282,6 +282,20 @@ end
 
 local current -- this build's entry in KaLiQuestDevDB.apiChecks, from login
 
+-- Once per build and addon version. A missing game string isn't worth it: the addon has its own wording for each.
+local function tell()
+    local count = current.failing or 0
+    for _, m in ipairs(current.missing or {}) do
+        if not m:find("^string ") then
+            count = count + 1
+        end
+    end
+    if count > 0 and not current.told then
+        current.told = true
+        ns.Say(ns.L.API_NOT_AS_ASSUMED)
+    end
+end
+
 -- Brings this build's entry, and the diagnostics' copy, up to date with the assumptions as they stand.
 local function store()
     if not current then
@@ -291,6 +305,7 @@ local function store()
     if last then
         last.assumed, last.failing = current.assumed, current.failing
     end
+    tell()
 end
 
 -- The log is usually still empty at login, and the tracker and the zone not there yet, so all is tried again once
@@ -317,7 +332,8 @@ ns.On("ZONE_CHANGED_NEW_AREA", function()
     store()
 end)
 
--- At login: this build's result, replacing an older one for the same build and version, a few builds kept.
+-- At login: this build's result, replacing an older one for the same build and version but not whether it was said,
+-- a few builds kept.
 function SelfCheck.AtLogin()
     local result = SelfCheck.Run()
     local d = KaLiQuestDevDB
@@ -326,13 +342,15 @@ function SelfCheck.AtLogin()
     end
     local _, build = GetBuildInfo()
     local list = type(d.apiChecks) == "table" and d.apiChecks or {}
+    local told
     for i = #list, 1, -1 do
         if type(list[i]) ~= "table" or list[i].build == build and list[i].version == ns.VERSION then
+            told = told or type(list[i]) == "table" and list[i].told or nil
             table.remove(list, i)
         end
     end
     current = { build = build, version = ns.VERSION, when = date("%Y-%m-%d %H:%M"), checked = result.checked,
-        missing = result.missing, assumed = result.assumed, failing = result.failing }
+        missing = result.missing, assumed = result.assumed, failing = result.failing, told = told }
     list[#list + 1] = current
     while #list > BUILDS_KEPT do
         table.remove(list, 1)

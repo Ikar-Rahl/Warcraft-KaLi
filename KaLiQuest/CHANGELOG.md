@@ -13,5 +13,5 @@ First version.
 - Search and filters; markers; the quests of your area; a glow on progress.
 - Quest items, popups, timers, recipes and achievements, as in Blizzard's tracker.
 - Options in the game's settings, with a Tips page and a reset for each section; the addon compartment; `/kq`.
-- A bug report to copy, from the gear's menu or `/kq report`, with a check that the game still has all the addon uses and still answers as the addon assumes.
+- A bug report to copy, from the gear's menu or `/kq report`, with a check that the game still has all the addon uses and still answers as the addon assumes. When it doesn't, a line in chat says so, once per game version.
 - Blizzard's tracker comes back on an error, or when a section the addon doesn't draw fills.
