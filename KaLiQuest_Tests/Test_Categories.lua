@@ -98,3 +98,66 @@ T.Add("Categories", "an area the game can't name is skipped", function()
     local c = ns.Categories.New({ locale = "frFR", areaName = function() return nil end })
     check(c, "Les Mortemines", "world", "zone")
 end)
+
+-- A header's key, as the game gives it: 0x40000000 plus an AreaTable ID, 0x20000000 plus a QuestSort ID.
+local AREA, SORT = 0x40000000, 0x20000000
+
+local function checkKey(c, header, key, category, kind)
+    local got, gotKind = c.Classify(header, key)
+    T.Eq(got, category, header .. " category")
+    T.Eq(gotKind, kind, header .. " kind")
+end
+
+-- German, which has no name table here, so only the keys can tell.
+local function german(classFile)
+    return ns.Categories.New({ locale = "deDE", classFile = classFile, areaName = function() end })
+end
+
+T.Add("Categories", "a header's key decides by its IDs, in any language", function()
+    local c = german("WARRIOR")
+    checkKey(c, "Krieger", SORT + 81, "classprof", "ownclass")
+    checkKey(c, "Magier", SORT + 161, "classprof", "class")
+    checkKey(c, "Schmiedekunst", SORT + 121, "classprof", "profession")
+    checkKey(c, "Mondfest", SORT + 366, "events", "event")
+    checkKey(c, "Ruf", SORT + 367, "misc", "misc")
+    checkKey(c, "Die Todesminen", AREA + 1581, "instances", "instance")
+    checkKey(c, "Alteractal", AREA + 2597, "pvp", "battleground")
+    checkKey(c, "Westfall", AREA + 40, "world", "zone")
+end)
+
+T.Add("Categories", "the player's own class by its file, whatever the header's name or form", function()
+    checkKey(german("MAGE"), "Magierin", SORT + 161, "classprof", "ownclass")
+    checkKey(german("MAGE"), "Krieger", SORT + 81, "classprof", "class")
+    checkKey(german(nil), "Krieger", SORT + 81, "classprof", "class")
+end)
+
+T.Add("Categories", "a key wins over a name that says otherwise", function()
+    local c = french()
+    checkKey(c, "Forgeron", AREA + 40, "world", "zone")
+    checkKey(c, "Marche de l'Ouest", SORT + 121, "classprof", "profession")
+end)
+
+T.Add("Categories", "a QuestSort ID the data doesn't know goes to Divers, as it's never a zone", function()
+    checkKey(german(), "Neu", SORT + 9999, "misc", "misc")
+end)
+
+T.Add("Categories", "a key of another shape leaves the header to its name", function()
+    local c = french()
+    checkKey(c, "Forgeron", 12, "classprof", "profession")
+    checkKey(c, "Les Mortemines", AREA + SORT + 1581, "instances", "instance")
+    checkKey(c, "Fête lunaire", tostring(SORT + 367), "events", "event")
+end)
+
+T.Add("Categories", "each class's QuestSort ID is a class header in the game's table, and every one has its class", function()
+    local n, classes = 0, 0
+    for classFile, id in pairs(ns.Categories.CLASS_SORT) do
+        n = n + 1
+        T.Eq(ns.SORT_KIND[id], "class", classFile)
+    end
+    for _, kind in pairs(ns.SORT_KIND) do
+        if kind == "class" then
+            classes = classes + 1
+        end
+    end
+    T.Eq(n, classes, "as many classes as class headers")
+end)

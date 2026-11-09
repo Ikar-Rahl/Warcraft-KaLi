@@ -5,6 +5,7 @@
 First version.
 
 - A rewritten objective tracker: Suivi holds your own groups, Journal the rest of your log, by category.
+- Journal sorts the log's headers by their IDs, so in any client language, and remembers which are open the same way.
 - Groups: create, rename, delete with undo, reorder, open one and close the others.
 - Drag and drop for quests, groups and the Journal's bars; Ctrl+click to act on several quests at once.
 - Shift+click tracks or untracks; the game's tracking and your groups follow each other.

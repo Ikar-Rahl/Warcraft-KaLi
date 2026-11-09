@@ -73,7 +73,7 @@ function Tree.Build(quests, order, groups, zone, categoryOrder)
         local name = Tree.HeaderName(q)
         local h = headers.byName[name]
         if not h then
-            h = { key = "h" .. name, name = name, quests = {}, entries = {}, kind = q.headerKind }
+            h = { key = "h" .. name, name = name, quests = {}, entries = {}, kind = q.headerKind, headerKey = q.headerKey }
             headers.byName[name] = h
             headers.list[#headers.list + 1] = h
         end

@@ -17,10 +17,14 @@ function Layout.CountText(quests)
 end
 local countText = Layout.CountText
 
--- A player's group is remembered by its ID, a header of the log by its text.
+-- A player's group is remembered by its ID. A header of the log by its key, as Blizzard's quest map does, or by its
+-- text when it has none. Text saved before 2026-11-09 still opens it until it's opened or closed again.
 function Layout.GroupOpen(open, g)
     if g.group then
         return open.groups[g.group.id] == true
+    end
+    if g.headerKey and open.headers[g.headerKey] then
+        return true
     end
     return open.headers[g.name] == true
 end
@@ -79,7 +83,8 @@ function Layout.Lines(tree, open, view)
             local g = entry.g
             local isOpen = searching or Layout.GroupOpen(open, g)
             -- A header left with only moved quests' lines has nothing to count.
-            add({ kind = "group", key = g.key, group = g.group, name = g.name, cat = cat.id, open = isOpen, quests = entry.shown,
+            add({ kind = "group", key = g.key, group = g.group, name = g.name, headerKey = g.headerKey, cat = cat.id,
+                open = isOpen, quests = entry.shown,
                 count = (g.group or #entry.shown > 0) and countOf(entry.shown) or "" })
             if isOpen then
                 if g.group or view then

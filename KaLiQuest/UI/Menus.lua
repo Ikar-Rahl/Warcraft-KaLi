@@ -11,10 +11,14 @@ ns.Menus = Menus
 
 -- Opening and closing ----------------------------------------------------------------------------------------
 
+-- A header is saved by its key when it has one, and the text an older version saved goes with the change.
 function Menus.SetGroupOpen(line, value)
     local open = ns.db.open
     if line.group then
         open.groups[line.group.id] = value or nil
+    elseif line.headerKey then
+        open.headers[line.headerKey] = value or nil
+        open.headers[line.name] = nil
     else
         open.headers[line.name] = value or nil
     end
@@ -69,7 +73,7 @@ local function setAllUnder(barID, value)
     open.categories[barID] = true
     for _, cat in ipairs(cats) do
         for _, g in ipairs(cat.groups) do
-            setGroupOpen({ group = g.group, name = g.name }, value)
+            setGroupOpen({ group = g.group, name = g.name, headerKey = g.headerKey }, value)
         end
     end
     ns.RequestRefresh()
@@ -92,7 +96,7 @@ function Menus.OpenParents(id)
         end
         open.categories.journal = true
         open.categories[q.category] = true
-        open.headers[ns.Tree.HeaderName(q)] = true
+        open.headers[q.headerKey or ns.Tree.HeaderName(q)] = true
     end
     ns.RequestRefresh()
 end

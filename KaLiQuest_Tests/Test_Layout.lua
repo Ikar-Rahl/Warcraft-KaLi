@@ -62,6 +62,30 @@ T.Add("Layout", "a header holding a moved quest shows a moved line in its place"
     T.Eq(lines[6].last, true, "the moved line closes the list")
 end)
 
+T.Add("Layout", "a header opens by its key, or by the text an older version saved", function()
+    local keys = { ["Forêt d'Elwynn"] = 0x40000000 + 12, ["Marche de l'Ouest"] = 0x40000000 + 40, ["Les Mortemines"] = 0x40000000 + 1581 }
+    local quests, order = {}, {}
+    for _, q in ipairs({ quest(1, "Forêt d'Elwynn", "world"), quest(3, "Marche de l'Ouest", "world"), quest(4, "Les Mortemines", "instances") }) do
+        q.headerKey = keys[q.header]
+        quests[q.id] = q
+        order[#order + 1] = q.id
+    end
+    local open = fresh()
+    open.categories.world, open.categories.instances = true, true
+    open.headers[keys["Forêt d'Elwynn"]] = true
+    open.headers["Marche de l'Ouest"] = true
+    local groups = {}
+    for _, line in ipairs(ns.Layout.Lines(ns.Tree.Build(quests, order, {}, "Ailleurs"), open)) do
+        if line.kind == "group" then
+            groups[line.name] = line
+        end
+    end
+    T.Eq(groups["Forêt d'Elwynn"].open, true, "by its key")
+    T.Eq(groups["Marche de l'Ouest"].open, true, "by its text")
+    T.Eq(groups["Les Mortemines"].open, false, "by neither")
+    T.Eq(groups["Les Mortemines"].headerKey, keys["Les Mortemines"], "the line carries its key, for the click to save")
+end)
+
 T.Add("Layout", "bars and groups carry the quests they hold, open or closed, moved ones in their group only", function()
     local open = fresh()
     open.categories.world = true

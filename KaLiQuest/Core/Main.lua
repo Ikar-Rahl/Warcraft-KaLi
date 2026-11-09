@@ -29,6 +29,7 @@ ns.On("PLAYER_LOGIN", function()
     local _, classFile = UnitClass("player")
     ns.categories = ns.Categories.New({
         locale = ns.LOCALE,
+        classFile = classFile,
         ownClassName = LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[classFile],
         areaName = function(areaID)
             return C_Map.GetAreaInfo(areaID)
