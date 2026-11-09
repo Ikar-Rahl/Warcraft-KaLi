@@ -1,0 +1,14 @@
+<Bindings>
+	<Binding name="KALIQUEST_LOCK" header="KALIQUEST" category="ADDONS">
+		KaLiQuest_Binding("lock")
+	</Binding>
+	<Binding name="KALIQUEST_COLLAPSE" category="ADDONS">
+		KaLiQuest_Binding("collapse")
+	</Binding>
+	<Binding name="KALIQUEST_PREVIOUS" category="ADDONS">
+		KaLiQuest_Binding("previous")
+	</Binding>
+	<Binding name="KALIQUEST_NEXT" category="ADDONS">
+		KaLiQuest_Binding("next")
+	</Binding>
+</Bindings>

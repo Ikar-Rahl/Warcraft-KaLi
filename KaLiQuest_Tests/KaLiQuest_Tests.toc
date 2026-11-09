@@ -1,0 +1,17 @@
+## Interface: 16001
+## Title: KaLi Quest (tests)
+## Notes: Developer tests for KaLi Quest. Type /kq test to run them.
+## Notes-frFR: Tests de développement de KaLi Quest. Tapez /kq test pour les lancer.
+## Author: Ikar
+## Version: 0.1.0-dev
+## LoadOnDemand: 1
+## Dependencies: KaLiQuest
+
+Harness.lua
+FakeWorld.lua
+Test_DB.lua
+Test_Categories.lua
+Test_Model.lua
+Test_Tree.lua
+Test_Layout.lua
+Test_Filter.lua

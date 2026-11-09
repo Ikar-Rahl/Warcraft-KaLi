@@ -1,0 +1,285 @@
+-- The bug report: what the addon sees, as plain text, and the window that hands it over. Opened from the gear's
+-- menu, the options page, the diagnostics panel and /kq report. An addon reaches neither the clipboard nor the web,
+-- so the button selects the text for Ctrl+C and the player pastes it at the address shown.
+local _, ns = ...
+local L = ns.L
+
+local Report = {}
+ns.Report = Report
+
+-- Where reports are posted: a new issue on the addon's GitHub repository.
+Report.URL = "https://github.com/Ikar-Rahl/Wow-KaLi-Quest/issues/new"
+
+-- GitHub takes 65,536 characters in an issue.
+local MAX_CHARS = 60000
+local LOG_LINES = 100
+
+local function plain(text)
+    return (tostring(text):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("|A.-|a", ""):gsub("|T.-|t", ""))
+end
+
+local function noData()
+    return "(no saved data: " .. tostring(ns.disabled) .. ")"
+end
+
+-- The names in list a that list b lacks.
+local function without(a, b)
+    local inB, out = {}, {}
+    for _, name in ipairs(b or {}) do
+        inB[name] = true
+    end
+    for _, name in ipairs(a or {}) do
+        if not inB[name] then
+            out[#out + 1] = name
+        end
+    end
+    return out
+end
+
+local function statusText()
+    local _, classFile = UnitClass("player")
+    return table.concat({
+        ns.Commands.StatusText(),
+        string.format("character: %s, level %s, %s · map %s, %s", tostring(classFile), tostring(UnitLevel("player")),
+            tostring(UnitFactionGroup("player")), tostring(C_Map.GetBestMapForUnit("player")), tostring(GetZoneText())),
+        string.format("screen %d × %d, UI scale %.2f", GetScreenWidth(), GetScreenHeight(), UIParent:GetEffectiveScale()),
+    }, "\n")
+end
+
+local function apiText()
+    local r = ns.SelfCheck.Run()
+    local lines = { string.format("checked %d, missing %d, not loaded so not checked %d", r.checked, #r.missing, r.skipped) }
+    for _, m in ipairs(r.missing) do
+        lines[#lines + 1] = "  missing: " .. m
+    end
+    local history = KaLiQuestDevDB and KaLiQuestDevDB.apiChecks
+    history = type(history) == "table" and history or {}
+    for _, e in ipairs(history) do
+        lines[#lines + 1] = string.format("  at login, build %s, %s, %s: %d missing", tostring(e.build), tostring(e.version),
+            tostring(e.when), #(e.missing or {}))
+    end
+    -- What a patch broke: the difference with the last other build seen.
+    local _, build = GetBuildInfo()
+    for i = #history, 1, -1 do
+        local e = history[i]
+        if e.build ~= build then
+            local gone, back = without(r.missing, e.missing), without(e.missing, r.missing)
+            lines[#lines + 1] = string.format("  since build %s: newly missing %s; back %s", tostring(e.build),
+                #gone > 0 and table.concat(gone, ", ") or "none", #back > 0 and table.concat(back, ", ") or "none")
+            break
+        end
+    end
+    return table.concat(lines, "\n")
+end
+
+local function optionsText()
+    return ns.db and table.concat(ns.Serialize(ns.db.options), "\n") or noData()
+end
+
+local function groupsText()
+    return ns.db and ns.Commands.GroupsText() or noData()
+end
+
+local function treeText()
+    return ns.db and ns.Commands.TreeText() or noData()
+end
+
+local function addonsText()
+    local names = {}
+    for i = 1, C_AddOns.GetNumAddOns() do
+        local name = C_AddOns.GetAddOnInfo(i)
+        if name and C_AddOns.IsAddOnLoaded(name) then
+            names[#names + 1] = name .. " " .. tostring(C_AddOns.GetAddOnMetadata(name, "Version") or "?")
+        end
+    end
+    return #names .. " loaded: " .. table.concat(names, ", ")
+end
+
+local function testsText()
+    local t = KaLiQuestDevDB and KaLiQuestDevDB.lastTests
+    if type(t) ~= "table" then
+        return "(never run in game)"
+    end
+    return string.format("%s, %s: %s", tostring(t.when), tostring(t.version), tostring(t.summary))
+end
+
+local function logText()
+    local d = KaLiQuestDevDB or {}
+    local log = type(d.log) == "table" and d.log or {}
+    local lines = { "debug mode " .. (d.debug and "on" or "off") .. ", " .. #log .. " lines" }
+    for i = math.max(1, #log - LOG_LINES + 1), #log do
+        lines[#lines + 1] = log[i]
+    end
+    return table.concat(lines, "\n")
+end
+
+-- The most telling first, as a report too long loses its end.
+local SECTIONS = {
+    { "status", statusText },
+    { "api check", apiText },
+    { "errors", function()
+        return ns.Debug.ErrorsText()
+    end },
+    { "game warnings", function()
+        return ns.SelfCheck.WarningsText()
+    end },
+    { "diagnostics", function()
+        return table.concat(ns.DebugPanel.Lines(), "\n")
+    end },
+    { "options", optionsText },
+    { "groups", groupsText },
+    { "tree", treeText },
+    { "addons", addonsText },
+    { "tests", testsText },
+    { "log", logText },
+}
+
+-- Each part is made apart, so one that fails leaves the others.
+function Report.Text()
+    local out = { string.format("%s bug report, %s", ns.TITLE, date("%Y-%m-%d %H:%M:%S")), "" }
+    for _, s in ipairs(SECTIONS) do
+        local ok, text = pcall(s[2])
+        out[#out + 1] = "== " .. s[1] .. " =="
+        out[#out + 1] = plain(ok and text or "(failed: " .. tostring(text) .. ")")
+        out[#out + 1] = ""
+    end
+    local text = table.concat(out, "\n")
+    if #text > MAX_CHARS then
+        text = (text:sub(1, MAX_CHARS):match("^(.*)\n") or "") .. "\n(cut at " .. MAX_CHARS .. " characters)"
+    end
+    return text
+end
+
+local frame
+local current = ""
+
+-- What the player types is undone, so the text stays whole for Ctrl+C.
+local function readOnly(edit, text)
+    edit:SetScript("OnTextChanged", function(self, userInput)
+        if userInput then
+            self:SetText(text())
+            self:HighlightText()
+        end
+    end)
+end
+
+local function fill()
+    current = Report.Text()
+    frame.Box:SetText(current)
+    frame.Box:SetCursorPosition(0)
+    frame.Hint:SetText("")
+    frame.URL:SetShown(Report.URL ~= nil)
+    frame.NoURL:SetShown(Report.URL == nil)
+    if Report.URL then
+        frame.URL:SetText(Report.URL)
+        frame.URL:SetCursorPosition(0)
+    end
+end
+
+local function build()
+    local function child(kind, template)
+        local f = CreateFrame(kind, nil, nil, template)
+        f:SetParent(frame)
+        return f
+    end
+    frame = CreateFrame("Frame", "KaLiQuestReport", nil, "DefaultPanelFlatTemplate")
+    frame:SetParent(UIParent)
+    frame:SetFrameStrata("DIALOG")
+    frame:SetSize(560, 480)
+    frame:SetPoint("CENTER")
+    frame:SetTitle(L.REPORT_TITLE)
+    frame:SetMovable(true)
+    frame:EnableMouse(true)
+    frame:RegisterForDrag("LeftButton")
+    frame:SetScript("OnDragStart", frame.StartMoving)
+    frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+    frame:SetClampedToScreen(true)
+    tinsert(UISpecialFrames, "KaLiQuestReport")
+
+    -- Where Forever's own close button sits on this panel.
+    ns.CloseButton(frame, 0, 3):SetSize(28, 28)
+
+    local intro = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    intro:SetPoint("TOPLEFT", 20, -34)
+    intro:SetPoint("TOPRIGHT", -20, -34)
+    intro:SetJustifyH("LEFT")
+    intro:SetText(L.REPORT_INTRO)
+
+    local label = frame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    label:SetPoint("TOPLEFT", intro, "BOTTOMLEFT", 0, -16)
+    label:SetText(L.REPORT_ADDRESS)
+    frame.URL = child("EditBox", "InputBoxTemplate")
+    frame.URL:SetAutoFocus(false)
+    frame.URL:SetSize(400, 20)
+    frame.URL:SetPoint("LEFT", label, "RIGHT", 14, 0)
+    readOnly(frame.URL, function()
+        return Report.URL or ""
+    end)
+    frame.NoURL = frame:CreateFontString(nil, "ARTWORK", "GameFontDisable")
+    frame.NoURL:SetPoint("LEFT", label, "RIGHT", 8, 0)
+    frame.NoURL:SetText(L.REPORT_NO_ADDRESS)
+
+    frame.Copy = child("Button", "UIPanelButtonTemplate")
+    frame.Copy:SetSize(200, 24)
+    frame.Copy:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -14)
+    frame.Copy:SetText(L.DIAG_COPY)
+    frame.Copy:SetScript("OnClick", function()
+        ns.SafeCall(Report.Select)
+    end)
+    frame.Hint = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    frame.Hint:SetPoint("LEFT", frame.Copy, "RIGHT", 12, 0)
+
+    local scroll = child("ScrollFrame", "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", frame.Copy, "BOTTOMLEFT", 0, -12)
+    scroll:SetPoint("BOTTOMRIGHT", -36, 16)
+    frame.Box = CreateFrame("EditBox", nil, nil)
+    frame.Box:SetParent(scroll)
+    frame.Box:SetMultiLine(true)
+    frame.Box:SetAutoFocus(false)
+    frame.Box:SetFontObject(ChatFontNormal)
+    frame.Box:SetWidth(484)
+    scroll:SetScrollChild(frame.Box)
+    readOnly(frame.Box, function()
+        return current
+    end)
+    frame.Box:SetScript("OnEscapePressed", frame.Box.ClearFocus)
+    -- The game copies on the key itself, so the box lets go of the keyboard just after.
+    frame.Box:SetScript("OnKeyDown", function(_, key)
+        if key == "C" and (IsControlKeyDown() or IsMetaKeyDown and IsMetaKeyDown()) then
+            C_Timer.After(0, function()
+                frame.Box:ClearFocus()
+                frame.Hint:SetText(L.REPORT_COPIED)
+            end)
+        end
+    end)
+
+    frame:SetScript("OnShow", function()
+        ns.SafeCall(fill)
+    end)
+    frame:Hide()
+end
+
+-- The button: the report made again, selected, for Ctrl+C.
+function Report.Select()
+    fill()
+    frame.Box:SetFocus()
+    frame.Box:HighlightText()
+    frame.Hint:SetText(L.REPORT_PRESS_COPY)
+end
+
+function Report.Open()
+    if not frame then
+        build()
+    end
+    if frame:IsShown() then
+        fill()
+    else
+        frame:Show()
+    end
+    frame:Raise()
+end
+
+-- For the offline smoke test.
+function Report.Frame()
+    return frame
+end

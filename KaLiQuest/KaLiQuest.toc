@@ -1,0 +1,52 @@
+## Interface: 16001
+## Title: KaLi Quest
+## Notes: Your own quest groups, in a rewritten objective tracker.
+## Notes-frFR: Vos propres groupes de quêtes, dans un suivi des objectifs réécrit.
+## Author: Ikar
+## Version: 0.1.0-dev
+## Category: Quests
+## Category-frFR: Quêtes
+## SavedVariables: KaLiQuestDevDB
+## SavedVariablesPerCharacter: KaLiQuestCharDB
+## IconTexture: Interface\AddOns\KaLiQuest\Media\Icon
+## AddonCompartmentFunc: KaLiQuest_OnAddonCompartmentClick
+## AddonCompartmentFuncOnEnter: KaLiQuest_OnAddonCompartmentEnter
+## AddonCompartmentFuncOnLeave: KaLiQuest_OnAddonCompartmentLeave
+## X-License: MIT
+## X-Website: https://github.com/Ikar-Rahl/Wow-KaLi-Quest
+
+Core\Init.lua
+Core\Debug.lua
+Core\Locale.lua
+Data\Sorts.lua
+Data\Needs.lua
+Core\DB.lua
+Core\Categories.lua
+Core\QuestLog.lua
+Core\Model.lua
+Core\Tree.lua
+Core\Layout.lua
+Core\Filter.lua
+Core\Tracking.lua
+Core\Commands.lua
+Core\SelfCheck.lua
+UI\Host.lua
+UI\Fonts.lua
+UI\Widgets.lua
+UI\Sections.lua
+UI\Coverage.lua
+UI\Lock.lua
+UI\Menus.lua
+UI\Rows.lua
+UI\Headers.lua
+UI\Tracker.lua
+UI\Motion.lua
+UI\Items.lua
+UI\Area.lua
+UI\Popups.lua
+UI\Search.lua
+UI\Drag.lua
+UI\Options.lua
+UI\DebugPanel.lua
+UI\Report.lua
+Core\Main.lua
