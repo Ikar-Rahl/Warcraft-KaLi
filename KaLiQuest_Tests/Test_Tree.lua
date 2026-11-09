@@ -47,6 +47,17 @@ T.Add("Tree", "the current zone comes first in Monde", function()
     T.List(names(tree[2]), { "Marche de l'Ouest", "Forêt d'Elwynn" }, "zone first")
 end)
 
+T.Add("Tree", "Monde's other zones are alphabetical, as the game re-sorts its log for the map it shows", function()
+    local quests, order = {}, {}
+    for i, header in ipairs({ "Marche de l'Ouest", "Sombrivage (Darkshore)", "Forêt d'Elwynn", "Bois de la Pénombre" }) do
+        quests[i], order[i] = quest(i, header, "world", "zone"), i
+    end
+    T.List(names(ns.Tree.Build(quests, order, {}, "Forêt d'Elwynn")[2]),
+        { "Forêt d'Elwynn", "Bois de la Pénombre", "Marche de l'Ouest", "Sombrivage (Darkshore)" }, "the zone you're in, then the rest")
+    T.List(names(ns.Tree.Build(quests, order, {}, "Ailleurs")[2]),
+        { "Bois de la Pénombre", "Forêt d'Elwynn", "Marche de l'Ouest", "Sombrivage (Darkshore)" }, "in a zone with no quest")
+end)
+
 T.Add("Tree", "the player's class comes first in Classe et métiers, dungeons alphabetical", function()
     local quests, order = sample()
     local tree = ns.Tree.Build(quests, order, {}, "")

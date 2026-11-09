@@ -153,6 +153,7 @@ T.Add("Categories", "each class's QuestSort ID is a class header in the game's t
     for classFile, id in pairs(ns.Categories.CLASS_SORT) do
         n = n + 1
         T.Eq(ns.SORT_KIND[id], "class", classFile)
+        T.Eq(ns.SORT_NAMES.enUS[id]:upper(), classFile, "Blizzard's QuestSort " .. id .. " names that class")
     end
     for _, kind in pairs(ns.SORT_KIND) do
         if kind == "class" then

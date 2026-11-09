@@ -14,6 +14,8 @@ local LINE_GAP = 4
 local POI_ROOM = 24 -- with map buttons, the level sits this much further left
 local picked = {} -- quests picked with Ctrl+click, until a click without it. Not saved
 local pickOrder = {} -- the quest rows of the last layout, top to bottom
+local hovered -- the quest row or moved line under the pointer
+local retip
 
 -- Clicks, colours and tooltips --------------------------------------------------------------------------------
 
@@ -40,11 +42,16 @@ local function onRowClick(self, button)
     -- Ctrl+click picks or unpicks a quest's row. It moves nothing, so combat and the padlock allow it.
     if IsControlKeyDown() and self.line.kind == "quest" then
         Rows.TogglePick(q.id)
+        if hovered == self then
+            retip(self)
+        end
         return
     end
     Rows.ClearPicked()
     if IsModifiedClick("QUESTWATCHTOGGLE") then
         ns.Menus.ToggleTracking(q.id)
+        -- The quest leaves from under the pointer, so its hint goes.
+        Shared.hideTip(self)
     else
         ns.Menus.OpenDetails(q)
     end
@@ -72,8 +79,37 @@ local function colourRow(row)
     row.Bg:SetAlpha(lit and layout.blockHover or (InCombatLockdown() and layout.blockCombat or layout.blockRest))
 end
 
+-- What a click would do with the modifiers held now, in the order onRowClick tries them, as Blizzard's instruction
+-- lines. add(text, isError) puts a line in the tooltip.
+local function clickHint(row, q, add)
+    if IsModifiedClick("CHATLINK") and ChatFrameUtil and ChatFrameUtil.GetActiveWindow and ChatFrameUtil.GetActiveWindow() then
+        add(L.HINT_LINK)
+    elseif IsControlKeyDown() and row.line.kind == "quest" then
+        add(picked[q.id] and L.HINT_UNPICK or L.HINT_PICK)
+    elseif IsModifiedClick("QUESTWATCHTOGGLE") then
+        if ns.model:GroupOf(q.id) then
+            add(ns.G("CONTENT_TRACKING_UNTRACK_TOOLTIP_PROMPT", "<Maj+clic pour cesser le suivi>"))
+        else
+            local top = ns.db.groups[1]
+            add(string.format(L.HINT_TRACK, top and top.name or ns.model.firstGroupName))
+        end
+        if InCombatLockdown() then
+            add(ns.G("ERR_NOT_IN_COMBAT", "Impossible de faire ceci tout en combattant."), true)
+        end
+    end
+end
+
+local function addHintLine(text, isError)
+    if isError then
+        GameTooltip:AddLine(text, 1, 0.125, 0.125)
+    else
+        GameTooltip:AddLine(text, 0.1, 1, 0.1)
+    end
+end
+
 -- As Blizzard's: party progress while in a group, and its event so other addons can add lines. Before the first
--- group exists, one line says how to make one. A moved quest's line names its group.
+-- group exists, one line says how to make one. A moved quest's line names its group. Holding Shift or Ctrl adds
+-- what a click would then do.
 local function rowTooltip(row)
     local line = row.line
     local q = line and line.quest
@@ -94,6 +130,7 @@ local function rowTooltip(row)
         if g then
             own()
             GameTooltip:SetText(string.format(L.IN_GROUP, g.name), 1, 1, 1)
+            clickHint(row, q, addHintLine)
         end
     else
         if IsInGroup() then
@@ -115,6 +152,10 @@ local function rowTooltip(row)
             underTitle()
             GameTooltip:AddLine(L.FIRST_GROUP_HINT, 0.1, 1, 0.1)
         end
+        clickHint(row, q, function(text, isError)
+            underTitle()
+            addHintLine(text, isError)
+        end)
         -- The last value says whether a tooltip is already up: other addons add to it, or open their own.
         if EventRegistry and EventRegistry.TriggerEvent then
             EventRegistry:TriggerEvent("OnQuestBlockHeader.OnEnter", row, q.id, shown)
@@ -124,6 +165,18 @@ local function rowTooltip(row)
         GameTooltip:Show()
     end
 end
+
+retip = function(row)
+    Shared.hideTip(row)
+    rowTooltip(row)
+end
+
+-- Pressing or letting go of Shift or Ctrl over a quest redraws its tooltip with what a click would now do.
+ns.On("MODIFIER_STATE_CHANGED", function()
+    if hovered and hovered:IsVisible() then
+        retip(hovered)
+    end
+end)
 
 -- The row's box as its hit rect, badge and map button included.
 local function overBox(row)
@@ -240,6 +293,7 @@ function Rows.NewRow()
     ns.Drag.Register(row, "quest")
     row:SetScript("OnClick", guarded(onRowClick))
     row:SetScript("OnEnter", guarded(function(self)
+        hovered = self
         Shared.wake()
         self.hover = true
         colourRow(self)
@@ -247,6 +301,9 @@ function Rows.NewRow()
         rowTooltip(self)
     end))
     row:SetScript("OnLeave", guarded(function(self)
+        if hovered == self then
+            hovered = nil
+        end
         self.hover = false
         colourRow(self)
         showShare(self)
@@ -377,11 +434,15 @@ function Rows.NewMoved()
     end))
     m:SetScript("OnClick", guarded(onRowClick))
     m:SetScript("OnEnter", guarded(function(self)
+        hovered = self
         Shared.wake()
         paint(self.Title, COLOR.movedHover)
         rowTooltip(self)
     end))
     m:SetScript("OnLeave", guarded(function(self)
+        if hovered == self then
+            hovered = nil
+        end
         paint(self.Title, COLOR.moved)
         Shared.hideTip(self)
     end))

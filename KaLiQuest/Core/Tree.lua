@@ -87,19 +87,14 @@ function Tree.Build(quests, order, groups, zone, categoryOrder)
     for _, id in ipairs(fullOrder(categoryOrder, byCategory)) do
         local headers = byCategory[id] and byCategory[id].list or {}
         if id == "world" then
-            -- The current zone first, the rest in log order.
-            local first, rest = {}, {}
-            for _, h in ipairs(headers) do
-                if h.name == zone then
-                    first[#first + 1] = h
-                else
-                    rest[#rest + 1] = h
+            -- The zone you're in first, the rest alphabetical: the game re-sorts its log for the map it shows.
+            table.sort(headers, function(a, b)
+                local az, bz = a.name == zone, b.name == zone
+                if az ~= bz then
+                    return az
                 end
-            end
-            for _, h in ipairs(rest) do
-                first[#first + 1] = h
-            end
-            headers = first
+                return ns.TextLess(a.name, b.name)
+            end)
         elseif id == "classprof" then
             table.sort(headers, function(a, b)
                 local ao, bo = a.kind == "ownclass", b.kind == "ownclass"

@@ -25,7 +25,7 @@ Categories.CLASS_SORT = {
 -- or an instance, 0x20000000 plus the QuestSort ID for the rest. Returns "area" or "sort" and the ID, or nothing for
 -- a key of another shape, which leaves the header to its name.
 local AREA_KEY, SORT_KEY = 0x40000000, 0x20000000
-local function decodeKey(key)
+function Categories.DecodeKey(key)
     if type(key) ~= "number" then
         return nil
     end
@@ -35,6 +35,7 @@ local function decodeKey(key)
         return "sort", key - SORT_KEY
     end
 end
+local decodeKey = Categories.DecodeKey
 
 -- env.locale: the client's language. env.classFile: the player's class, as UnitClass returns it. env.ownClassName:
 -- LOCALIZED_CLASS_NAMES_MALE[classFile], because the log's class headers use the masculine form.
