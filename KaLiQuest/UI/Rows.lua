@@ -93,16 +93,9 @@ local function clickHint(row, q)
     end
 end
 
-local function place(tip, row)
-    tip:ClearAllPoints()
-    tip:SetPoint("TOPRIGHT", row, "TOPLEFT", -(row.gutter or 0), 0)
-    tip:SetOwner(row, "ANCHOR_PRESERVE")
-end
-
 -- As Blizzard's: party progress while in a group, and its event so other addons can add lines. Before the first
 -- group exists, one line says how to make one. A moved quest's line names its group. Holding Shift or Ctrl shows
--- what a click would then do in one plain word, Ikar's ruling: under what the tooltip says, or alone in Blizzard's
--- tooltip without a header, so it stays small. Grey while the game refuses it, as a disabled button.
+-- what a click would then do in one plain word, in its own small box (Shared.showHint).
 local function rowTooltip(row)
     local line = row.line
     local q = line and line.quest
@@ -112,7 +105,9 @@ local function rowTooltip(row)
     local shown = false
     local function own()
         if not shown then
-            place(GameTooltip, row)
+            GameTooltip:ClearAllPoints()
+            GameTooltip:SetPoint("TOPRIGHT", row, "TOPLEFT", -(row.gutter or 0), 0)
+            GameTooltip:SetOwner(row, "ANCHOR_PRESERVE")
             shown = true
         end
     end
@@ -152,18 +147,8 @@ local function rowTooltip(row)
         GameTooltip:Show()
     end
     local hint, refused = clickHint(row, q)
-    if not hint then
-        return
-    end
-    local c = refused and 0.5 or 1
-    if GameTooltip:IsShown() and GameTooltip:GetOwner() == row then
-        GameTooltip:AddLine(hint, c, c, c)
-        GameTooltip:Show()
-    else
-        local tip = GameNoHeaderTooltip or GameTooltip
-        place(tip, row)
-        tip:SetText(hint, c, c, c)
-        tip:Show()
+    if hint then
+        Shared.showHint(row, hint, refused, row.gutter or 0)
     end
 end
 

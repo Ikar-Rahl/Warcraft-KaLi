@@ -161,13 +161,42 @@ function Shared.simpleTip(owner, text)
     GameTooltip:Show()
 end
 
+-- A row's click hint, Ikar's rulings: one plain word in a tooltip's box, at half its size and half seen, under the
+-- tooltip its owner has up or where that tooltip would be. Grey while the game refuses the click.
+function Shared.showHint(owner, text, refused, gap)
+    local hint = Shared.hint
+    if not hint then
+        hint = newFrame("Frame", UIParent, "TooltipBackdropTemplate")
+        hint:SetFrameStrata("TOOLTIP")
+        hint:SetClampedToScreen(true)
+        hint:SetScale(0.5)
+        hint:SetAlpha(0.5)
+        hint.Text = hint:CreateFontString(nil, "ARTWORK", "GameTooltipText")
+        hint.Text:SetPoint("CENTER")
+        Shared.hint = hint
+    end
+    local c = refused and 0.5 or 1
+    hint.Text:SetText(text)
+    hint.Text:SetTextColor(c, c, c)
+    hint:SetSize(hint.Text:GetStringWidth() + 20, hint.Text:GetStringHeight() + 20)
+    hint:ClearAllPoints()
+    if GameTooltip:IsShown() and GameTooltip:GetOwner() == owner then
+        hint:SetPoint("TOPRIGHT", GameTooltip, "BOTTOMRIGHT")
+    else
+        hint:SetPoint("TOPRIGHT", owner, "TOPLEFT", -gap * owner:GetEffectiveScale() / hint:GetEffectiveScale(), 0)
+    end
+    hint.owner = owner
+    hint:Show()
+end
+
 function Shared.hideTip(owner)
     if GameTooltip:GetOwner() == owner then
         GameTooltip:Hide()
     end
-    -- A row's click hint, when it shows alone.
-    if GameNoHeaderTooltip and GameNoHeaderTooltip:GetOwner() == owner then
-        GameNoHeaderTooltip:Hide()
+    local hint = Shared.hint
+    if hint and hint.owner == owner then
+        hint.owner = nil
+        hint:Hide()
     end
 end
 
