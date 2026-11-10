@@ -7,15 +7,15 @@ ns.DB = DB
 
 DB.VERSION = 1
 
--- Ikar's defaults, 2026-11-07, set on the test bench. Text size 12 is also Edit Mode's own default.
+-- Ikar's defaults, 2026-11-07, set on the test bench. The zoom, Ikar's ruling on 2026-11-10, starts at 100 %.
 DB.DEFAULTS = {
-    width = 310, height = 530, textSize = 12, titleGap = -4, groupIndent = 0, questIndent = 40, groupGap = 5, barGap = 5,
+    width = 310, height = 530, zoom = 100, titleGap = -4, groupIndent = 0, questIndent = 40, groupGap = 5, barGap = 5,
     markerSize = 13, blockRest = 15, blockCombat = 15, blockHover = 40, opacity = 90, opacityCombat = 50, saturation = 50,
 }
 
 -- The options page's ranges, which loading also keeps saved numbers in.
 DB.RANGES = {
-    width = { 220, 400 }, height = { 200, 1000 }, textSize = { 8, 20 }, titleGap = { -6, 10 }, groupIndent = { 0, 24 },
+    width = { 220, 400 }, height = { 200, 1000 }, zoom = { 50, 200 }, titleGap = { -6, 10 }, groupIndent = { 0, 24 },
     questIndent = { 20, 44 }, groupGap = { 0, 16 }, barGap = { 0, 16 }, markerSize = { 10, 20 }, blockRest = { 0, 100 },
     blockCombat = { 0, 100 }, blockHover = { 0, 100 }, opacity = { 0, 100 }, opacityCombat = { 0, 100 }, saturation = { 0, 100 },
 }
@@ -105,19 +105,22 @@ function DB.FillDefaults(db)
             o.markers[kind] = true
         end
     end
-    -- Text size stays nil, following Edit Mode, until set here. NaN, which isn't equal to itself, counts as missing.
+    -- NaN, which isn't equal to itself, counts as missing.
     local D = DB.DEFAULTS
-    for _, key in ipairs({ "width", "titleGap", "groupIndent", "questIndent", "groupGap", "barGap", "markerSize", "blockRest",
-        "blockCombat", "blockHover", "opacity", "opacityCombat", "saturation" }) do
+    for _, key in ipairs({ "width", "zoom", "titleGap", "groupIndent", "questIndent", "groupGap", "barGap", "markerSize",
+        "blockRest", "blockCombat", "blockHover", "opacity", "opacityCombat", "saturation" }) do
         if type(o[key]) ~= "number" or o[key] ~= o[key] then
             o[key] = D[key]
         end
     end
-    for _, key in ipairs({ "textSize", "height", "editModeTextSize", "editModeHeight" }) do
+    -- Height stays nil, following Edit Mode, until set here.
+    for _, key in ipairs({ "height", "editModeHeight" }) do
         if type(o[key]) ~= "number" or o[key] ~= o[key] then
             o[key] = nil
         end
     end
+    -- The addon's own text size, until the zoom replaced it on 2026-11-10. Edit Mode's sets the text now.
+    o.textSize, o.editModeTextSize = nil, nil
     for key, range in pairs(DB.RANGES) do
         if o[key] then
             o[key] = math.max(range[1], math.min(range[2], o[key]))

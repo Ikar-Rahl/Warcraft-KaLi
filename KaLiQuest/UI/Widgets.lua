@@ -37,6 +37,7 @@ Shared.COLOR = COLOR
 local D = ns.DB.DEFAULTS
 local layout = {
     width = D.width,
+    zoom = D.zoom / 100,
     titleGap = D.titleGap, -- Suivi starts 4 inside the title's height, Ikar's ruling
     barGap = D.barGap,
     groupGap = D.groupGap,
@@ -65,6 +66,7 @@ end
 function Shared.ApplyOptions()
     local o = ns.db.options
     layout.width = o.width or D.width
+    layout.zoom = (o.zoom or D.zoom) / 100
     layout.titleGap = o.titleGap or D.titleGap
     layout.barGap = o.barGap or D.barGap
     layout.groupGap = o.groupGap or D.groupGap

@@ -62,7 +62,7 @@ local function dropdown(key, name, default, values, tooltip)
     table.insert(sectionSettings, setting)
 end
 
--- Text size and height follow Edit Mode until set here; whichever was changed last wins.
+-- Height follows Edit Mode until set here; whichever was changed last wins.
 local function proxy(key, name, default, step, current)
     local o = ns.db.options
     local setting = Settings.RegisterProxySetting(category, "KALIQUEST_" .. key:upper(), Settings.VarType.Number, name, default,
@@ -189,11 +189,11 @@ function Options.Register()
 
     local D = ns.DB.DEFAULTS
     section(layout, L.OPTIONS_LOOK)
+    number("zoom", L.OPTION_ZOOM, D.zoom, 5, L.OPTION_ZOOM_TIP, percent)
     number("width", L.OPTION_WIDTH, D.width, 2)
     proxy("height", L.OPTION_HEIGHT, D.height, 10, function()
         return math.floor(ns.Host.Height() + 0.5)
     end)
-    proxy("textSize", L.OPTION_TEXT_SIZE, D.textSize, 1, ns.Fonts.EditModeSize)
     number("blockRest", L.OPTION_BLOCK_REST, D.blockRest, 5, nil, percent)
     number("blockCombat", L.OPTION_BLOCK_COMBAT, D.blockCombat, 5, nil, percent)
     number("blockHover", L.OPTION_BLOCK_HOVER, D.blockHover, 5, nil, percent)

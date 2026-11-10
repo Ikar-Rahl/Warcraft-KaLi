@@ -93,9 +93,10 @@ local function clickHint(row, q)
     end
 end
 
--- As Blizzard's: party progress while in a group, and its event so other addons can add lines. Before the first
--- group exists, one line says how to make one. A moved quest's line names its group. Holding Shift or Ctrl shows
--- what a click would then do in one plain word, in its own small box (Shared.showHint).
+-- No tooltip at rest, neither party progress nor markers' names, Ikar's rulings on 2026-11-10; Blizzard's event
+-- still lets other addons add their own. Before the first group exists, one line says how to make one. A moved
+-- quest's line names its group. Holding Shift or Ctrl shows what a click would then do in one plain word, in its own
+-- small box (Shared.showHint).
 local function rowTooltip(row)
     local line = row.line
     local q = line and line.quest
@@ -104,12 +105,11 @@ local function rowTooltip(row)
     end
     local shown = false
     local function own()
-        if not shown then
-            GameTooltip:ClearAllPoints()
-            GameTooltip:SetPoint("TOPRIGHT", row, "TOPLEFT", -(row.gutter or 0), 0)
-            GameTooltip:SetOwner(row, "ANCHOR_PRESERVE")
-            shown = true
-        end
+        local gap = (row.gutter or 0) * row:GetEffectiveScale() / GameTooltip:GetEffectiveScale()
+        GameTooltip:ClearAllPoints()
+        GameTooltip:SetPoint("TOPRIGHT", row, "TOPLEFT", -gap, 0)
+        GameTooltip:SetOwner(row, "ANCHOR_PRESERVE")
+        shown = true
     end
     if line.kind == "moved" then
         local g = ns.model:GroupOf(q.id)
@@ -119,23 +119,10 @@ local function rowTooltip(row)
         own()
         GameTooltip:SetText(string.format(L.IN_GROUP, g.name), 1, 1, 1)
     else
-        if IsInGroup() then
-            own()
-            GameTooltip:SetQuestPartyProgress(q.id)
-        end
-        -- A tooltip's first line takes the header font, so lone lines go under the quest's title.
-        local function underTitle()
-            if not shown then
-                own()
-                GameTooltip:SetText(q.title, 1, 1, 1)
-            end
-        end
-        for _, m in ipairs(row.markers or {}) do
-            underTitle()
-            GameTooltip:AddLine(m.label, 1, 0.82, 0)
-        end
+        -- A tooltip's first line takes the header font, so the line goes under the quest's title.
         if #ns.db.groups == 0 then
-            underTitle()
+            own()
+            GameTooltip:SetText(q.title, 1, 1, 1)
             GameTooltip:AddLine(L.FIRST_GROUP_HINT, 0.1, 1, 0.1)
         end
         -- The last value says whether a tooltip is already up: other addons add to it, or open their own.
@@ -613,9 +600,9 @@ local function boxChrome(f, ctx, last)
     f.SepBottom:SetShown(last == true)
 end
 
--- Icons only where the row's place doesn't already say it, in the plan's order (Markers). At most three show; the
--- tooltip names them all. Dungeon, raid and PvP show only outside their own category, as icons rather than the
--- "(Donjon)" text, Ikar's ruling on 2026-11-06.
+-- Icons only where the row's place doesn't already say it, in the plan's order (Markers). At most three show, and
+-- no tooltip names them, Ikar's ruling on 2026-11-10. Dungeon, raid and PvP show only outside their own category,
+-- as icons rather than the "(Donjon)" text, Ikar's ruling on 2026-11-06.
 local MARKERS = {
     { kind = "dungeon", atlas = "questlog-questtypeicon-dungeon", tags = ns.Filter.TAGS.dungeon, home = "instances", name = "CALENDAR_TYPE_DUNGEON", fallback = "Donjon" },
     { kind = "raid", atlas = "questlog-questtypeicon-raid", tags = ns.Filter.TAGS.raid, home = "instances", name = "RAID", fallback = "Raid" },
@@ -623,7 +610,7 @@ local MARKERS = {
 }
 local SHOWN_MARKERS = 3
 
--- A marker switched off in the options shows neither in the title nor in the tooltip.
+-- A marker switched off in the options doesn't show.
 local function markersOf(q, inGroup)
     local out = {}
     local on = ns.db.options.markers

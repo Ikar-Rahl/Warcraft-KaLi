@@ -18,6 +18,7 @@ local FIXED_GAP = 6 -- Blizzard's first section sits 6 under the title, as the s
 
 local root, title, scroll, scrollBar, content, background
 local active = false
+local zoomed -- the scale last given to the root
 local offset = 0
 local maxOffset = 0
 local hadPosition
@@ -255,7 +256,7 @@ local function drawAll()
     Shared.ApplyOptions()
     ns.Fonts.Apply()
     local width = layout.width
-    ns.Host.SetWidth(width)
+    ns.Host.SetWidth(width, layout.zoom)
     local quests, order = ns.QuestLog.Read(ns.categories.Classify)
     ns.Area.Note(quests, ns.Motion.Scan(quests, InCombatLockdown()))
     ns.Filter.Forget(quests)
@@ -328,8 +329,13 @@ local function drawAll()
         end
     end
 
-    local timerRoom = ns.Host.PlaceTimer(width, ns.Fonts.Size())
-    local rootHeight = db.options.height or ns.Host.Height()
+    local timerRoom = ns.Host.PlaceTimer(width, ns.Fonts.Size(), layout.zoom)
+    -- The zoom scales the whole tracker, Ikar's ruling on 2026-11-10. The height stays the one set, on screen.
+    if zoomed ~= layout.zoom then
+        zoomed = layout.zoom
+        root:SetScale(zoomed)
+    end
+    local rootHeight = (db.options.height or ns.Host.Height()) / zoomed
     root:SetSize(width, rootHeight)
     root:SetAlpha((InCombatLockdown() and db.options.opacityCombat or db.options.opacity) / 100)
     local base = root:GetFrameLevel() or 1
@@ -535,10 +541,7 @@ local function hookOnce()
     if manager then
         -- Edit Mode's text size and opacity reach the rows through Blizzard's font objects and this redraw.
         if type(manager.SetTextSize) == "function" then
-            hooksecurefunc(manager, "SetTextSize", function(_, size)
-                ns.Fonts.NoteEditMode(size)
-                ns.RequestRefresh()
-            end)
+            hooksecurefunc(manager, "SetTextSize", ns.RequestRefresh)
         end
         if type(manager.SetOpacity) == "function" then
             hooksecurefunc(manager, "SetOpacity", ns.RequestRefresh)
@@ -623,7 +626,7 @@ function Tracker.SetEnabled(on)
         end
         Tracker.failed = nil
         hookOnce()
-        ns.Host.Park(layout.width)
+        ns.Host.Park(layout.width, layout.zoom)
         -- What changed while Blizzard's tracker showed was shown there, so nothing of it replays here.
         if not active then
             ns.Motion.Reset()

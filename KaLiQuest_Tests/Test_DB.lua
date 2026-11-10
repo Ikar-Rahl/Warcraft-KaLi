@@ -14,7 +14,8 @@ T.Add("DB", "a first run gets the current version and the defaults", function()
     T.Eq(db.options.areaHighlight, true, "area highlight on by default, Ikar's defaults of 2026-11-07")
     T.Eq(db.options.findGroup, false, "the find-group eye off by default")
     T.Eq(db.options.width .. "/" .. db.options.height .. "/" .. db.options.opacityCombat, "310/530/50", "width, height, opacity in combat")
-    T.Eq(db.options.textSize, nil, "text size follows Edit Mode, whose default is 12")
+    T.Eq(db.options.zoom, 100, "zoom at 100 %; the text follows Edit Mode's size")
+    T.List(DB.RANGES.zoom, { 50, 200 }, "the zoom goes from 50 to 200 %, as Ikar took it on 2026-11-10")
     T.Eq(db.options.tracker, true, "the addon's tracker on by default")
     T.Eq(db.options.markerStyle, "icons", "markers as icons by default")
     T.Eq(type(db.repeatable), "table", "repeatable quests remembered")
@@ -126,14 +127,17 @@ T.Add("DB", "repair: broken filters, Journal order and sizes are dropped, good o
     local saved = DB.Load(nil)
     saved.filters = { state = { ready = true, [5] = true, failed = "yes" }, ["repeat"] = { daily = true } }
     saved.categoryOrder = { "pvp", "world" }
-    saved.options.textSize = "big"
+    saved.options.zoom = "big"
+    saved.options.textSize, saved.options.editModeTextSize = 11, 12
     saved.options.height = 500
     local db = DB.Load(saved)
     T.Eq(db.filters.state.ready, true, "a good tick stays")
     T.True(db.filters.state[5] == nil and db.filters.state.failed == nil, "odd keys and values go")
     T.Eq(db.filters["repeat"].daily, true, "another category untouched")
     T.List(db.categoryOrder, { "pvp", "world" }, "a good order stays")
-    T.Eq(db.options.textSize, nil, "a size that isn't a number goes back to following Edit Mode")
+    T.Eq(db.options.zoom, 100, "a zoom that isn't a number goes back to 100 %")
+    T.True(db.options.textSize == nil and db.options.editModeTextSize == nil,
+        "the addon's own text size from before the zoom goes, so Edit Mode's sets the text")
     T.Eq(db.options.height, 500, "a height set here stays")
     saved.filters = { state = "ready" }
     saved.categoryOrder = { "pvp", 3 }
@@ -149,13 +153,13 @@ end)
 T.Add("DB", "repair: a number outside its option's range comes back inside it, NaN goes back to the default", function()
     local saved = DB.Load(nil)
     local o = saved.options
-    o.width, o.opacity, o.height, o.titleGap, o.textSize, o.saturation = 5000, -20, 3, 0 / 0, 0 / 0, 40
+    o.width, o.opacity, o.height, o.titleGap, o.zoom, o.saturation = 5000, -20, 3, 0 / 0, 500, 40
     local db = DB.Load(saved)
     T.Eq(db.options.width, DB.RANGES.width[2], "too wide")
     T.Eq(db.options.opacity, DB.RANGES.opacity[1], "below its range")
     T.Eq(db.options.height, DB.RANGES.height[1], "too short")
     T.Eq(db.options.titleGap, DB.DEFAULTS.titleGap, "NaN takes the default")
-    T.Eq(db.options.textSize, nil, "a NaN text size follows Edit Mode")
+    T.Eq(db.options.zoom, DB.RANGES.zoom[2], "zoomed past 200 %")
     T.Eq(db.options.saturation, 40, "one inside stays")
     for key, range in pairs(DB.RANGES) do
         local default = DB.DEFAULTS[key]

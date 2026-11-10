@@ -79,7 +79,7 @@ local function followAddedSections(host)
 end
 
 -- Moves Blizzard's title, background and sections under a hidden frame, and widens the host for the scrollbar.
-function Host.Park(width)
+function Host.Park(width, zoom)
     local host = ObjectiveTrackerFrame
     if parked or not host then
         return
@@ -100,55 +100,60 @@ function Host.Park(width)
     end
     originalWidth = host:GetWidth()
     Host.width = nil
-    Host.SetWidth(width)
-    log("parked %d frames, host width %s", #parked, tostring(width + Host.SCROLLBAR_ROOM))
+    Host.SetWidth(width, zoom)
+    log("parked %d frames, host width %s", #parked, tostring(Host.width))
 end
 
--- The rows' width option, plus the scrollbar's room. Only while parked: unparked, the host is Blizzard's.
-function Host.SetWidth(width)
-    if not parked or Host.width == width then
+-- The rows' width option plus the scrollbar's room, zoomed as the rows are, so Edit Mode's box fits them. Only while
+-- parked: unparked, the host is Blizzard's.
+function Host.SetWidth(width, zoom)
+    local w = (width + Host.SCROLLBAR_ROOM) * (zoom or 1)
+    if not parked or Host.width == w then
         return
     end
-    Host.width = width
-    pcall(ObjectiveTrackerFrame.SetWidth, ObjectiveTrackerFrame, width + Host.SCROLLBAR_ROOM)
+    Host.width = w
+    pcall(ObjectiveTrackerFrame.SetWidth, ObjectiveTrackerFrame, w)
 end
 
 -- Blizzard's "Temps" panel of timed quests sits 10 under the host's top and leaves its own height plus 18 above the
--- sections. Here it's scaled with the text as the popups are, up to the rows' width, and centred on the rows, which
--- the scrollbar's room puts left of the host's centre.
+-- sections. Here it's scaled with the text as the popups are, up to the rows' width, then zoomed with them, and
+-- centred on the rows, which the scrollbar's room puts left of the host's centre.
 local TIMER_WIDTH, TIMER_TOP, TIMER_SPACING = 158, 10, 18
-local timerScale
+local timerScale, timerZoom
 
-local function timerRoom()
+-- In the rows' own units, which the zoom scales.
+local function timerRoom(zoom)
     local timer = QuestTimerFrame
     if timer and timer.GetTopPadding then
         local ok, room = pcall(timer.GetTopPadding, timer)
         if ok and type(room) == "number" and room > 0 then
-            return (room - TIMER_SPACING) * (timer:GetScale() or 1) + TIMER_SPACING
+            return (room - TIMER_SPACING) * (timer:GetScale() or 1) / zoom + TIMER_SPACING
         end
     end
     return 0
 end
 
--- Places the panel for the rows and returns the room it takes above them.
-function Host.PlaceTimer(width, textSize)
+-- Places the panel for the rows and returns the room it takes above them. zoom: the rows' scale.
+function Host.PlaceTimer(width, textSize, zoom)
+    zoom = zoom or 1
     local timer = QuestTimerFrame
     if timer and parked then
-        local scale = math.min(textSize / 12, width / TIMER_WIDTH)
-        if scale ~= timerScale then
-            timerScale = scale
+        local scale = math.min(textSize / 12, width / TIMER_WIDTH) * zoom
+        if scale ~= timerScale or zoom ~= timerZoom then
+            timerScale, timerZoom = scale, zoom
             timer:SetScale(scale)
             timer:ClearAllPoints()
-            timer:SetPoint("TOP", ObjectiveTrackerFrame, "TOP", -Host.SCROLLBAR_ROOM / 2 / scale, -TIMER_TOP / scale)
+            local x, y = -Host.SCROLLBAR_ROOM / 2 * zoom / scale, -TIMER_TOP * zoom / scale
+            timer:SetPoint("TOP", ObjectiveTrackerFrame, "TOP", x, y)
         end
     end
-    return timerRoom()
+    return timerRoom(zoom)
 end
 
 local function resetTimer()
     local timer = QuestTimerFrame
     if timer and timerScale then
-        timerScale = nil
+        timerScale, timerZoom = nil, nil
         timer:SetScale(1)
         timer:ClearAllPoints()
         timer:SetPoint("TOP", ObjectiveTrackerFrame, "TOP", 0, -TIMER_TOP)
