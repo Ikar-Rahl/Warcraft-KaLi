@@ -366,9 +366,7 @@ function Drag.Start(frame, kind)
         d.grabX, d.grabY = -12, -4
     end
     ghost:Show()
-    if GameTooltip:GetOwner() == frame then
-        GameTooltip:Hide()
-    end
+    Shared.hideTip(frame)
     driver:Show()
     follow()
 end

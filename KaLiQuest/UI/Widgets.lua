@@ -165,6 +165,10 @@ function Shared.hideTip(owner)
     if GameTooltip:GetOwner() == owner then
         GameTooltip:Hide()
     end
+    -- A row's click hint, when it shows alone.
+    if GameNoHeaderTooltip and GameNoHeaderTooltip:GetOwner() == owner then
+        GameNoHeaderTooltip:Hide()
+    end
 end
 
 -- The title's buttons stay quiet until the pointer is over the tracker, Ikar's ruling. A short delay before

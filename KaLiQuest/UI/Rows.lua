@@ -80,37 +80,29 @@ local function colourRow(row)
     row.Bg:SetAlpha(lit and layout.blockHover or (InCombatLockdown() and layout.blockCombat or layout.blockRest))
 end
 
--- What a click would do with the modifiers held now, in the order onRowClick tries them, as Blizzard's instruction
--- lines. add(text, isError) puts a line in the tooltip.
-local function clickHint(row, q, add)
+-- What a click would do with the modifiers held now, in the order onRowClick tries them, and whether the game
+-- refuses it now.
+local function clickHint(row, q)
     if IsModifiedClick("CHATLINK") and ChatFrameUtil and ChatFrameUtil.GetActiveWindow and ChatFrameUtil.GetActiveWindow() then
-        add(L.HINT_LINK)
+        return L.HINT_LINK
     elseif IsControlKeyDown() and row.line.kind == "quest" then
-        add(picked[q.id] and L.HINT_UNPICK or L.HINT_PICK)
+        return picked[q.id] and L.UNPICK or L.HINT_PICK
     elseif IsModifiedClick("QUESTWATCHTOGGLE") then
-        if ns.model:GroupOf(q.id) then
-            add(ns.G("CONTENT_TRACKING_UNTRACK_TOOLTIP_PROMPT", "<Maj+clic pour cesser le suivi>"))
-        else
-            local top = ns.db.groups[1]
-            add(string.format(L.HINT_TRACK, top and top.name or ns.model.firstGroupName))
-        end
-        if InCombatLockdown() then
-            add(ns.G("ERR_NOT_IN_COMBAT", "Impossible de faire ceci tout en combattant."), true)
-        end
+        local text = ns.model:GroupOf(q.id) and ns.G("OBJECTIVES_STOP_TRACKING", "Arrêter le suivi") or L.HINT_TRACK
+        return text, InCombatLockdown()
     end
 end
 
-local function addHintLine(text, isError)
-    if isError then
-        GameTooltip:AddLine(text, 1, 0.125, 0.125)
-    else
-        GameTooltip:AddLine(text, 0.1, 1, 0.1)
-    end
+local function place(tip, row)
+    tip:ClearAllPoints()
+    tip:SetPoint("TOPRIGHT", row, "TOPLEFT", -(row.gutter or 0), 0)
+    tip:SetOwner(row, "ANCHOR_PRESERVE")
 end
 
 -- As Blizzard's: party progress while in a group, and its event so other addons can add lines. Before the first
--- group exists, one line says how to make one. A moved quest's line names its group. Holding Shift or Ctrl adds
--- what a click would then do.
+-- group exists, one line says how to make one. A moved quest's line names its group. Holding Shift or Ctrl shows
+-- what a click would then do in one plain word, Ikar's ruling: under what the tooltip says, or alone in Blizzard's
+-- tooltip without a header, so it stays small. Grey while the game refuses it, as a disabled button.
 local function rowTooltip(row)
     local line = row.line
     local q = line and line.quest
@@ -120,19 +112,17 @@ local function rowTooltip(row)
     local shown = false
     local function own()
         if not shown then
-            GameTooltip:ClearAllPoints()
-            GameTooltip:SetPoint("TOPRIGHT", row, "TOPLEFT", -(row.gutter or 0), 0)
-            GameTooltip:SetOwner(row, "ANCHOR_PRESERVE")
+            place(GameTooltip, row)
             shown = true
         end
     end
     if line.kind == "moved" then
         local g = ns.model:GroupOf(q.id)
-        if g then
-            own()
-            GameTooltip:SetText(string.format(L.IN_GROUP, g.name), 1, 1, 1)
-            clickHint(row, q, addHintLine)
+        if not g then
+            return
         end
+        own()
+        GameTooltip:SetText(string.format(L.IN_GROUP, g.name), 1, 1, 1)
     else
         if IsInGroup() then
             own()
@@ -153,10 +143,6 @@ local function rowTooltip(row)
             underTitle()
             GameTooltip:AddLine(L.FIRST_GROUP_HINT, 0.1, 1, 0.1)
         end
-        clickHint(row, q, function(text, isError)
-            underTitle()
-            addHintLine(text, isError)
-        end)
         -- The last value says whether a tooltip is already up: other addons add to it, or open their own.
         if EventRegistry and EventRegistry.TriggerEvent then
             EventRegistry:TriggerEvent("OnQuestBlockHeader.OnEnter", row, q.id, shown)
@@ -164,6 +150,20 @@ local function rowTooltip(row)
     end
     if shown then
         GameTooltip:Show()
+    end
+    local hint, refused = clickHint(row, q)
+    if not hint then
+        return
+    end
+    local c = refused and 0.5 or 1
+    if GameTooltip:IsShown() and GameTooltip:GetOwner() == row then
+        GameTooltip:AddLine(hint, c, c, c)
+        GameTooltip:Show()
+    else
+        local tip = GameNoHeaderTooltip or GameTooltip
+        place(tip, row)
+        tip:SetText(hint, c, c, c)
+        tip:Show()
     end
 end
 
