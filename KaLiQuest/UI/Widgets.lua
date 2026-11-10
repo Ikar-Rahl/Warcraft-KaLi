@@ -161,15 +161,15 @@ function Shared.simpleTip(owner, text)
     GameTooltip:Show()
 end
 
--- A row's click hint, Ikar's rulings: one plain word in a tooltip's box, at half its size and half seen, under the
--- tooltip its owner has up or where that tooltip would be. Grey while the game refuses the click.
+-- A row's click hint, Ikar's rulings: one plain word in a tooltip's box, at three quarters of its size and half
+-- seen, under the tooltip its owner has up or where that tooltip would be. Grey while the game refuses the click.
 function Shared.showHint(owner, text, refused, gap)
     local hint = Shared.hint
     if not hint then
         hint = newFrame("Frame", UIParent, "TooltipBackdropTemplate")
         hint:SetFrameStrata("TOOLTIP")
         hint:SetClampedToScreen(true)
-        hint:SetScale(0.5)
+        hint:SetScale(0.75)
         hint:SetAlpha(0.5)
         hint.Text = hint:CreateFontString(nil, "ARTWORK", "GameTooltipText")
         hint.Text:SetPoint("CENTER")
