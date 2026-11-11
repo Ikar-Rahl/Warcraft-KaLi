@@ -2645,7 +2645,7 @@ do
         and (not g1.quests[1] or text:find("#" .. g1.quests[1] .. " ", 1, true)),
         "with the addons loaded, the character's class and level, and the groups with their quests")
     expect(frame.URL:IsShown() and not frame.NoURL:IsShown()
-        and frame.URL:GetText() == "https://github.com/Ikar-Rahl/Wow-KaLi-Quest/issues/new",
+        and frame.URL:GetText() == "https://github.com/Ikar-Rahl/Warcraft-KaLi/issues/new",
         "it shows the repository's page for a new issue, in a box to copy")
 
     F.focus = nil

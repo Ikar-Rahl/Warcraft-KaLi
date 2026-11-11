@@ -13,7 +13,7 @@
 ## AddonCompartmentFuncOnEnter: KaLiQuest_OnAddonCompartmentEnter
 ## AddonCompartmentFuncOnLeave: KaLiQuest_OnAddonCompartmentLeave
 ## X-License: MIT
-## X-Website: https://github.com/Ikar-Rahl/Wow-KaLi-Quest
+## X-Website: https://github.com/Ikar-Rahl/Warcraft-KaLi
 
 Core\Init.lua
 Shared\Core.lua

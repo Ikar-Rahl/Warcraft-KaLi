@@ -4,8 +4,8 @@ local _, ns = ...
 
 local Report = ns.Report
 
--- Where reports are posted: a new issue on the addon's GitHub repository.
-Report.URL = "https://github.com/Ikar-Rahl/Wow-KaLi-Quest/issues/new"
+-- Where reports are posted: a new issue on the KaLi family's GitHub repository.
+Report.URL = "https://github.com/Ikar-Rahl/Warcraft-KaLi/issues/new"
 
 function Report.StatusLines()
     local _, classFile = UnitClass("player")

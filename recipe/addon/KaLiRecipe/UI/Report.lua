@@ -4,8 +4,8 @@ local _, ns = ...
 
 local Report = ns.Report
 
--- Where reports are posted: none yet, until Ikar publishes the addon.
-Report.URL = nil
+-- Where reports are posted: a new issue on the KaLi family's GitHub repository, as Ikar ruled for KaLi Quest.
+Report.URL = "https://github.com/Ikar-Rahl/Warcraft-KaLi/issues/new"
 
 function Report.StatusLines()
     return string.format("map %s, screen %d × %d, UI scale %.2f", tostring(C_Map.GetBestMapForUnit("player")), GetScreenWidth(),
