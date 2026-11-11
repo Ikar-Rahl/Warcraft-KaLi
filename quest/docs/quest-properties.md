@@ -1,6 +1,6 @@
 # Quest classifications, markers and automatic groups
 
-Researched 2026-11-06 against build 1.60.1.70790. Nothing here has run in-game. Reproduce the counts with `python -I tools/scripts/quest_traits_test.py` and `quest_categories_test.py`. They cover the 4,244 vanilla quests in QuestieDB. New Forever quests aren't in that table, so they aren't measured.
+Researched 2026-11-06 against build 1.60.1.70790. Nothing here has run in-game. Reproduce the counts with `python -I quest/tools/research/quest_traits_test.py` and `quest_categories_test.py`. They cover the 4,244 vanilla quests in QuestieDB. New Forever quests aren't in that table, so they aren't measured.
 
 ## What the game already does
 

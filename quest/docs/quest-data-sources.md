@@ -1,6 +1,6 @@
 # Quest data for grouping below zone level
 
-Researched 2026-11-06 against WoW Forever build 1.60.1.70790. Reproduce the measurements with `python -I tools/scripts/subzone_poc.py` and `python -I tools/scripts/objective_location_test.py`.
+Researched 2026-11-06 against WoW Forever build 1.60.1.70790. Reproduce the measurements with `python -I quest/tools/research/subzone_poc.py` and `python -I quest/tools/research/objective_location_test.py` (they read the FieldJournal addon's labels, so it must be installed).
 
 **Status: reference only.** The addon's plan is now for players to organise quests themselves, in [organiser-design.md](organiser-design.md). Automatic grouping below zone level isn't planned. This research remains for the optional area highlight and other location features. Class and dungeon groups are covered in [quest-properties.md](quest-properties.md).
 

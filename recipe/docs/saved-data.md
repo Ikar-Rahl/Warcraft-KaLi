@@ -91,12 +91,12 @@ Still to decide: what an import of another account's notebook brings, sightings 
   - merging places, dates and prices, forgetting, characters, the copy, restore and refusal;
   - the cap on what is set aside.
 - **The smoke test** checks that the options page writes no default, then fires a logout: the copy is written, and no option at its default stays.
-- **The restart sessions** (`run_lua_tests.py`) start new Lua states from the files the smoke test wrote:
+- **The restart sessions** (`recipe/tools/run_tests.py`) start new Lua states from the files the smoke test wrote:
   - with both files, the notebook reads back exactly as it was;
   - without the account file, the copy brings it back and says so;
   - with a copy from a newer version, the copy is never written over.
 - **Deliberate breaks:** each of the rules above was broken once, on a copy of the addon, and each break made a check fail.
-- **The player's own files:** `python -I recipe-notebook/tools/read_saved.py check` opens them with the addon's own code and writes nothing. It shows what opening would upgrade, repair or set aside, whether the notebook writes back as it reads, and what each copy would add.
+- **The player's own files:** `python -I recipe/tools/read_saved.py check` opens them with the addon's own code and writes nothing. It shows what opening would upgrade, repair or set aside, whether the notebook writes back as it reads, and what each copy would add.
 - **In game:** `/kr data` shows:
   - the format, the notebook's dates and last writer;
   - what it holds and what was kept from a later version;
