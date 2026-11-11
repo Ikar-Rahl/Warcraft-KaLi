@@ -1,0 +1,9 @@
+## Interface: 16001
+## Title: KaLi Quest (probe)
+## Notes: In-game checks before the tracker is built. Saves a report; /kqprobe for the commands.
+## Notes-frFR: Vérifications en jeu avant de construire le suivi. Enregistre un rapport ; /kqprobe pour les commandes.
+## Author: Ikar
+## Version: 0.1.0-dev
+## SavedVariables: KaLiQuestProbeDB
+
+Probe.lua

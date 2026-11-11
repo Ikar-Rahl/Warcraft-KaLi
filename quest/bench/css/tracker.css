@@ -1,0 +1,642 @@
+/* Trackers. Sizes and colours come from Blizzard's templates, named in comments. */
+@font-face { font-family: "Friz"; src: url(../art/FRIZQT__.TTF) format("truetype"); }
+
+:root {
+  --fs: 12px;
+  --fs-head: 14px;
+  /* OBJECTIVE_TRACKER_COLOR */
+  --normal: rgb(204, 204, 204);
+  --normal-hl: #fff;
+  --failed: #cc1919;
+  --failed-hl: #ff2020;
+  --header: #bf9c00;
+  --header-hl: #ffd200;
+  --complete: rgb(153, 153, 153);
+  --gold: #ffd200;
+  /* QuestDifficultyColors */
+  --diff-impossible: rgb(255, 26, 26);
+  --diff-impossible-hl: rgb(255, 102, 102);
+  --diff-verydifficult: rgb(255, 128, 64);
+  --diff-verydifficult-hl: rgb(255, 191, 112);
+  --diff-difficult: rgb(255, 209, 0);
+  --diff-difficult-hl: rgb(255, 255, 26);
+  --diff-standard: rgb(64, 191, 64);
+  --diff-standard-hl: rgb(110, 237, 110);
+  --diff-trivial: rgb(128, 128, 128);
+  --diff-trivial-hl: rgb(179, 179, 179);
+}
+
+.tex { flex: none; pointer-events: none; background-repeat: no-repeat; }
+
+.ot {
+  width: 260px;
+  font-family: "Friz", "Arial Narrow", Arial, sans-serif;
+  font-size: var(--fs);
+  line-height: 1;
+  letter-spacing: .028em;        /* Measured on Ikar's screenshots: the game spaces glyphs wider than a browser */
+  color: var(--normal);
+  text-shadow: 1px 1px 0 #000;   /* 1, -1 black on the font objects */
+  user-select: none;
+}
+
+/* NineSlice common-opacity-background, approximated. Anchors -30 and +5 from the frame. */
+.ot-nine {
+  position: absolute;
+  left: -30px;
+  right: -5px;
+  top: 0;
+  background: rgba(0, 0, 0, 1);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+/* ObjectiveTrackerContainerHeaderTemplate: 260 by 32, its art 300 by 40, centred */
+.ot-title { position: relative; width: 260px; height: 32px; display: flex; align-items: center; }
+.bar-bg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.ot-title-text {
+  position: relative;
+  margin-left: 7px;
+  font-size: var(--fs-head);
+  letter-spacing: .018em;
+  color: var(--gold);
+  white-space: nowrap;
+}
+
+/* Collapse-all: 18 by 19. Red highlight is additive */
+.btn-min, .btn-sec { position: absolute; top: 50%; cursor: pointer; }
+.btn-min { right: 1px; width: 18px; height: 19px; margin-top: -9.5px; }
+.btn-sec { right: -1px; width: 16px; height: 16px; margin-top: -8px; }
+.btn-min .tex, .btn-sec .tex { position: absolute; left: 0; top: 0; }
+.btn-min .down, .btn-sec .down, .btn-min .hl, .btn-sec .hl { display: none; }
+.btn-min:hover .hl, .btn-sec:hover .hl { display: block; mix-blend-mode: plus-lighter; }
+.btn-min:active .up, .btn-sec:active .up { display: none; }
+.btn-min:active .down, .btn-sec:active .down { display: block; }
+
+/* Module: at TOP -38 from the container, so 6 under the 32 high title */
+.ot-module { margin-top: 6px; }
+
+/* ObjectiveTrackerModuleHeaderTemplate: 260 by 26, its art 300 by 30, centred. headerHeight 25 */
+.ot-bar { position: relative; width: 260px; height: 26px; display: flex; align-items: center; }
+.ot-bar-text {
+  position: relative;
+  margin-left: 7px;
+  font-size: var(--fs-head);
+  letter-spacing: .018em;
+  color: var(--gold);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* fromHeaderOffsetY -10, with the header's 1 pixel overlap. Between blocks, fromBlockOffsetY -10 */
+.ot-contents { padding-top: 9px; }
+.ot-contents > .ot-block { margin-left: 20px; }
+.ot-contents > .ot-block + .ot-block, .ot-contents > .aq + .ot-block { margin-top: 10px; }
+
+/* ObjectiveTrackerBlockTemplate */
+.ot-block { position: relative; width: auto; }
+
+.ot-head {
+  position: relative;
+  color: var(--d, var(--header));
+  line-height: 1.02;             /* Measured: about 16.2 units from one line to the next, with lineSpacing 4 */
+  cursor: pointer;
+}
+/* SetStringText: a title stops at 2 lines. The padding keeps the shadow from being cut */
+.ot-head-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  padding: 0 1px 1px 0;
+  margin-bottom: -1px;
+}
+body.no-diff .ot-head { color: var(--header); }
+
+.ot-party { color: var(--gold); }
+
+/* Hover on the title brightens the title and every objective */
+.ot-block:has(> .ot-head:hover) .ot-head { color: var(--dh, var(--header-hl)); }
+body.no-diff .ot-block:has(> .ot-head:hover) .ot-head { color: var(--header-hl); }
+.ot-block:has(> .ot-head:hover) .ot-dash { color: var(--normal-hl); }
+.ot-block:has(> .ot-head:hover) .c-normal .ot-text { color: var(--normal-hl); }
+.ot-block:has(> .ot-head:hover) .c-failed .ot-text { color: var(--failed-hl); }
+
+/* ObjectiveTrackerLineTemplate: 4 between lines. Dash at 0, +1. Text to its right, wraps with no limit */
+.ot-line { position: relative; display: grid; grid-template-columns: auto 1fr; margin-top: 4px; line-height: 1.02; }
+.ot-dash { white-space: pre; transform: translateY(-1px); color: var(--normal); }
+.ot-dash.off { visibility: hidden; }
+.c-normal .ot-text { color: var(--normal); }
+.c-complete .ot-text { color: var(--complete); }
+.c-failed .ot-text { color: var(--failed); }
+
+/* Check: 16 by 16 at -10, +2 */
+.ot-check, .ot-check-glow { position: absolute; left: -10px; top: -2px; }
+.ot-check-glow { opacity: 0; }
+
+/* CheckAnim: scale to 1.2 and back over 0.3 s, alpha in over 0.16 */
+@keyframes check-pop { 0% { transform: scale(1); opacity: 0; } 53% { opacity: 1; } 50% { transform: scale(1.2); } 100% { transform: scale(1); opacity: 1; } }
+@keyframes check-glow { 0% { transform: scale(1); opacity: 0; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(1); opacity: 0; } }
+.l-completing .ot-check { animation: check-pop .3s ease-out both; }
+.l-completing .ot-check-glow { animation: check-glow .3s both; }
+
+/* GlowAnim: scale from the left over 0.66 after 0.1, alpha out 0.58 after 0.33 */
+.ot-glow { position: absolute; left: -2px; top: -2px; opacity: 0; transform-origin: left center; pointer-events: none; }
+@keyframes line-glow {
+  0% { transform: scaleX(0); opacity: 1; }
+  13% { transform: scaleX(0); opacity: 1; }
+  43% { opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+.l-completing .ot-glow, .l-adding .ot-glow { animation: line-glow .76s cubic-bezier(.2, .7, .3, 1) both; }
+
+/* FadeOutAnim: after 1 s, over 0.1 s */
+@keyframes line-fade { 0%, 90% { opacity: 1; } 100% { opacity: 0; } }
+.l-fading { animation: line-fade 1.1s linear both; }
+
+/* FadeInAnim: 0.5 s */
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.l-adding .ot-text, .l-adding .ot-dash { animation: fade-in .5s both; }
+
+/* Block's AddAnim: header glow from the left over 0.31 after 0.15, out 0.41 after 0.33 */
+.ot-headglow { position: absolute; left: 0; top: -3px; opacity: 0; transform-origin: left center; pointer-events: none; }
+@keyframes head-glow-add {
+  0% { transform: scaleX(0); opacity: 1; }
+  20% { transform: scaleX(0); opacity: 1; }
+  45% { opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+.a-add > .ot-headglow { animation: head-glow-add .74s both; }
+.a-add .ot-line { animation: fade-in .5s both; }
+
+/* TurnInAnim: header glow 0.51, the block fades 0.33 after 0.33 */
+@keyframes head-glow-turnin { from { transform: scaleX(0); opacity: 1; } to { transform: scaleX(1); opacity: 1; } }
+@keyframes block-fade { 0%, 50% { opacity: 1; } 100% { opacity: 0; } }
+.a-turnin { animation: block-fade .66s both; }
+.a-turnin > .ot-headglow { animation: head-glow-turnin .51s both; }
+
+/* POIButtonTemplate: 20 by 20 at TOPRIGHT of the title's TOPLEFT, offset -7, +5. Art 32 by 32, centred */
+.poi { position: absolute; left: -27px; top: -5px; width: 20px; height: 20px; cursor: pointer; }
+.poi .tex { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.poi-hover { display: none; mix-blend-mode: plus-lighter; }
+.poi:hover .poi-hover { display: block; }
+.poi-glow { mix-blend-mode: plus-lighter; }
+.poi:active .poi-display { margin: 1px 0 0 1px; }
+
+/* Right-edge frames */
+.edge { position: absolute; }
+
+/* QuestObjectiveItemButtonTemplate: 26 by 26, frame 42 by 42 centred */
+.item-btn { position: relative; width: 26px; height: 26px; cursor: pointer; }
+.item-icon { position: absolute; inset: 0; background-size: cover; }
+.item-icon.cd { filter: brightness(.45); }
+.item-frame { position: absolute; left: -8px; top: -8px; }
+.item-hl { position: absolute; inset: 0; background: url(../art/ButtonHilight-Square.png) center / 100% 100%; mix-blend-mode: plus-lighter; display: none; }
+.item-btn:hover .item-hl { display: block; }
+.item-btn:active .item-icon { filter: brightness(.7); }
+.item-count { position: absolute; right: 3px; bottom: 2px; font: 700 12px/1 "Arial Narrow", Arial, sans-serif; color: #fff; text-shadow: 1px 1px 0 #000; }
+.item-range { position: absolute; left: 13px; top: 1px; font: 11px/1 Arial, sans-serif; color: transparent; }
+.item-range.range-out { color: rgb(255, 26, 26); }
+.item-range.range-in { color: rgb(153, 153, 153); }
+
+/* The quest area glow: Alpha 0 to 1 over 1 s, bouncing, stops after 6 loops */
+.item-glow { position: absolute; left: -11px; top: -11px; opacity: 0; animation: item-glow 1s ease-in-out 6 alternate both; }
+@keyframes item-glow { from { opacity: 0; } to { opacity: 1; } }
+
+/* The cooldown's sweep */
+@property --cd { syntax: "<number>"; initial-value: 0; inherits: false; }
+.item-cd {
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(rgba(0, 0, 0, .7) calc(var(--cd) * 1turn), transparent 0);
+  animation: cd var(--cd-dur) linear both;
+}
+@keyframes cd { from { --cd: var(--cd-from); } to { --cd: 0; } }
+
+/* QuestObjectiveFindGroupButtonTemplate: 30 by 30 */
+.eye-btn { position: relative; width: 30px; height: 30px; background: url(../art/UI-SquareButton-Up.png) center / 100% 100%; cursor: pointer; }
+.eye-btn:active { background-image: url(../art/UI-SquareButton-Down.png); }
+.eye-btn:hover { filter: brightness(1.25); }
+.eye-icon { position: absolute; left: 7.5px; top: 8.5px; }
+
+/* AutoQuestPopUpBlockTemplate: 236 by 68, offsetX -20 */
+.aq { position: relative; width: 236px; height: 68px; margin-left: -20px; cursor: pointer; overflow: visible; }
+.ot-contents > .aq { margin-left: -20px; }
+.ot-contents > .aq + .aq { margin-top: 10px; }
+.aq-contents { position: absolute; inset: 0; animation: aq-slide .4s both; }
+@keyframes aq-slide { from { clip-path: inset(0 0 100% 0); transform: translateY(-20px); } to { clip-path: inset(-20px -20px -20px -20px); transform: none; } }
+.aq-bg { position: absolute; left: 36px; right: 0; top: 4px; bottom: 4px; background: rgba(0, 0, 0, .5); }
+.aq-border {
+  position: absolute;
+  left: 32px;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  border: 2px solid #a08a5c;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .7);
+}
+.aq-iconbg, .aq-question, .aq-exclaim { background-image: url(../art/AutoQuest-Parts.png); background-size: 512px 64px; position: absolute; }
+.aq-iconbg { left: 6px; top: 4px; width: 60px; height: 60px; background-position: calc(-.30273438 * 512px) calc(-.015625 * 64px); }
+.aq-question, .aq-exclaim { left: 26.5px; top: 17.5px; width: 19px; height: 33px; }
+.aq-question { background-position: calc(-.17578125 * 512px) calc(-.015625 * 64px); }
+.aq-exclaim { background-position: calc(-.13476563 * 512px) calc(-.015625 * 64px); }
+.aq-badge { position: absolute; left: 14px; top: 12px; }
+.aq-top, .aq-name, .aq-bottom { position: absolute; left: 60px; right: 12px; text-align: center; }
+.aq-top { color: var(--gold); font-size: 10px; }
+.aq.complete .aq-top { top: 15px; }
+.aq.offer .aq-top { top: 9px; }
+.aq-name { color: #fff; font-size: 13px; line-height: 1.05; }
+.aq.complete .aq-name { top: 29px; }
+.aq.complete .aq-name.long { top: 25px; }
+.aq.offer .aq-name { top: 20px; }
+.aq-bottom { bottom: 8px; color: #808080; font-size: 10px; }
+.aq-flash { position: absolute; left: 52px; top: 6px; width: 180px; height: 28px; background: radial-gradient(ellipse at center, rgba(255, 210, 90, .5), transparent 70%); animation: aq-flash 1.5s linear infinite; pointer-events: none; }
+@keyframes aq-flash { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+.aq-shine { position: absolute; left: 35px; right: 5px; top: 3px; bottom: 3px; background: #fff; mix-blend-mode: plus-lighter; opacity: 0; animation: aq-shine .55s .4s both; pointer-events: none; }
+@keyframes aq-shine { 0%, 100% { opacity: 0; } 45% { opacity: .4; } }
+
+/* QuestTimerFrame: 158 wide, centred on top. The dialog border is approximated */
+.qt {
+  position: absolute;
+  left: 51px;
+  top: 10px;
+  width: 158px;
+  background: rgba(0, 0, 0, .75);
+  border: 2px solid #8a8a8a;
+  border-radius: 6px;
+  padding-top: 20px;
+  text-align: center;
+  color: #fff;
+  font-size: 10px;
+}
+.qt-head {
+  position: absolute;
+  left: 50%;
+  top: -11px;
+  transform: translateX(-50%);
+  background: #32261a;
+  border: 1px solid #8a7040;
+  border-radius: 3px;
+  padding: 4px 14px;
+  color: var(--gold);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.qt-row { height: 16px; }
+
+/* Tooltip: TooltipBackdropTemplate, approximated */
+.gt {
+  position: absolute;
+  z-index: 40;
+  max-width: 300px;
+  padding: 8px 10px;
+  background: rgba(9, 9, 22, .93);
+  border: 2px solid #9a9a9a;
+  border-radius: 6px;
+  font-family: "Friz", Arial, sans-serif;
+  font-size: 12px;
+  line-height: 1.25;
+  color: #fff;
+  text-shadow: 1px 1px 0 #000;
+  pointer-events: none;
+}
+.gt-line.gold { color: var(--gold); }
+.gt-line.green { color: rgb(26, 255, 26); }
+.gt-line.grey { color: #b4b4b4; }
+
+/* Menu: MenuStyle, approximated */
+.menu {
+  position: absolute;
+  z-index: 60;
+  min-width: 170px;
+  max-width: 330px;
+  max-height: 90%;
+  overflow-y: auto;
+  padding: 6px 4px;
+  background: rgba(8, 8, 8, .95);
+  border: 1px solid #5d5647;
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .7);
+  font-family: "Friz", Arial, sans-serif;
+  font-size: 12px;
+  line-height: 1.15;
+  text-shadow: 1px 1px 0 #000;
+  color: #fff;
+}
+.menu-title { padding: 5px 8px 3px; color: var(--gold); }
+.menu-item { padding: 4px 8px; display: flex; align-items: center; gap: 6px; cursor: pointer; border-radius: 2px; white-space: nowrap; }
+.menu-item:hover { background: rgba(255, 255, 255, .13); }
+.menu-item.disabled { color: #777; cursor: default; }
+.menu-item.disabled:hover { background: none; }
+.menu-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.menu-count { color: #a8a8a8; }
+.menu-arrow { color: #cfcfcf; }
+.menu-div { height: 1px; margin: 4px 6px; background: rgba(255, 255, 255, .15); }
+.menu-box { width: 12px; height: 12px; border: 1px solid #8a8a8a; border-radius: 2px; background: #111; flex: none; position: relative; }
+.menu-box.on::after { content: ""; position: absolute; left: 2px; top: 2px; right: 2px; bottom: 2px; background: var(--gold); }
+
+/* UIErrorsFrame */
+.uierror {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 90px;
+  text-align: center;
+  color: rgb(255, 26, 26);
+  font: 16px "Friz", Arial, sans-serif;
+  text-shadow: 1px 1px 0 #000;
+  animation: ui-error 2.6s both;
+  pointer-events: none;
+}
+@keyframes ui-error { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
+
+/* A stand-in for the game's quest details */
+.qpanel {
+  position: absolute;
+  left: 20px;
+  top: 60px;
+  width: 280px;
+  padding: 14px;
+  background: #e8dcc0;
+  color: #2c2010;
+  border: 3px solid #4a3a20;
+  border-radius: 6px;
+  font: 13px/1.3 "Friz", Arial, sans-serif;
+  z-index: 30;
+}
+.qpanel-note { font: 11px "Segoe UI", sans-serif; color: #7a6a4a; margin-bottom: 8px; }
+.qpanel-title { font-size: 16px; color: #1a1208; margin-bottom: 6px; }
+.qpanel-head { font-size: 14px; color: #1a1208; margin: 10px 0 3px; }
+.qpanel-close { position: absolute; right: 8px; top: 4px; font-size: 18px; cursor: pointer; }
+
+.dialog {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translateX(-50%);
+  width: 320px;
+  padding: 16px;
+  background: rgba(0, 0, 0, .9);
+  border: 2px solid #8a8a8a;
+  border-radius: 6px;
+  color: var(--gold);
+  font: 13px/1.35 "Friz", Arial, sans-serif;
+  text-align: center;
+  z-index: 70;
+}
+.dialog-btns { display: flex; justify-content: center; gap: 8px; margin-top: 12px; }
+.dialog-btns button { font: 12px "Friz", Arial, sans-serif; color: var(--gold); background: #5a1410; border: 1px solid #a08a5c; padding: 4px 16px; }
+
+/* ===== Proposal ===== */
+
+/* The title row's tools, right to left from the collapse-all button */
+.pt-tools { position: absolute; right: 0; top: 0; bottom: 0; left: 0; pointer-events: none; }
+.pt-tools > * { pointer-events: auto; }
+.pt-tool.pt-filter { right: 21px; }
+.pt-tool.pt-min { right: 1px; }
+.pt-min .pt-arrow { position: static; margin: 0; }
+.pt-filter.active { filter: drop-shadow(0 0 3px #ffd200) brightness(1.35); }
+.pt-tool { position: absolute; right: 41px; top: 50%; margin-top: -9px; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: .85; }
+.pt-tool:hover { opacity: 1; filter: brightness(1.3); }
+.pt-tool.active { opacity: 1; filter: drop-shadow(0 0 3px #ffd200) brightness(1.35); }
+/* UIPanelIconDropdownButtonTemplate, the quest log's own settings button: questlog-icon-setting at its 15 by 16.
+   Bright when it can be used: a second copy added on top (ADD in game). Greyed in combat, when it can't */
+.pt-gear { right: 83px; isolation: isolate; opacity: 1; }
+.pt-gear .tex { position: absolute; left: 1px; top: 1px; }
+.pt-gear-add { mix-blend-mode: plus-lighter; }
+.pt-gear.disabled, .pt-gear.disabled:hover { filter: grayscale(1); opacity: .45; cursor: default; }
+
+/* Quiet at rest: the title's buttons come up while the pointer is over the tracker */
+.ot.prop .pt-tools { opacity: .5; transition: opacity .25s; }
+.tools-awake > .ot.prop .pt-tools { opacity: 1; }
+.pt-lock { position: absolute; right: 62px; top: 50%; margin-top: -9px; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; isolation: isolate; }
+.pt-lock.open { opacity: .65; }
+/* Two parts of one closed padlock, cut at the body's top edge so no seam shows. Unlocking swings the shackle open on
+   its right leg. Locked, a third copy added on top makes it much brighter */
+.pt-lock .tex { position: absolute; left: 2px; top: 1px; }
+.pt-shackle { clip-path: inset(0 0 57% 0); }
+.pt-lockbody { clip-path: inset(43% 0 0 0); }
+.pt-lock.open .pt-shackle { transform-origin: 75% 43%; transform: rotate(32deg); }
+.pt-lock-add { mix-blend-mode: plus-lighter; }
+.pt-lock:hover { filter: brightness(1.3); opacity: 1; }
+@keyframes lock-flash { 0%, 100% { transform: scale(1); filter: none; } 40% { transform: scale(1.35); filter: drop-shadow(0 0 5px #ff5a3c) brightness(1.5); } }
+.pt-lock.flash1 { animation: lock-flash .45s; }
+.pt-lock.flash0 { animation: lock-flash2 .45s; }
+@keyframes lock-flash2 { 0%, 100% { transform: scale(1); filter: none; } 40% { transform: scale(1.35); filter: drop-shadow(0 0 5px #ff5a3c) brightness(1.5); } }
+
+/* The body starts under the 32 high title, by the "Under the title" value. Blizzard's first module is 6 under it */
+/* The width option. The panel sits 12 further in than Blizzard's tracker, so the scrollbar stays on screen */
+.ot.prop { width: var(--pw); right: calc(var(--ot-right, 5px) + 12px); --fs: var(--prop-fs); --fs-head: var(--prop-fs-head); transition: opacity .25s; }
+.secure-layer { transition: opacity .25s; }
+/* Tighter than Blizzard's -30, because the rows stay inside the panel and only the bars' art goes further.
+   The right is still Blizzard's +5 from the host, which in the game is the rows plus the scrollbar's 12 */
+.ot.prop .ot-nine { left: -5px; right: -17px; }
+.ot.prop .ot-title, .ot.prop .ot-bar { width: var(--pw); }
+/* Above the list, so the title's lower edge stays over Suivi and over rows scrolling up to it */
+.ot.prop .ot-title { z-index: 1; }
+.pt-body { position: absolute; left: 0; width: var(--pw); display: flex; flex-direction: column; }
+.pt-fixed { flex: none; }
+.pt-popups { padding: 2px 0 8px; }
+.pt-popups .aq + .aq { margin-top: 10px; }
+
+/* Wider than the rows, so bars and map buttons aren't clipped. That padding reaches under the title's buttons, so it lets clicks through */
+.pt-scroll { flex: 1 1 auto; min-height: 0; overflow: hidden; margin: -6px -24px 0 -30px; padding: 6px 24px 0 30px; pointer-events: none; }
+.pt-scroll-inner { position: relative; padding-bottom: 12px; pointer-events: auto; }
+
+.pt-bar { cursor: pointer; }
+.pt-bar:hover .pt-bar-text { color: #fff; }
+/* Room for the tail of the font's J, which the bar's clipping would cut */
+.pt-bar-text { margin-left: 4px; padding-left: 3px; }
+.pt-count { color: #b8a878; font-size: var(--fs); white-space: nowrap; }
+.pt-bar-right { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 6px; }
+.pt-bar-right .pt-count { color: var(--gold); }
+
+.pt-group { position: relative; display: flex; align-items: center; min-height: 15px; gap: 5px; cursor: pointer; color: var(--header); padding-right: 20px; }
+.pt-group:hover { color: var(--header-hl); }
+.pt-group-name { flex: 1; min-width: 0; line-height: 1.1; margin-left: 9px; }
+.pt-group .pt-rename { margin-left: 9px; }
+.pt-group .pt-count { min-width: 2.2em; text-align: right; }
+.pt-rename { flex: 1; min-width: 0; font: inherit; color: #fff; background: rgba(0, 0, 0, .7); border: 1px solid #a08a5c; padding: 1px 3px; height: 16px; outline: 0; }
+
+.pt-row { width: auto; isolation: isolate; --block-now: var(--block-rest); }
+
+/* A background behind each quest, at the strength the bench sets for each state. SetAlpha isn't protected, so it all works in combat */
+.ot.prop.in-combat .pt-row { --block-now: var(--block-combat); }
+.ot.prop .pt-row:hover, .ot.prop .pt-row:active, .ot.prop .pt-row.selected { --block-now: var(--block-hover); }
+.pt-row::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: calc(-1 * var(--gutter, 0px) - 7px);
+  right: -2px;
+  top: -3px;
+  bottom: -3px;
+  background: #000;
+  opacity: var(--block-now);
+  transition: opacity .12s;
+}
+
+/* The sober style: titles in one colour, objectives quieter, group names and counts muted so the bars stay the only gold */
+.ot.prop { --header: #e3ddcf; --header-hl: #fff; --normal: #b4b4b4; --complete: #828282; }
+.ot.prop .pt-group { color: #c8b88e; }
+.ot.prop .pt-group:hover { color: #e8d8a8; }
+.ot.prop .pt-count { color: #8f8770; }
+.ot.prop .pt-bar-right .pt-count { color: #b8a878; }
+.ot.prop .ot-party { color: #b8a878; }
+.ot.prop .ot-title, .ot.prop .ot-bar { filter: saturate(var(--header-sat, 1)); }
+
+/* Anywhere on the box brightens the whole quest, as hovering its title does on Blizzard's */
+.pt-row { cursor: pointer; }
+.pt-row:hover .ot-head { color: var(--header-hl); }
+.pt-row:hover .ot-dash, .pt-row:hover .c-normal .ot-text { color: var(--normal-hl); }
+.pt-row:hover .c-failed .ot-text { color: var(--failed-hl); }
+
+/* The level as a coloured number on Forever's nameplate level art, in a column left of the title. Its inline style
+   gives the art, stretched to the text as the nameplates stretch it */
+.pt-gutter { position: absolute; right: calc(100% + 4px); top: 0; height: 1.02em; display: flex; align-items: center; justify-content: flex-end; }
+.pt-gutter.with-poi { right: calc(100% + 24px); }
+.pt-level { flex: none; font-size: .75em; text-align: center; letter-spacing: 0; text-shadow: 1px 1px 0 #000; background-repeat: no-repeat; }
+
+/* Picked with Ctrl+click: the box at its hover strength, washed gold with a gold left edge, as drop targets are lit */
+.ot.prop .pt-row.picked { --block-now: var(--block-hover); }
+.pt-row.picked::after { content: ""; position: absolute; z-index: -1; left: calc(-1 * var(--gutter, 0px) - 7px); right: -2px; top: -3px; bottom: -3px; background: rgba(255, 210, 0, .1); box-shadow: inset 2px 0 0 rgba(255, 210, 0, .55); pointer-events: none; }
+/* How many picked quests a drag carries, beside the dragged box's top right corner */
+.drag-count { position: absolute; left: calc(100% + 6px); top: -3px; min-width: 18px; height: 16px; padding: 0 3px; box-sizing: border-box; background: rgba(0, 0, 0, .85); color: var(--gold); font: 11px/16px "Friz", Arial, sans-serif; text-align: center; text-shadow: 1px 1px 0 #000; }
+
+/* The popup and timer, scaled with the text up to the panel's width, and centred in it */
+.pt-popups .aq { zoom: var(--aq-scale, 1); margin: 0; left: 50%; transform: translateX(-50%); }
+.ot.prop .qt { zoom: var(--qt-scale, 1); left: 50%; transform: translateX(-50%); }
+
+.pt-title-end { white-space: nowrap; }
+.mk-strip { display: inline-flex; gap: 2px; margin-left: 4px; vertical-align: -3px; }
+.mk { display: inline-block; position: relative; flex: none; }
+.mk-num { position: absolute; right: -2px; bottom: -2px; font: 700 9px/1 Arial, sans-serif; color: #fff; text-shadow: 1px 1px 0 #000, -1px 0 0 #000; }
+.mk-text { color: #b0b0b0; font-size: .85em; margin-left: 3px; }
+
+.ot.prop .poi { left: -25px; }
+
+/* Spoken's Play button: its box on black at 60%. The gold triangle stands in for Spoken's own glyph */
+.spoken-btn { width: 14px; height: 14px; cursor: pointer; z-index: 1; }
+.spoken-btn::before { content: ""; position: absolute; inset: 1px; background: rgba(0, 0, 0, .6); }
+.spoken-box { position: absolute; left: 0; top: 0; }
+.spoken-glyph { position: absolute; left: 3.7px; top: 2.7px; width: 6.5px; height: 8.5px; background: linear-gradient(#e8c82c, #d4c21c); clip-path: polygon(0 0, 100% 50%, 0 100%); }
+.spoken-btn.playing .spoken-glyph { left: 3.5px; top: 3.5px; width: 7px; height: 7px; clip-path: none; }
+.spoken-btn:hover { filter: brightness(1.25); }
+
+/* Forever Quest Tint's marker, tinted and cropped as the addon draws it */
+.fqt-mark { display: inline-block; width: 13px; height: 8px; margin-left: 3px; background: url(../art/addon-infinity.png) center / 100% 100% no-repeat; }
+
+/* The share button: art to be judged in-game */
+.share-btn { width: 22px; height: 22px; cursor: pointer; }
+.share-frame { position: absolute; left: 0; top: 0; }
+.share-icon { position: absolute; left: 3.5px; top: 4.5px; }
+.share-btn:hover { filter: brightness(1.3); }
+
+/* Where a secure item button goes. When no real button is lined up with it, its icon shows grey and does nothing */
+.item-slot { width: 26px; height: 26px; background: var(--icon) center / cover; filter: grayscale(1) brightness(.55); opacity: 0; pointer-events: none; }
+.in-combat .item-slot { opacity: 1; }
+.item-slot.covered { opacity: 0; }
+
+.secure-layer { position: absolute; inset: 0; pointer-events: none; font-family: "Friz", Arial, sans-serif; text-shadow: 1px 1px 0 #000; }
+.secure-layer .item-btn { position: absolute; pointer-events: auto; }
+.secure-layer.show-secure .item-btn { outline: 2px solid #ff2d2d; outline-offset: 1px; }
+
+.share-on-hover .share-btn { opacity: 0; }
+.share-on-hover .ot-block:hover .share-btn { opacity: 1; }
+
+/* Area highlight */
+.in-area > .ot-head { color: var(--dh, var(--header-hl)); }
+.in-area .c-normal .ot-text { color: var(--normal-hl); }
+.here-arrow { display: inline-block; vertical-align: -2px; margin-right: 3px; }
+.pt-here { display: flex; align-items: center; gap: 2px; color: #fff; font-size: var(--fs); white-space: nowrap; margin-right: 4px; }
+.pt-bar-right .pt-here { margin: 0; }
+
+/* One short glow when something changes behind a closed header */
+@keyframes bar-flash { 0%, 100% { filter: none; } 35% { filter: brightness(1.7) drop-shadow(0 0 4px #ffd200); } }
+.a-barflash .bar-bg, .a-barflash .pt-bar-right, .a-barflash .pt-bar-text { animation: bar-flash .9s; }
+.a-headerflash > .pt-group-name, .a-headerflash > .pt-count { animation: bar-flash .9s; }
+.a-rowflash > .ot-head { animation: bar-flash .9s; }
+
+/* Search box: SearchBoxTemplate, approximated */
+.pt-search { position: relative; display: flex; align-items: center; height: 20px; margin: 0 0 4px 7px; width: calc(var(--pw) - 14px); background: rgba(0, 0, 0, .55); border: 1px solid #6a6a6a; }
+.pt-search-icon { margin: 0 3px; opacity: .8; }
+.pt-search-input { flex: 1; min-width: 0; background: none; border: 0; outline: 0; color: #fff; font: inherit; font-size: 12px; height: 100%; text-shadow: inherit; user-select: text; }
+.pt-search-input::placeholder { color: #8d8d8d; }
+.pt-search-clear { margin-right: 3px; cursor: pointer; }
+.pt-status { margin: 2px 0 6px 7px; color: #c8c8c8; font-size: 11px; }
+.pt-link { color: var(--gold); cursor: pointer; }
+.pt-link:hover { color: #fff; }
+
+/* MinimalScrollBar: 8 wide, arrows 17 by 11. Beside the rows, so they keep their width */
+/* Beside the rows, in the room .ot.prop leaves. Invisible unless the list is scrolling or the pointer is on it */
+.pt-sb { position: absolute; left: calc(var(--pw) + 3px); width: 8px; z-index: 2; opacity: 0; transition: opacity .4s; }
+.pt-sb.scrolling, .pt-sb:hover { opacity: 1; transition-duration: .1s; }
+.pt-sb-up, .pt-sb-down { position: absolute; left: -4.5px; width: 17px; height: 11px; cursor: pointer; }
+.pt-sb-up { top: 0; }
+.pt-sb-down { bottom: 0; }
+.pt-sb .o { display: none; }
+.pt-sb-up:hover .o, .pt-sb-down:hover .o, .pt-sb-thumb:hover .o { display: block; }
+.pt-sb-up:hover .n, .pt-sb-down:hover .n, .pt-sb-thumb:hover .n { display: none; }
+.pt-sb-track { position: absolute; left: 0; top: 15px; width: 8px; }
+.pt-sb-track .cap-top { position: absolute; left: 0; top: 0; }
+.pt-sb-track .cap-bottom { position: absolute; left: 0; bottom: 0; }
+.pt-sb-track-mid { position: absolute; left: 0; top: 8px; }
+.pt-sb-thumb { position: absolute; left: 0; width: 8px; cursor: pointer; }
+.pt-sb-thumb .t { position: absolute; top: 0; left: 0; }
+.pt-sb-thumb .b { position: absolute; bottom: 0; left: 0; }
+.pt-sb-thumb .m { position: absolute; left: 0; top: 8px; }
+
+/* Dragging */
+.dragging { opacity: .4; }
+.ot.prop.drag-box { position: absolute; z-index: 50; top: auto; right: auto; width: auto; height: auto; pointer-events: none; }
+.ot.prop.drag-box .pt-row { --block-now: .7; }
+.ot.prop.drag-box .pt-row::before { pointer-events: none; }
+.drag-ghost { position: absolute; z-index: 50; color: #ffd200; font: 12px "Friz", Arial, sans-serif; text-shadow: 1px 1px 0 #000; pointer-events: none; white-space: nowrap; }
+.drag-line { position: absolute; z-index: 50; height: 2px; background: #ffd200; box-shadow: 0 0 4px #ffd200; pointer-events: none; display: none; }
+.drop-into .pt-group-name, .drop-into .ot-bar-text { color: #fff; text-shadow: 0 0 5px #ffd200; }
+
+/* While a quest is dragged, each of the player's groups lights up as a target, the one under the cursor more so */
+.pt-groupwrap.mine { position: relative; isolation: isolate; }
+.pt-groupwrap.mine::before { content: ""; position: absolute; z-index: -1; left: -3px; right: -3px; top: -2px; bottom: -4px; pointer-events: none; }
+.ot.prop.drop-targets .pt-groupwrap.mine::before,
+.ot.prop.drop-targets .pt-bar[data-cat="mine"] { background: rgba(255, 210, 0, .05); box-shadow: inset 0 0 0 1px rgba(255, 210, 0, .18); }
+.ot.prop.drop-targets .pt-groupwrap.mine.drop-into::before,
+.ot.prop.drop-targets .pt-bar[data-cat="mine"].drop-into { background: rgba(255, 210, 0, .15); box-shadow: inset 0 0 0 1px rgba(255, 210, 0, .48); }
+.ot.prop.drop-targets .pt-bar[data-cat="mine"] { filter: none; }
+
+/* The grey line a quest leaves in its own section once it's in one of the player's groups */
+.pt-moved { position: relative; display: flex; align-items: center; gap: 4px; line-height: 1.02; color: #7c7c7c; cursor: pointer; }
+.pt-moved:hover { color: #b0b0b0; }
+.pt-moved-title { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.pt-moved-back { flex: none; opacity: .55; cursor: pointer; }
+.pt-moved:hover .pt-moved-back { opacity: .85; }
+.pt-moved-back:hover { opacity: 1; filter: brightness(1.3); }
+
+/* The thin line between quests, Options_HorizontalDivider, on the boundary where their backgrounds meet */
+.pt-sep { position: absolute; top: -3px; left: calc(-1 * var(--gutter, 0px) - 7px); opacity: .5; pointer-events: none; }
+.pt-sep.bottom { top: auto; bottom: -4px; }
+.drag-box .pt-sep { display: none; }
+
+/* The eye that focuses a group, left of its count. Plain, so it doesn't read as the green find-group eye on quests */
+.pt-focus { flex: none; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: .65; }
+.pt-group:hover .pt-focus { opacity: .85; }
+.pt-focus:hover { opacity: 1; filter: brightness(1.5); }
+
+/* A bar's or group's state, in the same place on both: the double arrow points left when closed and down when open */
+.pt-arrow { position: absolute; right: -1px; top: 50%; width: 16px; height: 16px; margin-top: -8px; display: flex; align-items: center; justify-content: center; }
+.pt-arrow.open .tex { transform: rotate(-90deg); }
+.pt-group .pt-arrow { opacity: .7; }
+.pt-group:hover .pt-arrow, .pt-bar:hover .pt-arrow { opacity: 1; filter: brightness(1.3); }
+
+/* The + on the Suivi bar, in the tracker's own gold */
+.pt-add { flex: none; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: .8; }
+.pt-add:hover { opacity: 1; filter: brightness(1.3); }
+
+/* Inside Journal the category bars step back, so Suivi and Journal read as the two top sections */
+.ot.prop .pt-subbar .bar-bg { opacity: .45; }
+.ot.prop .pt-subbar .pt-bar-text { color: #cdb878; }
+.ot.prop .pt-subbar:hover .pt-bar-text { color: #fff; }
+
+/* One short glow behind a quest when one of its objectives updates. It has to show with the backgrounds at 0 too */
+@keyframes row-progress { 25% { background: #ffd200; opacity: .2; } }
+.pt-row.a-progress::before { animation: row-progress .7s ease-out; }

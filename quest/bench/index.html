@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tracker Test Bench</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="css/bench.css">
+<link rel="stylesheet" href="css/tracker.css">
+</head>
+<body>
+  <aside id="panel">
+    <header>
+      <h1>Tracker test bench</h1>
+      <p>Same fake game on both sides. Drop a screenshot on the page to use it as the world. <a href="icons.html">The addon's icon</a></p>
+    </header>
+    <div id="controls"></div>
+    <div id="log" aria-label="Event log"></div>
+  </aside>
+
+  <main id="stages">
+    <section class="stage" id="stage-blizz">
+      <div class="stage-label">Blizzard's tracker <small>Reconstruction, quests only</small></div>
+      <div class="stage-frame">
+        <div class="stage-inner">
+          <canvas class="scene"></canvas>
+          <div class="ot" id="blizz-root"></div>
+          <div class="overlay"></div>
+        </div>
+      </div>
+    </section>
+    <section class="stage" id="stage-prop">
+      <div class="stage-label">Proposal <small>docs/organiser-design.md</small></div>
+      <div class="stage-frame">
+        <div class="stage-inner">
+          <canvas class="scene"></canvas>
+          <div class="ot" id="prop-root"></div>
+          <div class="overlay"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/atlas-data.js"></script>
+  <script src="js/fake-log.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    // Trackers read Bench's settings as they draw, so it must exist before they load.
+    window.Bench = { settings: {}, tokens: {} };
+  </script>
+  <script src="js/blizzard.js"></script>
+  <script src="js/proposal.js"></script>
+  <script src="js/worlds.js"></script>
+  <script src="js/bench.js"></script>
+  <script>Bench.init();</script>
+</body>
+</html>
