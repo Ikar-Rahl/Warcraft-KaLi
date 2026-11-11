@@ -1,0 +1,308 @@
+/* The game side of the bench: frames, text and tooltips in UI units (1 CSS px = 1 UI unit inside #stage).
+   Colours are Blizzard's constants (SharedColorConstants.lua); frame chrome is approximated, see README. */
+@font-face { font-family: "Friz"; src: url("../art/FRIZQT__.TTF"); }
+/* Quest titles on parchment (QuestFont_30 and kin): the headings of the paper looks. */
+@font-face { font-family: "Morpheus"; src: url("../art/MORPHEUS.TTF"); }
+
+:root {
+  --gold: #ffd100;          /* NORMAL_FONT_COLOR */
+  --white: #ffffff;         /* HIGHLIGHT_FONT_COLOR */
+  --gray: #808080;          /* GRAY_FONT_COLOR / trivial */
+  --lightgray: #cccccc;
+  --red: #ff2020;           /* RED_FONT_COLOR */
+  --green: #1eff00;         /* GREEN_FONT_COLOR, uncommon */
+  --optimal: #ff8040;       /* TradeSkillTypeColor.optimal */
+  --medium: #ffff00;
+  --easy: #40bf40;
+  --trivial: #808080;
+  --blue: #0070dd;
+  --addon: #8fc3ff;         /* the addon's own lines: a calm light blue, like many Blizzard hints */
+  --ink: #3b2716;           /* the notebook's ink */
+  --ink-soft: #6a4d30;
+  --bronze: #8a6a34;
+  --bronze-dark: #4a3519;
+}
+
+#stage { font-family: "Friz", "Friz Quadrata TT", serif; color: var(--white); }
+#stage * { box-sizing: border-box; }
+
+.world { position: absolute; inset: 0; background-size: cover; background-position: center; }
+.world.dim::after { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,.15); }
+
+/* ---- Text ---- */
+.gold { color: var(--gold); } .white { color: var(--white); } .gray { color: var(--gray); } .lgray { color: var(--lightgray); }
+.red { color: var(--red); } .green { color: var(--green); } .addon { color: var(--addon); }
+.d-optimal { color: var(--optimal); } .d-medium { color: var(--medium); } .d-easy { color: var(--easy); } .d-trivial { color: var(--trivial); }
+.q0 { color: #9d9d9d; } .q1 { color: #fff; } .q2 { color: #1eff00; } .q3 { color: #0070dd; } .q4 { color: #a335ee; }
+.fs10 { font-size: 10px; } .fs11 { font-size: 11px; } .fs12 { font-size: 12px; } .fs13 { font-size: 13px; } .fs14 { font-size: 14px; } .fs16 { font-size: 16px; }
+.shadow, .frame, .tip { text-shadow: 1px 1px 0 #000; }
+.link { cursor: pointer; } .link:hover { filter: brightness(1.25); text-decoration: underline; }
+
+/* ---- Coins ---- */
+.coin { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin: 0 3px 0 1px; vertical-align: -1px; box-shadow: inset -1px -1px 0 rgba(0,0,0,.45); }
+.coin.g { background: radial-gradient(circle at 35% 35%, #fff2a8, #d4a017 60%, #8a6407); }
+.coin.s { background: radial-gradient(circle at 35% 35%, #fff, #b8b8c0 60%, #6e6e78); }
+.coin.c { background: radial-gradient(circle at 35% 35%, #ffd2a8, #b87333 60%, #6d3f16); }
+
+/* ---- Generic window (approximates PortraitFrameTemplate with Forever's bronze trim) ---- */
+.frame { position: absolute; background: #14100c; border: 2px solid var(--bronze); border-radius: 4px;
+  box-shadow: 0 0 0 1px #000, inset 0 0 0 1px #000, inset 0 0 0 3px #2a1f12, 0 6px 24px rgba(0,0,0,.6); }
+.frame .titlebar { position: absolute; left: 0; right: 0; top: 0; height: 24px; display: flex; align-items: center; justify-content: center;
+  font-size: 12px; color: var(--gold); background: linear-gradient(#2b2117, #17110b); border-bottom: 1px solid #3b2c18; }
+.frame .gear { position: absolute; top: 4px; right: 28px; width: 15px; height: 16px; cursor: pointer; }
+.frame .gear:hover { filter: brightness(1.4); }
+.frame .close { position: absolute; top: 2px; right: 3px; width: 20px; height: 20px; border-radius: 3px; cursor: pointer;
+  background: linear-gradient(#b5170f, #6b0c06); border: 1px solid #d9a441; color: #ffdf4a; font-size: 13px; line-height: 17px; text-align: center; font-weight: bold; }
+.frame .portrait { position: absolute; left: -12px; top: -12px; width: 60px; height: 60px; border-radius: 50%;
+  border: 3px solid #b48a3c; box-shadow: 0 0 0 2px #2a1d0d, 0 2px 6px #000; background: #000 center/cover no-repeat; }
+.inset { position: absolute; background: rgba(0,0,0,.45); border: 1px solid #3a2c1a; box-shadow: inset 0 0 8px #000; }
+.btn { position: absolute; height: 22px; padding: 0 12px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--gold);
+  background: linear-gradient(#9e1610, #5c0a06); border: 1px solid #c49a4a; border-radius: 3px; box-shadow: inset 0 1px 0 rgba(255,255,255,.15); cursor: default; white-space: nowrap; }
+.btn.off { color: #7d7d7d; background: linear-gradient(#3a3a3a, #222); border-color: #666; }
+.search { position: absolute; height: 20px; border: 1px solid #6d6d6d; border-radius: 3px; background: #050505; padding-left: 18px; font-size: 11px; color: #777; display: flex; align-items: center; }
+.slot { position: relative; width: 37px; height: 37px; flex: none; border: 1px solid #555; border-radius: 3px; background: #111 center/cover no-repeat;
+  box-shadow: inset 0 0 0 1px #000, 0 0 0 1px #222; }
+.slot .count { position: absolute; right: 2px; bottom: 0; font-size: 12px; color: #fff; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000; }
+.icon { display: inline-block; flex: none; background: center/cover no-repeat; border: 1px solid #000; border-radius: 2px; }
+
+/* ---- Professions window (Forever: 673 by 594) ---- */
+.prof .rankbar { position: absolute; left: 106px; right: 106px; top: 32px; height: 16px; border: 1px solid #000; outline: 1px solid #6b5326; background: #0a0806; }
+.prof .rankbar .fill { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, #a01010, #e2541a 55%, #f0c030); }
+.prof .rankbar .txt { position: absolute; inset: 0; text-align: center; font-size: 11px; line-height: 15px; color: #fff; }
+.prof .list { left: 10px; top: 100px; width: 268px; bottom: 10px; overflow: hidden; }
+.prof .detail { left: 290px; top: 74px; right: 10px; bottom: 44px; }
+.cat { display: flex; align-items: center; height: 22px; margin: 4px 4px 2px; padding: 0 6px; font-size: 13px; color: var(--gold);
+  background: linear-gradient(#2a2014, #18120b); border: 1px solid #4d3a1d; border-bottom-color: #8a6a34; }
+.cat .tog { margin-left: auto; width: 14px; height: 10px; border: 1px solid #8a6a34; font-size: 10px; line-height: 7px; text-align: center; color: var(--gold); }
+.rec { height: 18px; padding-left: 26px; font-size: 11px; display: flex; align-items: center; white-space: nowrap; overflow: hidden; }
+.rec.sel { background: rgba(255,209,0,.12); }
+.tabstrip { position: absolute; top: 60px; display: flex; flex-direction: column; gap: 6px; }
+.tabstrip .tab { width: 46px; height: 46px; border: 2px solid #8a6a34; border-radius: 6px; background: #000 center/80% no-repeat; box-shadow: 0 0 0 1px #000, 2px 2px 4px #000; }
+.tabstrip .tab.on { border-color: #ffd100; }
+
+/* The addon's pieces: kept visually quiet, light blue or gray, never boxed */
+.nb-line { position: absolute; font-size: 11px; white-space: nowrap; }
+.nb-line .n { color: var(--white); }
+.nb-mark-dot { position: absolute; width: 7px; height: 7px; border-radius: 50%; background: #8fc3ff; box-shadow: 0 0 0 1px #000, 0 0 4px #8fc3ff; }
+.nb-mark-label { position: absolute; font-size: 9px; color: #8fc3ff; text-shadow: 1px 1px 0 #000; }
+.nb-new { position: absolute; inset: -6px; pointer-events: none; }
+
+/* ---- Tooltip (approximates GameTooltip) ---- */
+.tip { position: absolute; z-index: 50; min-width: 180px; max-width: 320px; padding: 7px 9px 8px; pointer-events: none;
+  background: rgba(10,10,20,.94); border: 1px solid #8a8a8a; border-radius: 4px; box-shadow: inset 0 0 0 1px #000, 0 0 0 1px #000; font-size: 12px; line-height: 15px; }
+.tip .row { display: flex; gap: 12px; } .tip .row .r { flex: none; margin-left: auto; text-align: right; white-space: nowrap; }
+.tip .h { font-size: 14px; line-height: 18px; }
+.tip .sp { height: 8px; }
+.tip .wrap { white-space: normal; }
+
+/* ---- Merchant (approximates MerchantFrame, 336 by 444) ---- */
+.merchant .items { position: absolute; left: 14px; top: 64px; right: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 8px; }
+.mitem { position: relative; display: flex; gap: 6px; height: 44px; }
+.mitem .nm { font-size: 11px; line-height: 13px; max-height: 26px; overflow: hidden; }
+.mitem .pr { font-size: 11px; margin-top: 2px; }
+.mitem.unusable .slot { box-shadow: inset 0 0 0 40px rgba(255,0,0,.35); }
+.merchant .footer { position: absolute; left: 10px; right: 10px; bottom: 10px; height: 52px; border-top: 1px solid #3a2c1a; }
+
+/* ---- Trainer (approximates ClassTrainerFrame) ---- */
+.trainer .tlist { left: 12px; top: 64px; right: 12px; height: 230px; overflow: hidden; padding: 4px 6px; }
+.trainer .trow { height: 16px; font-size: 11px; display: flex; align-items: center; position: relative; }
+.trainer .tdetail { left: 12px; top: 304px; right: 12px; bottom: 44px; padding: 8px; }
+
+/* ---- Auction house (approximates the browse page) ---- */
+.ah .hdr { position: absolute; left: 200px; right: 12px; top: 64px; height: 20px; display: flex; font-size: 11px; color: var(--gold); }
+.ah .rows { position: absolute; left: 200px; right: 12px; top: 86px; }
+.ah .arow { position: relative; display: flex; align-items: center; height: 30px; padding: 0 6px; font-size: 12px; border-bottom: 1px solid #241b10; }
+.ah .arow:nth-child(odd) { background: rgba(255,255,255,.03); }
+.ah .arow > span:last-child { white-space: nowrap; }
+.ah .cats { left: 12px; top: 64px; width: 178px; bottom: 12px; padding: 6px; font-size: 12px; }
+.ah .cats div { height: 20px; display: flex; align-items: center; padding-left: 6px; }
+.ah .cats .on { background: rgba(255,209,0,.15); color: var(--white); }
+
+/* ---- Bags ---- */
+.bag .grid { position: absolute; left: 10px; top: 32px; display: grid; grid-template-columns: repeat(4, 37px); gap: 5px; }
+
+.entry { display: flex; gap: 8px; padding: 5px 2px; border-bottom: 1px solid rgba(138,106,52,.18); }
+.entry .t { font-size: 12px; } .entry .s { font-size: 10px; color: var(--lightgray); margin-top: 1px; }
+.entry .pin { margin-left: auto; align-self: center; width: 18px; height: 18px; cursor: pointer; opacity: .7; }
+.entry .pin:hover { opacity: 1; }
+.grouph { font-size: 12px; color: var(--gold); margin: 8px 0 2px; display: flex; gap: 6px; align-items: baseline; }
+.grouph .z { font-size: 10px; color: var(--gray); }
+
+/* ---- World map (approximates WorldMapFrame, real tiles) ---- */
+.mapf .canvas { position: absolute; left: 6px; top: 28px; overflow: hidden; background: #000; }
+.mapf .tiles { position: absolute; left: 0; top: 0; }
+.mapf .tiles img { position: absolute; width: 256px; height: 256px; }
+.mapf .pinw { position: absolute; transform: translate(-50%, -50%); cursor: pointer; }
+.mapf .filter { position: absolute; top: 30px; right: 14px; z-index: 5; }
+.menu { position: absolute; z-index: 40; min-width: 200px; padding: 8px 10px; font-size: 12px; line-height: 20px;
+  background: rgba(8,8,14,.95); border: 1px solid #8a8a8a; border-radius: 4px; box-shadow: 0 4px 16px rgba(0,0,0,.6); }
+.menu .it { display: flex; align-items: center; gap: 8px; }
+.menu .box { width: 12px; height: 12px; border: 1px solid #aaa; background: #000; font-size: 10px; line-height: 10px; text-align: center; color: var(--gold); }
+.menu .hd { color: var(--gold); }
+
+/* ---- Professions book (approximates the "Métiers" page) ---- */
+.pbook .card { position: absolute; left: 20px; right: 20px; height: 110px; display: flex; gap: 14px; padding: 12px;
+  background: linear-gradient(#1e170f, #120d08); border: 1px solid #4d3a1d; }
+.pbook .card .bar { position: relative; height: 14px; margin-top: 6px; width: 260px; border: 1px solid #000; outline: 1px solid #6b5326; background: #0a0806; }
+.pbook .card .bar .fill { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #1a6e12, #3fbf2a); }
+.pbook .card .bar .txt { position: absolute; inset: 0; text-align: center; font-size: 10px; line-height: 13px; }
+
+/* ---- Level badge, as KaLi Quest shows quest levels: a coloured number on the nameplate level art ---- */
+.lvl { display: inline-flex !important; align-items: center; justify-content: center; font-size: 10px; line-height: 16px; text-shadow: 1px 1px 0 #000; }
+.mk { position: absolute; display: inline-flex; pointer-events: none; }
+/* "You hold it": the bag on a small dark disc, so it holds on beige recipe scrolls. */
+.held { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 50%; background: radial-gradient(circle, rgba(0,0,0,.85) 55%, rgba(0,0,0,0) 72%); }
+.nbmk, .trow span { display: inline-flex; gap: 2px; align-items: center; }
+
+/* ---- Chat frame (over the screenshot's own) ---- */
+.chatbox { position: absolute; display: flex; flex-direction: column; justify-content: flex-end; gap: 1px; padding: 6px 10px; font-size: 13px; line-height: 16px;
+  background: rgba(0,0,0,.82); text-shadow: 1px 1px 0 #000; overflow: hidden; }
+
+/* ---- The notebook's rows ---- */
+.nbrow { display: flex; align-items: center; gap: 8px; padding: 3px 4px 3px 2px; cursor: pointer; border-radius: 2px; }
+.nbrow:hover { background: rgba(255,255,255,.06); }
+.nbrow .lvlcol { flex: none; width: 28px; display: inline-flex; justify-content: center; }
+.nbrow .nbtxt { flex: 1; min-width: 0; }
+.nbrow .nbtxt > div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nbrow .nbmk { margin-left: auto; flex: none; }
+.search-in { position: absolute; height: 20px; border: 1px solid #6d6d6d; border-radius: 3px; background: #050505; color: #ddd; font: 11px "Friz", serif; padding: 0 6px; outline: none; }
+.search-in::placeholder { color: #777; }
+
+/* ---- Options › Add-ons (approximates Blizzard's Settings panel, vertical layout) ---- */
+.settings .setnav { left: 10px; top: 32px; width: 220px; bottom: 44px; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+.settings .setnav .on { background: rgba(255,209,0,.12); }
+.settings .setbody { position: absolute; left: 244px; right: 16px; top: 34px; bottom: 44px; overflow-y: auto; padding-right: 8px; scrollbar-width: thin; scrollbar-color: #6b5326 transparent; }
+.settings .sethd { font-size: 16px; color: var(--gold); margin: 14px 0 6px; padding-bottom: 4px; border-bottom: 1px solid #4d3a1d; }
+.settings .setrow { display: flex; align-items: center; justify-content: space-between; height: 26px; padding: 0 10px; cursor: pointer; }
+.settings .setrow:hover { background: rgba(255,255,255,.05); }
+.settings .setbox { width: 18px; height: 18px; border: 1px solid #a88a4a; background: #000; color: var(--gold); font-size: 14px; line-height: 16px; text-align: center; }
+.settings .setsel { padding: 1px 6px; border: 1px solid #6d6d6d; border-radius: 3px; background: #111; color: var(--gold); font: inherit; font-size: 12px; cursor: pointer; }
+.settings .setdd { min-width: 30px; padding: 1px 10px; border: 1px solid #6d6d6d; border-radius: 3px; background: #111; color: var(--gold); font-size: 12px; cursor: pointer; text-align: center; }
+
+/* ---- Addon compartment ---- */
+.compartment-btn { position: absolute; width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(#3a2a12, #120d08); border: 2px solid #b48a3c;
+  color: var(--gold); font-size: 11px; line-height: 18px; text-align: center; }
+
+/* ---- The notebook (notebook.js): one layout, two skins, « Épuré » (.nb-clean) and « Livre » (.nb-book) ---- */
+.nbhead { display: flex; align-items: center; gap: 12px; }
+.nbhead > div:first-child { flex: 1; min-width: 0; }
+.nbhead .pt { font-size: 17px; color: var(--gold); line-height: 1.1; }
+.nbhead .ps { font-size: 11px; color: var(--lightgray); margin-top: 4px; }
+.nbbtns { display: flex; gap: 6px; flex: none; }
+.nbtools { display: flex; gap: 10px; align-items: center; }
+.nbtools .search-in { flex: 1; }
+.search-in.flow { position: static; }
+/* Buttons: retail's dark « tertiary » button (the Settings panel's), decided. « Suivre » is Forever's arrow button
+   alone: pressed and in colour while on, gray while off. */
+.nbbtn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 22px; padding: 0 10px; font-size: 12px; color: var(--gold); cursor: pointer; white-space: nowrap;
+  background: linear-gradient(#26221d, #0e0c0a); border: 1px solid #8a6a34; border-radius: 5px; box-shadow: 0 1px 2px #000, inset 0 1px 0 rgba(255,255,255,.06); }
+.nbbtn:hover { color: #fff; filter: brightness(1.2); }
+.nbbtn.icon { width: 28px; padding: 0; }
+.nbbtn.on { color: #fff; border-color: #ffd100; box-shadow: 0 1px 2px #000, inset 0 0 6px rgba(255,209,0,.45); }
+.nbbtns { align-items: center; }
+.nbfollow { display: inline-flex; cursor: pointer; }
+.nbfollow:hover { filter: brightness(1.25); }
+.nbfollow:not(.on):hover .atlas { filter: grayscale(.4) brightness(.95) !important; }
+
+/* The rank as the classic skill bar (TradeSkillRankFrame): UI-Character-Skills-Bar tinted blue, in its border. */
+.nbhead .ps { display: flex; align-items: center; gap: 12px; }
+.skillbar { position: relative; flex: none; width: 190px; height: 13px; margin: 3px 6px; background: #000 linear-gradient(rgba(0,0,191,.5), rgba(0,0,191,.5)); }
+.skillbar .fill { position: absolute; left: 0; top: 0; bottom: 0; background: #0000ff url(../art/skills-bar.png) 0 0 / 190px 100%; background-blend-mode: multiply; opacity: .75; }
+.skillbar::after { content: ""; position: absolute; left: -6px; right: -6px; top: -8px; bottom: -8px; background: url(../art/skills-barborder.png) 0 0 / 100% 100%; pointer-events: none; }
+.skillbar .txt { position: absolute; inset: 0; text-align: center; font-size: 10px; line-height: 13px; color: #fff; text-shadow: 1px 1px 0 #000; z-index: 1; }
+
+/* An item a recipe makes: the profession's small icon on a dark disc; dimmed when this character can't make it. */
+.held.craft { width: 20px; height: 20px; }
+.held.craft.dim { filter: grayscale(.7) brightness(.9); }
+.nbbody { overflow-y: auto; scrollbar-width: thin; scrollbar-color: #6b5326 transparent; padding: 0 6px 0 2px; }
+.nbfoot { font-size: 11px; color: var(--gray); }
+.nbrow .nm { font-size: 12px; color: var(--white); }
+.nbrow.kn .nm { color: var(--lightgray); }
+.nbrow .sb { font-size: 10px; color: var(--gray); margin-top: 1px; }
+.nbsec { display: flex; align-items: center; height: 22px; margin: 6px 0 2px; padding: 0 6px; font-size: 13px; color: var(--gold); cursor: pointer;
+  background: linear-gradient(#2a2014, #18120b); border: 1px solid #4d3a1d; border-bottom-color: #8a6a34; }
+.nbsec:first-child { margin-top: 0; }
+.nbsec .tog { margin-left: auto; width: 14px; height: 10px; border: 1px solid #8a6a34; font-size: 10px; line-height: 7px; text-align: center; color: var(--gold); }
+/* The game's categories, as the professions window heads them, one step quieter than the section. */
+.nbcat { display: flex; align-items: baseline; gap: 6px; margin: 6px 0 1px 6px; font-size: 11px; color: var(--gold); cursor: pointer; }
+.nbcat .cn::before { content: "▾ "; font-size: 9px; }
+.nbcat.shut .cn::before { content: "▸ "; }
+.nbcat .n { color: var(--gray); font-size: 10px; }
+.nbempty { padding: 20px; text-align: center; font-size: 12px; color: var(--gray); }
+
+/* Profession tabs: the classic spellbook's side tabs, down the right edge; the character's own first. */
+.sidetabs { position: absolute; display: flex; flex-direction: column; }
+.sidetabs .gap { height: 12px; }
+.sidetab { position: relative; width: 40px; height: 58px; cursor: pointer; }
+.sidetab .ti { position: absolute; left: 5px; top: 15px; width: 27px; height: 27px; background-size: cover; }
+.sidetab.on .ti { box-shadow: 0 0 0 1px #ffd100, 0 0 6px #ffd100; }
+.sidetab.dim .ti { filter: saturate(.35) brightness(.8); }
+
+/* « Livre »: the profession's quest parchment, its ink (PARCHMENT_MATERIAL_TEXT_COLOR), black titles in Morpheus. */
+.nb-book { --ink: #2e1f0f; --ink-soft: rgba(46,31,15,.64); }
+.nb-book .nbhead, .nb-book .nbtools, .nb-book .nbbody, .nb-book .nbfoot { color: var(--ink); text-shadow: none; }
+.nb-book .nbhead .pt { font-family: "Morpheus", serif; font-size: 26px; color: #000; }
+.nb-book .nbhead .ps { color: var(--ink-soft); }
+.nb-book .skillbar .txt { color: #fff; }
+.nb-book .nbbtn { color: var(--ink); background: rgba(255,246,222,.28); border-color: rgba(46,31,15,.6); box-shadow: none; text-shadow: none; }
+.nb-book .nbbtn:hover { color: #000; background: rgba(255,246,222,.5); filter: none; }
+.nb-book .nbbtn.on { color: #000; background: rgba(110,70,20,.22); border-color: #2e1f0f; box-shadow: inset 0 0 0 1px rgba(46,31,15,.5); }
+.nb-book .search-in { background: transparent; border: none; border-bottom: 1px solid rgba(46,31,15,.45); border-radius: 0; color: var(--ink); font-size: 12px; height: 22px; padding: 0 2px; }
+.nb-book .search-in::placeholder { color: rgba(46,31,15,.5); }
+.nb-book .nbbody { scrollbar-color: rgba(110,70,20,.5) transparent; }
+.nb-book .nbfoot { color: var(--ink-soft); }
+.nb-book .nbsec { color: #000; font-family: "Morpheus", serif; font-size: 19px; height: auto; margin: 12px 0 4px; padding: 0 2px 2px; background: none; border: none; border-bottom: 1px solid rgba(46,31,15,.35); }
+.nb-book .nbsec:first-child { margin-top: 0; }
+.nb-book .nbsec .tog { border-color: rgba(46,31,15,.6); color: var(--ink); }
+.nb-book .nbcat { color: #000; font-family: "Morpheus", serif; font-size: 14px; margin: 8px 0 2px 2px; }
+.nb-book .nbcat .n { color: var(--ink-soft); font-family: "Friz", serif; }
+.nb-book .nbrow:hover { background: rgba(110,70,20,.14); }
+.nb-book .nbrow .nm { color: var(--ink); }
+.nb-book .nbrow.kn .nm, .nb-book .nbrow .sb, .nb-book .nbempty { color: var(--ink-soft); }
+.prof .list .cat { white-space: nowrap; overflow: hidden; }
+
+/* ---- The notebook: rows' possession, the selected recipe, its detail below the list ---- */
+.nbhead .ps { white-space: nowrap; }
+.nbbg { overflow: hidden; }
+.nbrow.sel { background: rgba(255,209,0,.13); box-shadow: inset 2px 0 0 #ffd100; }
+.nbrow.sel:hover { background: rgba(255,209,0,.18); }
+.nbhold { margin-left: auto; flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; max-width: 45%; }
+.nbhold .ht { font-size: 10px; color: var(--gray); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.nbsplit { display: flex; flex-direction: column; gap: 8px; }
+.nbsplit > .nbbody { flex: 1 1 auto; min-height: 0; }
+.nbdet { flex: none; max-height: 50%; display: flex; flex-direction: column; border-top: 1px solid #6b5326; padding: 6px 6px 0 4px; box-sizing: border-box; }
+.nbdet .dh { display: flex; align-items: center; gap: 9px; flex: none; }
+.nbdet .dh > .icon { flex: none; box-shadow: 0 0 0 1px #000; }
+.nbdet .dt { flex: 1; min-width: 0; }
+.nbdet .dn { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nbdet .ds { display: flex; align-items: center; gap: 6px; margin-top: 2px; font-size: 11px; color: var(--lightgray); }
+.nbdet .dx { flex: none; align-self: flex-start; width: 18px; height: 18px; line-height: 16px; text-align: center; font-size: 15px; color: var(--gold); cursor: pointer; border-radius: 3px; }
+.nbdet .dx:hover { color: #fff; background: rgba(255,255,255,.08); }
+/* One grid for all the lines: the label column is as wide as the longest label shown, and values line up. */
+.nbdet .dbody { display: grid; grid-template-columns: max-content 1fr; column-gap: 12px; align-content: start; font-size: 11px; line-height: 18px; color: var(--lightgray);
+  flex: 0 1 auto; min-height: 0; overflow-y: auto; margin-top: 5px; padding: 0 6px 2px 0; scrollbar-width: thin; scrollbar-color: #6b5326 transparent; }
+.nbdet .dl { display: contents; }
+.nbdet .dk { color: var(--gold); white-space: nowrap; }
+.nbdet .dv { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 14px; min-width: 0; }
+.nbdet .dr { display: inline-flex; align-items: center; gap: 5px; }
+.nbdet .dl .pin { display: inline-flex; cursor: pointer; opacity: .85; }
+.nbdet .dl .pin:hover { opacity: 1; filter: brightness(1.3); }
+.nb-book .nbrow.sel { background: rgba(110,70,20,.2); box-shadow: inset 2px 0 0 #2e1f0f; }
+.nb-book .nbhold .ht { color: var(--ink-soft); }
+.nb-book .nbdet { border-top-color: rgba(46,31,15,.4); color: var(--ink); text-shadow: none; }
+.nb-book .nbdet .dk { color: #000; font-family: "Morpheus", serif; font-size: 13px; }
+.nb-book .nbdet .dn.q1 { color: #000; }
+.nb-book .nbdet .ds, .nb-book .nbdet .dbody { color: var(--ink-soft); }
+.nb-book .nbdet .dr .white { color: var(--ink); }
+.nb-book .nbdet .dr .gray { color: rgba(46,31,15,.5); }
+.nb-book .nbdet .dx { color: var(--ink); }
+.nb-book .nbdet .dbody { scrollbar-color: rgba(110,70,20,.5) transparent; }
+
+/* ---- Options › Add-ons: Blizzard's slider with steppers ---- */
+.settings .setslider { display: flex; align-items: center; gap: 6px; }
+.settings .setslider .step { color: var(--gold); font-size: 10px; cursor: pointer; padding: 0 2px; }
+.settings .setslider .step:hover { color: #fff; }
+.settings .settrack { position: relative; width: 170px; height: 6px; background: #000; border: 1px solid #555; border-radius: 3px; cursor: pointer; }
+.settings .settrack .fill { position: absolute; left: 0; top: 0; bottom: 0; background: #7a5c22; border-radius: 3px; }
+.settings .settrack .thumb { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: radial-gradient(#ffe38a, #b8860b); box-shadow: 0 0 2px #000; }
+.settings .setslider .val { width: 36px; text-align: right; }

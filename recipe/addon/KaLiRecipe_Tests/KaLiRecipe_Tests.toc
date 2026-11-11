@@ -1,0 +1,17 @@
+## Interface: 16001
+## Title: KaLi Recipe (tests)
+## Notes: Developer tests for KaLi Recipe. Type /kr test to run them.
+## Notes-frFR: Tests de développement de KaLi Recipe. Tapez /kr test pour les lancer.
+## Author: Ikar
+## Version: 0.1.0-dev
+## LoadOnDemand: 1
+## Dependencies: KaLiRecipe
+
+Harness.lua
+FakeGame.lua
+Fixtures.lua
+Test_DB.lua
+Test_Model.lua
+Test_Text.lua
+Test_Sounds.lua
+Test_Minimap.lua

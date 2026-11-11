@@ -1,0 +1,43 @@
+## Interface: 16001
+## Title: KaLi Recipe
+## Notes: A notebook of the recipes you come across, without spoiling the ones you haven't met.
+## Notes-frFR: Un carnet des recettes que vous croisez, sans dévoiler celles que vous n'avez jamais vues.
+## Author: Ikar
+## Version: 0.1.0-dev
+## Category: Professions
+## Category-frFR: Métiers
+## SavedVariables: KaLiRecipeDB, KaLiRecipeDevDB
+## SavedVariablesPerCharacter: KaLiRecipeCopyDB
+## IconTexture: Interface\Icons\INV_Scroll_03
+## AddonCompartmentFunc: KaLiRecipe_OnAddonCompartmentClick
+## AddonCompartmentFuncOnEnter: KaLiRecipe_OnAddonCompartmentEnter
+## AddonCompartmentFuncOnLeave: KaLiRecipe_OnAddonCompartmentLeave
+## X-License: MIT
+
+Core\Init.lua
+Core\Debug.lua
+Core\Locale.lua
+Data\Recipes.lua
+Data\Needs.lua
+Core\Sounds.lua
+Core\DB.lua
+Core\Text.lua
+Core\Model.lua
+Core\Game.lua
+Core\Scan.lua
+Core\Commands.lua
+Core\SelfCheck.lua
+UI\Widgets.lua
+UI\Chat.lua
+UI\Tooltips.lua
+UI\Markers.lua
+UI\CountLines.lua
+UI\Detail.lua
+UI\Notebook.lua
+UI\Follow.lua
+UI\MinimapButton.lua
+UI\MapPins.xml
+UI\MapPins.lua
+UI\Options.lua
+UI\Report.lua
+Core\Main.lua

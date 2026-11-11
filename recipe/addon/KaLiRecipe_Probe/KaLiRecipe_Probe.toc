@@ -1,0 +1,10 @@
+## Interface: 16001
+## Title: KaLi Recipe (probe)
+## Notes: What this client answers to KaLi Recipe's open questions. Changes nothing. /krprobe
+## Notes-frFR: Ce que ce client répond aux questions ouvertes de KaLi Recipe. Ne change rien. /krprobe
+## Author: Ikar
+## Version: 0.1.0-dev
+## SavedVariables: KaLiRecipeProbeDB
+## OptionalDeps: KaLiRecipe
+
+Probe.lua

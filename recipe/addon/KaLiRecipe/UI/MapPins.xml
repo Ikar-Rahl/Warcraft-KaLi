@@ -1,0 +1,14 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+	<!-- A pin on the world map where a recipe this character doesn't know was seen. The world map's own way to add
+	     pins: a template for its pin pool, a data provider (UI/MapPins.lua). As Blizzard's own pins: the mouse enabled
+	     and no OnEnter or OnLeave here, since the map asserts there are none and calls the mixin's OnMouseEnter and
+	     OnMouseLeave itself (Blizzard_MapCanvas.lua, AcquirePin). -->
+	<Frame name="KaLiRecipeMapPinTemplate" mixin="KaLiRecipeMapPinMixin" enableMouse="true" virtual="true">
+		<Size x="18" y="18"/>
+		<Layers>
+			<Layer level="OVERLAY">
+				<Texture parentKey="Icon" atlas="Waypoint-MapPin-Untracked" setAllPoints="true"/>
+			</Layer>
+		</Layers>
+	</Frame>
+</Ui>

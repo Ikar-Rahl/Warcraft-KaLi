@@ -310,8 +310,8 @@ def needs(sources, documented, defined_in, templates_in, fonts_in):
 
 def needs_lua(found):
     lines = [
-        "-- Made from the addon's own code by tools/scripts/run_lua_tests.py --write-needs, whose checks fail a stale copy:",
-        "-- what the addon takes from the game, for Core/SelfCheck.lua.",
+        "-- Made from the addon's own code by its runner's --write-needs (tools/kali/checks.py), whose checks fail a stale",
+        "-- copy: what the addon takes from the game, for its API check at login (SelfCheck).",
         "local _, ns = ...",
         "",
         "-- A global or a template names the Blizzard addons that define it, or \"\" for the game itself.",

@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>KaLi Recipe icon</title>
+<style>
+  @font-face { font-family: "Friz"; src: url(art/FRIZQT__.TTF) format("truetype"); }
+  :root { --line: #34383f; --ink: #d9dce1; --ink-dim: #8e949d; --accent: #e0b34c; }
+  body { margin: 0; background: #17191d; color: var(--ink); font: 13px/1.4 "Segoe UI", system-ui, sans-serif; }
+  header { padding: 14px 20px 6px; }
+  h1 { margin: 0; font-size: 17px; }
+  header p { margin: 4px 0 0; color: var(--ink-dim); max-width: 920px; }
+  code { color: #f3d68e; }
+  .context { display: flex; flex-wrap: wrap; gap: 28px; padding: 12px 20px 16px; border-bottom: 1px solid var(--line); align-items: flex-start; }
+  .context h2, .grid h2 { margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-dim); }
+  .addonlist { width: 330px; background: #050505; border: 2px solid #2b2620; border-radius: 3px; padding: 6px 4px; font-family: "Friz", Arial, sans-serif; }
+  .al-row { display: flex; align-items: center; gap: 6px; height: 25px; padding: 0 6px; font-size: 12.5px; color: #ffc700; text-shadow: 1px 1px 0 #000; }
+  .al-row.me { background: rgba(255, 210, 80, .08); }
+  .al-check { width: 14px; height: 14px; border: 1px solid #6b6b6b; border-radius: 2px; background: #111; color: #ffd200; font: 12px/14px Arial; text-align: center; }
+  .al-row img, .al-row canvas { width: 20px; height: 20px; flex: none; }
+  .compartment { width: 210px; background: rgba(8, 8, 10, .95); border: 1px solid #4b4b4b; border-radius: 6px; padding: 6px 8px; font-family: "Friz", Arial, sans-serif; }
+  .cm-row { display: flex; align-items: center; height: 20px; font-size: 12px; color: #fff; text-shadow: 1px 1px 0 #000; }
+  .cm-row span { flex: 1; }
+  .cm-row img, .cm-row canvas { width: 16px; height: 16px; flex: none; }
+  .minimap { display: flex; gap: 14px; align-items: flex-end; color: var(--ink-dim); font-size: 10px; text-align: center; }
+  .minimap figure { margin: 0; }
+  .minimap .map { width: 120px; height: 120px; border-radius: 50%; position: relative;
+    background: radial-gradient(circle at 40% 35%, #5d7a3c, #34502a 55%, #1f3320); border: 3px solid #4a3d2a; }
+  .minimap .map canvas { position: absolute; }
+  .titan { width: 330px; height: 24px; display: flex; align-items: center; gap: 14px; padding: 0 8px; font-family: "Friz", Arial, sans-serif;
+    font-size: 12px; color: #fff; text-shadow: 1px 1px 0 #000; background: linear-gradient(#3a3a3a, #121212); border-bottom: 1px solid #000; }
+  .titan span { display: flex; align-items: center; gap: 4px; }
+  .titan img, .titan canvas { width: 16px; height: 16px; }
+  .grid { padding: 14px 20px 30px; }
+  .grid h2 + .cards { margin-bottom: 22px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 12px; }
+  .card { display: grid; grid-template-columns: 128px 1fr; gap: 12px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: #1d2026; cursor: pointer; }
+  .card:hover { border-color: #5a5f69; }
+  .card.on { border-color: var(--accent); background: #262219; }
+  .card .big { width: 128px; height: 128px; background: #0c0d10; border-radius: 4px; }
+  .card h3 { margin: 0; font-size: 14px; }
+  .card h3 small { color: var(--ink-dim); font-weight: 400; margin-left: 6px; }
+  .card h3 .installed { margin-left: 8px; padding: 0 6px; border-radius: 3px; background: #3b3423; color: #f3d68e; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .card p { margin: 3px 0 8px; color: var(--ink-dim); font-size: 12px; }
+  .sizes { display: flex; align-items: flex-end; gap: 10px; }
+  .sizes figure { margin: 0; text-align: center; color: var(--ink-dim); font-size: 10px; }
+  .sizes canvas, .sizes img { display: block; margin: 0 auto 2px; }
+  #export { position: fixed; inset: 0; background: #000; color: #0f0; word-break: break-all; white-space: pre-wrap; margin: 0; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>KaLi Recipe's icon</h1>
+    <p>KaLi Quest's « Noir et or », its tile, thin corners and gold K, with a sign of recipes where the quest mark is.
+      Drawn 64 by 64; the game shrinks the file to 20 px in the AddOns list, 16 px in the compartment and on Titan Panel,
+      and 18 px inside the minimap button. Click a candidate to see it in those places, beside KaLi Quest's.</p>
+  </header>
+  <section class="context">
+    <div>
+      <h2>Options &gt; AddOns</h2>
+      <div class="addonlist" id="addonlist"></div>
+    </div>
+    <div>
+      <h2>Addon compartment</h2>
+      <div class="compartment" id="compartment"></div>
+    </div>
+    <div>
+      <h2>Minimap button, 1× and 2×</h2>
+      <div class="minimap" id="minimap"></div>
+    </div>
+    <div>
+      <h2>Titan Panel</h2>
+      <div class="titan" id="titan"></div>
+    </div>
+  </section>
+  <section class="grid" id="groups"></section>
+
+  <script src="../../quest/bench/js/icons.js"></script>
+  <script src="../../quest/bench/js/icon-installed.js"></script>
+  <script src="art/icon-sources.js"></script>
+  <script src="js/icons-recipe.js"></script>
+  <script>
+  (async () => {
+    const params = new URLSearchParams(location.hash.slice(1));
+    await document.fonts.load('30px "Friz"').catch(() => {});
+    const frizLoaded = document.fonts.check('30px "Friz"');
+    // The game's scroll, recoloured from its own pixels: read before anything is drawn.
+    await KRIcons.ready().catch(() => {});
+
+    // tools/make_icon.py's way in: the candidate's 64 by 64 pixels, as base64.
+    if (params.has("export")) {
+      const entry = KRIcons.byId(params.get("export"));
+      const pre = document.createElement("pre");
+      pre.id = "export";
+      document.body.append(pre);
+      if (!entry || !frizLoaded) {
+        document.title = entry ? "EXPORT FONT MISSING" : "EXPORT MISSING";
+        return;
+      }
+      const data = KQIcons.render(entry, 64).getContext("2d").getImageData(0, 0, 64, 64).data;
+      let bin = "";
+      for (let i = 0; i < data.length; i++) bin += String.fromCharCode(data[i]);
+      pre.textContent = btoa(bin);
+      document.title = "EXPORT " + entry.id;
+      return;
+    }
+
+    // The icon today: the game's INV_Scroll_03.
+    const CURRENT = { id: "current", name: "Today", note: "INV_Scroll_03, the game's own scroll: the TOC's icon until one of these." };
+    const INSTALLED = window.KR_ICON_INSTALLED;
+    const files = new Map(KRIcons.LIST.map((e) => [e.id, KQIcons.render(e, 64)]));
+    const kaliQuest = KQIcons.render(KQIcons.byId(window.KQ_ICON_INSTALLED || "kq-noir-or"), 64);
+
+    function img(src, size) {
+      const i = new Image(size, size);
+      i.src = src;
+      return i;
+    }
+
+    function icon(entry, size) {
+      if (entry === CURRENT) return img("art/icons/134939.png", size);
+      return KQIcons.shrink(files.get(entry.id), size);
+    }
+
+    // The minimap button as the common ones are built: the round dark background, the icon at 18 cropped 5 %, a ring.
+    function minimapButton(entry, scale) {
+      const c = document.createElement("canvas");
+      const size = 31 * scale;
+      c.width = c.height = size;
+      const g = c.getContext("2d");
+      g.scale(scale, scale);
+      g.beginPath();
+      g.arc(15.5, 15.5, 12, 0, Math.PI * 2);
+      g.fillStyle = "rgba(0,0,0,0.85)";
+      g.fill();
+      const source = entry === CURRENT ? null : files.get(entry.id);
+      const draw = (s) => {
+        g.save();
+        g.imageSmoothingQuality = "high";
+        g.drawImage(s, s.width * 0.05, s.height * 0.05, s.width * 0.9, s.height * 0.9, 6.5, 6.5, 18, 18);
+        g.restore();
+        g.beginPath();
+        g.arc(15.5, 15.5, 13.6, 0, Math.PI * 2);
+        g.lineWidth = 3.4;
+        const ring = g.createLinearGradient(0, 2, 0, 29);
+        ring.addColorStop(0, "#d8c79c");
+        ring.addColorStop(0.5, "#8a7650");
+        ring.addColorStop(1, "#4a3c24");
+        g.strokeStyle = ring;
+        g.stroke();
+      };
+      if (source) draw(source);
+      else {
+        const i = new Image();
+        i.onload = () => draw(i);
+        i.src = "art/icons/134939.png";
+      }
+      return c;
+    }
+
+    function drawContext(entry) {
+      const list = document.getElementById("addonlist");
+      list.replaceChildren();
+      const rows = [
+        ["BetterMaps", img("../../quest/bench/art/icon-map.png", 20)],
+        ["Field Journal", img("../../quest/bench/art/icon-question.png", 20)],
+        ["KaLi Quest", KQIcons.shrink(kaliQuest, 20)],
+        ["KaLi Recipe", icon(entry, 20), true],
+        ["LoreForever", img("../../quest/bench/art/icon-book.png", 20)],
+        ["OpenMap", img("../../quest/bench/art/icon-zone.png", 20)],
+      ];
+      for (const [title, pic, me] of rows) {
+        const row = document.createElement("div");
+        row.className = "al-row" + (me ? " me" : "");
+        const check = document.createElement("span");
+        check.className = "al-check";
+        check.textContent = "✓";
+        const name = document.createElement("span");
+        name.textContent = title;
+        row.append(check, pic, name);
+        list.append(row);
+      }
+      const menu = document.getElementById("compartment");
+      menu.replaceChildren();
+      for (const [title, pic] of [["BetterMaps", img("../../quest/bench/art/icon-map.png", 16)], ["KaLi Quest", KQIcons.shrink(kaliQuest, 16)],
+        ["KaLi Recipe", icon(entry, 16)], ["SilverDragon", img("../../quest/bench/art/icon-dragon.png", 16)]]) {
+        const row = document.createElement("div");
+        row.className = "cm-row";
+        const name = document.createElement("span");
+        name.textContent = title;
+        row.append(name, pic);
+        menu.append(row);
+      }
+      const mini = document.getElementById("minimap");
+      mini.replaceChildren();
+      const map = document.createElement("div");
+      map.className = "map";
+      const onMap = minimapButton(entry, 1);
+      onMap.style.left = "-8px";
+      onMap.style.top = "70px";
+      map.append(onMap);
+      const zoom = document.createElement("figure");
+      zoom.append(minimapButton(entry, 2), "2×");
+      mini.append(map, zoom);
+      const titan = document.getElementById("titan");
+      titan.replaceChildren();
+      for (const [title, pic] of [["KaLi Quest", KQIcons.shrink(kaliQuest, 16)], ["KaLi Recipe", icon(entry, 16)], ["14:32", null]]) {
+        const s = document.createElement("span");
+        if (pic) s.append(pic);
+        s.append(title);
+        titan.append(s);
+      }
+      document.querySelectorAll(".card").forEach((c) => c.classList.toggle("on", c.dataset.id === entry.id));
+    }
+
+    const groups = document.getElementById("groups");
+    KRIcons.GROUPS.forEach((group, g) => {
+      const heading = document.createElement("h2");
+      heading.textContent = group.title;
+      const cards = document.createElement("div");
+      cards.className = "cards";
+      groups.append(heading, cards);
+      const entries = g === KRIcons.GROUPS.length - 1 ? [...group.list, CURRENT] : group.list;
+      entries.forEach((entry, i) => cards.append(card(entry, entry === CURRENT ? "" : `${group.prefix}${i + 1}. `)));
+    });
+
+    function card(entry, number) {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.dataset.id = entry.id;
+      const big = entry === CURRENT ? img("art/icons/134939.png", 128) : KQIcons.render(entry, 256);
+      big.classList.add("big");
+      const text = document.createElement("div");
+      const h = document.createElement("h3");
+      h.textContent = number + entry.name;
+      const small = document.createElement("small");
+      small.textContent = entry.id;
+      if (entry !== CURRENT) h.append(small);
+      if (entry.id === INSTALLED) {
+        const tag = document.createElement("span");
+        tag.className = "installed";
+        tag.textContent = "in the addon";
+        h.append(tag);
+      }
+      const p = document.createElement("p");
+      p.textContent = entry.note;
+      const sizes = document.createElement("div");
+      sizes.className = "sizes";
+      for (const size of [64, 20, 16]) {
+        const fig = document.createElement("figure");
+        fig.append(entry === CURRENT ? img("art/icons/134939.png", size) : size === 64 ? KQIcons.render(entry, 64) : icon(entry, size), `${size} px`);
+        sizes.append(fig);
+      }
+      const fig = document.createElement("figure");
+      fig.append(minimapButton(entry, 1), "minimap");
+      sizes.append(fig);
+      text.append(h, p, sizes);
+      card.append(big, text);
+      card.addEventListener("click", () => {
+        location.hash = "icon=" + entry.id;
+        drawContext(entry);
+      });
+      return card;
+    }
+
+    const asked = params.get("icon");
+    drawContext(asked === "current" ? CURRENT : KRIcons.byId(asked) || KRIcons.byId(INSTALLED) || KRIcons.LIST[0]);
+  })();
+  </script>
+</body>
+</html>
