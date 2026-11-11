@@ -1,0 +1,8 @@
+# One line ending for all text: LF. The game reads either; Windows batch files keep CRLF, as cmd.exe needs.
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.tga binary
+*.png binary
+*.jpg binary
+*.ttf binary
+*.ogg binary

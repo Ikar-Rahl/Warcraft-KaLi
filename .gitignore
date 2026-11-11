@@ -1,0 +1,14 @@
+# Local only, never published: Blizzard's textures, icons, map tiles, sounds and font, Ikar's screenshots, and data
+# built from QuestieDB (GPL-3.0). The benches' scripts make them again from the local reference copies (README.md).
+quest/bench/art/
+quest/bench/js/fake-log.js
+recipe/bench/art/
+recipe/bench/js/data.js
+
+# The Lua runtime the test runners load (python -I -m pip install --target tools/pylib lupa), and Python's caches.
+tools/pylib/
+__pycache__/
+*.pyc
+
+# Editors' own files.
+.vscode/
