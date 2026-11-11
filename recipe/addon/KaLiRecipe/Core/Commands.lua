@@ -1,12 +1,9 @@
--- Slash commands: /kr and /kalirecipe. The notebook, the options, and what the addon knows, for debugging.
+-- KaLi Recipe's slash commands, /kr and /kalirecipe, on the shared dispatcher (Shared/Commands.lua, with the commands
+-- for debugging): the notebook, the options, and what the addon knows.
 local _, ns = ...
 local L = ns.L
 
 local say = ns.Say
-
-local function onOff(v)
-    return v and L.ON or L.OFF
-end
 
 local function count(t)
     local n = 0
@@ -201,20 +198,9 @@ local function findSpell(text)
     end
 end
 
-local function runTests()
-    local loaded, reason = C_AddOns.LoadAddOn("KaLiRecipe_Tests")
-    if not loaded or not KaLiRecipeTests then
-        say(string.format(L.TESTS_MISSING, tostring(reason)))
-        return
-    end
-    local report = KaLiRecipeTests.Run()
-    KaLiRecipeDevDB.lastTests = { when = date("%Y-%m-%d %H:%M:%S"), version = ns.VERSION, summary = report.summary, text = report.text }
-    say(report.summary)
-    ns.Debug.ShowText("tests", report.text)
-end
-
--- For the bug report.
-ns.Commands = { StatusText = statusText, NotebookText = notebookText, DataText = dataText }
+-- For /status and the bug report.
+local Commands = ns.Commands
+Commands.StatusText, Commands.NotebookText, Commands.DataText = statusText, notebookText, dataText
 
 local COMMANDS = {}
 COMMANDS[""] = function()
@@ -253,49 +239,18 @@ COMMANDS.forget = function(rest)
         say(string.format(L.NOT_IN_NOTEBOOK, rest))
     end
 end
-COMMANDS.report = function()
-    ns.Report.Open()
-end
-COMMANDS.debug = function(rest)
-    local d = KaLiRecipeDevDB
-    if rest == "on" or rest == "off" then
-        d.debug = rest == "on"
-    elseif rest == "events" then
-        d.events = not d.events
-    elseif rest == "chat" then
-        d.chat = not d.chat
-    end
-    say(string.format(L.DEBUG, onOff(d.debug), onOff(d.events), onOff(d.chat)))
-end
-COMMANDS.log = function()
-    ns.Debug.ShowText("log", ns.Debug.LogText())
-end
-COMMANDS.errors = function()
-    ns.Debug.ShowText("errors", ns.Debug.ErrorsText())
-end
-COMMANDS.clear = function()
-    ns.Debug.Clear()
-    say(L.DONE)
-end
-COMMANDS.test = runTests
 
--- Commands that read the notebook wait until the saved data has loaded and been accepted.
-local NEEDS_DB = { help = false, status = false, debug = false, log = false, errors = false, clear = false, test = false,
-    report = false, data = false }
+-- Commands that read the notebook wait until the saved data has loaded and been accepted; these don't.
+local ANYTIME = { help = true, status = true, data = true }
+for name, fn in pairs(COMMANDS) do
+    Commands.Add(name, fn, ANYTIME[name])
+end
 
-SLASH_KALIRECIPE1 = "/kr"
-SLASH_KALIRECIPE2 = "/kalirecipe"
-SlashCmdList.KALIRECIPE = function(input)
-    local cmd, rest = (input or ""):match("^[ \t]*([^ \t]*)[ \t]*(.-)[ \t]*$")
-    cmd = cmd:lower()
-    local fn = COMMANDS[cmd]
-    if not fn then
+Commands.Register("KALIRECIPE", { "/kr", "/kalirecipe" }, {
+    ready = function()
+        return ns.db and ns.book
+    end,
+    unknown = function()
         say(L.UNKNOWN_COMMAND)
-        return
-    end
-    if NEEDS_DB[cmd] ~= false and not (ns.db and ns.book) then
-        say(string.format(L.DB_REFUSED, tostring(ns.disabled)))
-        return
-    end
-    ns.SafeCall(fn, rest)
-end
+    end,
+})

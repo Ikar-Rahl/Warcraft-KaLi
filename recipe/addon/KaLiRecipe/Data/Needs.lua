@@ -15,6 +15,7 @@ ns.NEEDS = {
         ["C_AddOns.LoadAddOn"] = "",
         ["C_AuctionHouse.GetBrowseResults"] = "",
         ["C_CVar.GetCVar"] = "",
+        ["C_CVar.GetCVarInfo"] = "",
         ["C_Container.GetContainerItemID"] = "",
         ["C_Container.GetContainerItemInfo"] = "",
         ["C_Container.GetContainerNumSlots"] = "",

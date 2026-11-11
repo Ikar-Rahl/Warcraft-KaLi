@@ -1,7 +1,11 @@
--- A small test harness. The same tests run in game (/kr test) and offline (recipe/tools/run_tests.py).
--- They work on fresh tables and a fake world, never on the player's saved notebook.
-KaLiRecipeTests = { cases = {} }
-local T = KaLiRecipeTests
+-- A small test harness, shared by the KaLi addons' tests. The same tests run in game (/kq test, /kr test) and offline
+-- (each addon's tools/run_tests.py). They work on fresh tables and a fake world, never on the player's saved data.
+-- Loaded first by <Addon>_Tests, it makes <Addon>Tests, which the test files add to.
+local ADDON = ...
+local BASE = ADDON:gsub("_Tests$", "")
+
+local T = { cases = {} }
+_G[BASE .. "Tests"] = T
 
 function T.Add(suite, name, fn)
     T.cases[#T.cases + 1] = { suite = suite, name = name, fn = fn }
@@ -148,7 +152,7 @@ function T.ReadSaved(text)
 end
 
 function T.Run()
-    local debug = KaLiRecipeDev.ns.Debug
+    local debug = _G[BASE .. "Dev"].ns.Debug
     local wasMuted = debug.muted
     debug.muted = true
     local lines, passed, failed = {}, 0, 0

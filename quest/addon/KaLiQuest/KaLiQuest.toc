@@ -16,7 +16,8 @@
 ## X-Website: https://github.com/Ikar-Rahl/Wow-KaLi-Quest
 
 Core\Init.lua
-Core\Debug.lua
+Shared\Core.lua
+Shared\Debug.lua
 Core\Locale.lua
 Data\Sorts.lua
 Data\Maps.lua
@@ -29,7 +30,9 @@ Core\Tree.lua
 Core\Layout.lua
 Core\Filter.lua
 Core\Tracking.lua
+Shared\Commands.lua
 Core\Commands.lua
+Shared\SelfCheck.lua
 Core\SelfCheck.lua
 UI\Host.lua
 UI\Fonts.lua
@@ -49,5 +52,6 @@ UI\Search.lua
 UI\Drag.lua
 UI\Options.lua
 UI\DebugPanel.lua
+Shared\Report.lua
 UI\Report.lua
 Core\Main.lua

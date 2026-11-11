@@ -7,7 +7,7 @@
 ## LoadOnDemand: 1
 ## Dependencies: KaLiQuest
 
-Harness.lua
+Shared\Harness.lua
 FakeWorld.lua
 Test_DB.lua
 Test_Categories.lua

@@ -15,7 +15,8 @@
 ## X-License: MIT
 
 Core\Init.lua
-Core\Debug.lua
+Shared\Core.lua
+Shared\Debug.lua
 Core\Locale.lua
 Data\Recipes.lua
 Data\Needs.lua
@@ -25,7 +26,9 @@ Core\Text.lua
 Core\Model.lua
 Core\Game.lua
 Core\Scan.lua
+Shared\Commands.lua
 Core\Commands.lua
+Shared\SelfCheck.lua
 Core\SelfCheck.lua
 UI\Widgets.lua
 UI\Chat.lua
@@ -39,5 +42,6 @@ UI\MinimapButton.lua
 UI\MapPins.xml
 UI\MapPins.lua
 UI\Options.lua
+Shared\Report.lua
 UI\Report.lua
 Core\Main.lua

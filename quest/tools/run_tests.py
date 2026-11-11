@@ -4,7 +4,8 @@
 2. Each addon loads in its TOC's order on a fake WoW API (tools/lua/fakewow.lua). A global written that isn't on
    the allowed list is reported, which catches a missing "local".
 3. KaLiQuest_Tests runs: the same tests as /kq test in game.
-4. quest/tools/lua/smoke.lua starts the addon and its probe as the game would and runs every slash command of both.
+4. quest/tools/lua/smoke.lua starts the addon and its probe as the game would and runs every slash command of both;
+   then tools/lua/smoke_shared.lua checks the shared code's copy (shared/) the same way in both addons.
 5. Every C_Namespace.Function the addons name exists in this build's API documentation, and every bare global
    function they call is in the game's global API list or defined by Blizzard's own Lua.
 6. Every :Method( they call is a widget method in that documentation, one Blizzard's own code defines, one they
@@ -115,6 +116,9 @@ def main():
     failures = list(failures.values())
     print(f"smoke: {'PASS' if not failures else 'FAIL'}")
     problems += [f"smoke: {f}" for f in failures]
+    shared_failures = checks.shared_smoke(lua, "KaLiQuest")
+    print(f"shared: {'PASS' if not shared_failures else 'FAIL'}")
+    problems += shared_failures
     leaks = sorted(set(lua.globals().KQ_LEAKS.values()))
     problems += [f"global written: {leak}" for leak in leaks]
 

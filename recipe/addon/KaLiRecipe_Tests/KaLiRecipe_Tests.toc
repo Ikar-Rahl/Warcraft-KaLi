@@ -7,7 +7,7 @@
 ## LoadOnDemand: 1
 ## Dependencies: KaLiRecipe
 
-Harness.lua
+Shared\Harness.lua
 FakeGame.lua
 Fixtures.lua
 Test_DB.lua

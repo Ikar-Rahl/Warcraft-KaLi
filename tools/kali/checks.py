@@ -23,8 +23,9 @@ import lupa.lua51 as lupa  # noqa: E402
 ADDONS = None
 NEEDS_FILE = None
 ALLOWED_GLOBALS = set()
-# The fake game every runner starts from.
+# The fake game every runner starts from, and the shared code's own checks, played on each addon's copy.
 FAKE = ROOT / "tools/lua/fakewow.lua"
+SHARED_SMOKE = ROOT / "tools/lua/smoke_shared.lua"
 API_DOCS = REFERENCE / "wow-ui-source/Interface/AddOns/Blizzard_APIDocumentationGenerated"
 UI_SOURCE = REFERENCE / "wow-ui-source/Interface"
 GLOBAL_API = REFERENCE / "BlizzardInterfaceResources/Resources/GlobalAPI.lua"
@@ -327,6 +328,12 @@ def needs_lua(found):
         lines.append("    },")
     lines.append("}")
     return "\n".join(lines) + "\n"
+
+
+def shared_smoke(lua, addon):
+    """The shared code's checks on this addon's copy, in the state its smoke session left: a list of failures."""
+    lua.globals().KALI_ADDON = addon
+    return list(lua.execute(SHARED_SMOKE.read_text(encoding="utf-8")).values())
 
 
 def icon_problem(path):

@@ -6,7 +6,8 @@ The checks of 1, 2, 5, 6 and 7 are the family's (tools/kali/checks.py, first wri
    recipe/tools/lua/fakewow_recipe.lua). A global written that isn't on the allowed list is reported.
 3. KaLiRecipe_Tests runs: the same tests as /kr test in game.
 4. recipe/tools/lua/smoke.lua starts the addon and its probe as the game would, plays a session and runs
-   every slash command of both.
+   every slash command of both; then tools/lua/smoke_shared.lua checks the shared code's copy (shared/) the same
+   way in both addons.
 5. Every C_ function, bare global function and :Method( the addons call exists in this build's API docs or
    Blizzard's own code.
 6. KaLiRecipe's folder is a complete package: the TOC's fields, every listed file present, no stray file.
@@ -382,6 +383,9 @@ def main():
     failures = list(failures.values())
     print(f"smoke: {'PASS' if not failures else 'FAIL'}")
     problems += [f"smoke: {f}" for f in failures]
+    shared_failures = checks.shared_smoke(lua, "KaLiRecipe")
+    print(f"shared: {'PASS' if not shared_failures else 'FAIL'}")
+    problems += shared_failures
     leaks = sorted(set(lua.globals().KR_LEAKS.values()))
     problems += [f"global written: {leak}" for leak in leaks]
     restart, sessions = restart_problems(lua, load_addon)

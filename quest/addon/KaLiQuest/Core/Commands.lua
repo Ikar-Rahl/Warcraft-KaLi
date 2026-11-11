@@ -1,4 +1,5 @@
--- Slash commands: /kq and /kaliquest. Inspect and drive the core without the tracker's UI, and debug it.
+-- KaLi Quest's slash commands, /kq and /kaliquest, on the shared dispatcher (Shared/Commands.lua, with the commands
+-- for debugging): inspect and drive the core without the tracker's UI.
 local _, ns = ...
 local L = ns.L
 
@@ -100,20 +101,9 @@ local function dumpText(questID)
     return table.concat(out, "\n")
 end
 
-local function runTests()
-    local loaded, reason = C_AddOns.LoadAddOn("KaLiQuest_Tests")
-    if not loaded or not KaLiQuestTests then
-        say(string.format(L.TESTS_MISSING, tostring(reason)))
-        return
-    end
-    local report = KaLiQuestTests.Run()
-    KaLiQuestDevDB.lastTests = { when = date("%Y-%m-%d %H:%M:%S"), version = ns.VERSION, summary = report.summary, text = report.text }
-    say(report.summary)
-    ns.Debug.ShowText("tests", report.text)
-end
-
--- For the bug report.
-ns.Commands = { StatusText = statusText, GroupsText = groupsText, TreeText = treeText }
+-- For /status and the bug report.
+local Commands = ns.Commands
+Commands.StatusText, Commands.GroupsText, Commands.TreeText = statusText, groupsText, treeText
 
 local COMMANDS = {}
 
@@ -200,57 +190,27 @@ end
 COMMANDS.diag = function()
     ns.DebugPanel.Toggle()
 end
-COMMANDS.report = function()
-    ns.Report.Open()
-end
 COMMANDS.alert = function()
     ns.Coverage.Simulate(not ns.Coverage.Simulating())
 end
-COMMANDS.debug = function(rest)
-    local d = KaLiQuestDevDB
-    if rest == "on" or rest == "off" then
-        d.debug = rest == "on"
-    elseif rest == "events" then
-        d.events = not d.events
-    elseif rest == "chat" then
-        d.chat = not d.chat
-    end
-    say(string.format(L.DEBUG, onOff(d.debug), onOff(d.events), onOff(d.chat)))
-end
-COMMANDS.log = function()
-    ns.Debug.ShowText("log", ns.Debug.LogText())
-end
-COMMANDS.errors = function()
-    ns.Debug.ShowText("errors", ns.Debug.ErrorsText())
-end
-COMMANDS.clear = function()
-    ns.Debug.Clear()
-    say(L.DONE)
-end
-COMMANDS.test = runTests
 COMMANDS.options = function()
     ns.Options.Open()
 end
 
--- Commands that read or write the layout wait until the saved data has loaded and been accepted.
-local NEEDS_DB = { status = false, debug = false, log = false, errors = false, clear = false, test = false, diag = false,
-    report = false }
+-- Commands that read or write the layout wait until the saved data has loaded and been accepted; these don't.
+local ANYTIME = { status = true, diag = true }
+for name, fn in pairs(COMMANDS) do
+    Commands.Add(name, fn, ANYTIME[name])
+end
 
-SLASH_KALIQUEST1 = "/kq"
-SLASH_KALIQUEST2 = "/kaliquest"
-SlashCmdList.KALIQUEST = function(input)
-    local cmd, rest = (input or ""):match("^[ \t]*([^ \t]*)[ \t]*(.-)[ \t]*$")
-    cmd = cmd:lower()
-    local fn = COMMANDS[cmd]
-    if not fn then
+-- /kq with no word, or a word no command has, lists them.
+Commands.Register("KALIQUEST", { "/kq", "/kaliquest" }, {
+    ready = function()
+        return ns.db and ns.model
+    end,
+    unknown = function()
         for _, line in ipairs(L.HELP) do
             say(line)
         end
-        return
-    end
-    if NEEDS_DB[cmd] ~= false and not (ns.db and ns.model) then
-        say(string.format(L.DB_REFUSED, tostring(ns.disabled)))
-        return
-    end
-    ns.SafeCall(fn, rest)
-end
+    end,
+})

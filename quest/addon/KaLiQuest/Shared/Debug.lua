@@ -1,5 +1,6 @@
--- Debug mode: a log kept in saved data, error capture, event tracing and a window to copy text from.
--- Account-wide in KaLiQuestDevDB, so one file holds it for every character.
+-- Copied from shared/addon/Debug.lua by tools/sync_shared.py: edit the source, not this copy.
+-- Debug mode, shared by the KaLi addons: a log kept in saved data, error capture, event tracing and a window to copy
+-- text from. Account-wide in <Addon>DevDB, so one file holds it for every character.
 local _, ns = ...
 
 local Debug = {}
@@ -15,14 +16,14 @@ local reportedThisSession = false
 Debug.muted = false
 
 local function dev()
-    return KaLiQuestDevDB
+    return ns.DevDB()
 end
 
 function Debug.Init()
-    if type(KaLiQuestDevDB) ~= "table" then
-        KaLiQuestDevDB = {}
+    if type(dev()) ~= "table" then
+        _G[ns.ADDON .. "DevDB"] = {}
     end
-    local d = KaLiQuestDevDB
+    local d = dev()
     d.debug = d.debug == true
     d.events = d.events == true
     d.chat = d.chat == true
@@ -66,7 +67,7 @@ function Debug.Log(category, fmt, ...)
     end
     push(stamp() .. " [" .. category .. "] " .. msg)
     if dev().chat then
-        print("|cff7fbfffKQ " .. category .. "|r " .. msg)
+        print("|cff7fbfff" .. ns.SHORT .. " " .. category .. "|r " .. msg)
     end
 end
 
@@ -119,7 +120,7 @@ function Debug.Error(err, stack)
     end
     if not reportedThisSession then
         reportedThisSession = true
-        print("|cffff5555" .. ns.TITLE .. " :|r " .. (ns.L and ns.L.ERROR_LINE or "error, /kq errors"))
+        print("|cffff5555" .. ns.TITLE .. " :|r " .. (ns.L and ns.L.ERROR_LINE or "error, " .. ns.SLASH .. " errors"))
     end
     local handler = geterrorhandler and geterrorhandler()
     if handler then
@@ -216,7 +217,8 @@ end
 -- A window to read and copy text: Ctrl+A, then Ctrl+C. Built on first use.
 local window
 local function buildWindow()
-    local f = CreateFrame("Frame", "KaLiQuestTextWindow", nil, "BackdropTemplate")
+    local name = ns.ADDON .. "TextWindow"
+    local f = CreateFrame("Frame", name, nil, "BackdropTemplate")
     f:SetParent(UIParent)
     f:SetFrameStrata("DIALOG")
     f:SetSize(720, 520)
@@ -228,7 +230,7 @@ local function buildWindow()
     f:SetScript("OnDragStart", f.StartMoving)
     f:SetScript("OnDragStop", f.StopMovingOrSizing)
     f:SetClampedToScreen(true)
-    tinsert(UISpecialFrames, "KaLiQuestTextWindow")
+    tinsert(UISpecialFrames, name)
 
     f.Title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     f.Title:SetPoint("TOPLEFT", 18, -16)
