@@ -1,4 +1,6 @@
--- Just enough of the WoW API to load KaLi Quest and its probe outside the game, for run_lua_tests.py.
+-- Just enough of the WoW API to load the KaLi addons and their probes outside the game, for their runners (the family's
+-- checks are tools/kali/checks.py; KaLi Recipe adds recipe/tools/lua/fakewow_recipe.lua). Where the game's answer is
+-- known from this build's files, the fake gives that answer, not one of its own.
 -- State lives in FakeWoW so tests can set up a quest log, combat and CVars, and fire events.
 FakeWoW = { frames = {}, timers = {}, cvars = { autoQuestWatch = "1", showQuestDifficultyColor = "1", ActionButtonUseKeyDown = "1" },
     combat = false, entries = {}, watched = {},
@@ -193,6 +195,20 @@ end
 function frameMethods:GetHitRectInsets()
     return unpack(self.hitRect or { 0, 0, 0, 0 })
 end
+-- A button's or a control's state: enabled unless set otherwise.
+function frameMethods:SetEnabled(enabled)
+    self.enabled = enabled and true or false
+end
+function frameMethods:IsEnabled()
+    return self.enabled ~= false
+end
+-- A check button's tick.
+function frameMethods:SetChecked(checked)
+    self.checked = checked and true or false
+end
+function frameMethods:GetChecked()
+    return self.checked == true
+end
 function frameMethods:EnableMouse(on)
     self.mouse = on and true or false
 end
@@ -271,6 +287,10 @@ function frameMethods:GetLeft()
         return nil
     end
     return self.left
+end
+function frameMethods:GetRight()
+    local left = self:GetLeft()
+    return left and left + self:GetWidth()
 end
 function frameMethods:GetBottom()
     return self:GetTop() and self.top - (self.height or 0)
@@ -363,6 +383,12 @@ function CreateFrame(kind, name, parent, template)
     end
     if template == "SearchBoxTemplate" then
         frame.clearButton = CreateFrame("Button", nil, frame)
+    elseif template == "MinimalSliderWithSteppersTemplate" then
+        F.MakeSlider(frame)
+    elseif template == "EditModeSystemSelectionTemplate" then
+        F.MakeSelection(frame)
+    elseif template == "WowStyle1DropdownTemplate" then
+        F.MakeDropdown(frame)
     elseif template == "DefaultPanelFlatTemplate" then
         -- Its border and title sit high, at levels 500 and 510, over a close button left just above the panel.
         frame.layoutType = "ButtonFrameTemplateNoPortrait"
@@ -443,6 +469,17 @@ function F.RunTimers()
     error("timers keep queueing more timers")
 end
 
+-- Runs the timers queued now, once, as one frame passing: the ones they queue wait, as a timer of some seconds would.
+-- The fake keeps no clock for timers, so a test runs a frame where it needs a later timer still to come.
+function F.RunFrame()
+    F.LayoutPass()
+    local queue = F.timers
+    F.timers = {}
+    for _, fn in ipairs(queue) do
+        fn()
+    end
+end
+
 UIParent = CreateFrame("Frame", "UIParent")
 UISpecialFrames = {}
 SlashCmdList = {}
@@ -453,6 +490,10 @@ QUESTS_LABEL = "Quêtes"
 TRACK_QUEST_ABBREV = "Suivi"
 WORLD = "Monde"
 ERR_NOT_IN_COMBAT = "Impossible de faire ceci tout en combattant."
+HUD_EDIT_MODE_MENU = "Mode Édition"
+HUD_EDIT_MODE_REVERT_CHANGES = "Annuler les modifications"
+DEFAULTS = "Par défaut"
+ERROR_SLASH_EDITMODE_CANNOT_ENTER = "Impossible de passer en mode édition pour le moment"
 
 F.printed = {}
 function print(...)
@@ -736,6 +777,198 @@ function GameTooltip:Hide()
     F.tooltip.shown = false
 end
 
+-- Blizzard's slider with steppers (MinimalSlider.lua), as far as an addon's rows use it. Init sets the range, the
+-- step and the value and tells no one; SetValue, as a drag or a stepper's click, snaps to the step, stays in the range
+-- and, on a change, tells the callbacks. rightText is what the label right of the bar shows.
+MinimalSliderWithSteppersMixin = {
+    Event = { OnValueChanged = "OnValueChanged", OnInteractStart = "OnInteractStart", OnInteractEnd = "OnInteractEnd" },
+    Label = { Left = 1, Right = 2, Top = 3, Min = 4, Max = 5 },
+}
+function CreateMinimalSliderFormatter(_, value)
+    if value == nil then
+        return function(v)
+            return v
+        end
+    elseif type(value) == "function" then
+        return value
+    end
+    return function()
+        return value
+    end
+end
+local sliderMethods = {}
+function sliderMethods:Init(value, minValue, maxValue, steps, formatters)
+    self.minValue, self.maxValue, self.step, self.formatters = minValue, maxValue, (maxValue - minValue) / steps, formatters
+    self.value = value
+    self:FormatValue(value)
+end
+function sliderMethods:FormatValue(value)
+    local format = self.formatters and self.formatters[MinimalSliderWithSteppersMixin.Label.Right]
+    self.rightText = format and tostring(format(value)) or nil
+end
+function sliderMethods:GetValue()
+    return self.value
+end
+function sliderMethods:SetValue(value)
+    value = self.minValue + math.floor((value - self.minValue) / self.step + 0.5) * self.step
+    value = math.max(self.minValue, math.min(self.maxValue, value))
+    if value == self.value then
+        return
+    end
+    self.value = value
+    self:FormatValue(value)
+    for owner, fn in pairs(self.callbacks[MinimalSliderWithSteppersMixin.Event.OnValueChanged] or {}) do
+        fn(owner, value)
+    end
+end
+function sliderMethods:RegisterCallback(event, fn, owner)
+    self.callbacks[event] = self.callbacks[event] or {}
+    self.callbacks[event][owner] = fn
+end
+function sliderMethods:SetEnabled(enabled)
+    self.enabled = enabled and true or false
+end
+function sliderMethods:IsSliderEnabled()
+    return self.enabled ~= false
+end
+function F.MakeSlider(frame)
+    for name, fn in pairs(sliderMethods) do
+        frame[name] = fn
+    end
+    frame.callbacks = {}
+    frame.Slider = CreateFrame("Slider", nil, frame)
+end
+
+-- Blizzard's Edit Mode dialog for a selected system (EditModeDialogs.lua), without its own rows: attaching updates it,
+-- then shows it, and hiding forgets the system. Hidden until a test attaches it.
+EditModeSystemSettingsDialog = CreateFrame("Frame", "EditModeSystemSettingsDialog", UIParent)
+EditModeSystemSettingsDialog:SetSize(383, 230)
+EditModeSystemSettingsDialog.shown = false
+function EditModeSystemSettingsDialog:AttachToSystemFrame(systemFrame)
+    self.attachedToSystem = systemFrame
+    self:UpdateDialog(systemFrame)
+    self:Show()
+end
+function EditModeSystemSettingsDialog:UpdateDialog()
+end
+EditModeSystemSettingsDialog:SetScript("OnHide", function(self)
+    self.attachedToSystem = nil
+end)
+
+-- A frame's selection box in Edit Mode (EditModeSystemSelectionBaseMixin): highlighted, or selected with its name.
+-- state says which, nil while hidden.
+function F.MakeSelection(frame)
+    frame.Label = frame:CreateFontString()
+    frame.MouseOverHighlight = CreateFrame("Frame", nil, frame)
+    frame.shown = false
+    function frame:SetSystem(system)
+        self.system = system
+    end
+    function frame:ShowHighlighted()
+        self.state, self.isSelected = "highlight", false
+        self:Show()
+    end
+    function frame:ShowSelected()
+        self.state, self.isSelected = "selected", true
+        self.Label:SetText(self.system:GetSystemName())
+        self:Show()
+    end
+    frame.mouse = true
+end
+-- Blizzard's tracker's own box, which the addon makes see-through and deaf to the mouse.
+ObjectiveTrackerFrame.Selection = CreateFrame("Frame", nil, ObjectiveTrackerFrame, "EditModeSystemSelectionTemplate")
+
+-- Edit Mode's manager: which of Blizzard's frames is selected, its snapping and its grid. Selecting one of Blizzard's
+-- frames lets go of the one before, as Blizzard's SelectSystem does, and attaches its dialog.
+F.snap = false
+EditModeManagerFrame = CreateFrame("Frame", "EditModeManagerFrame", UIParent)
+EditModeManagerFrame.Grid = CreateFrame("Frame", nil, EditModeManagerFrame)
+EditModeManagerFrame.Grid.gridSpacing = 100
+EditModeManagerFrame.Grid.shown = false
+function EditModeManagerFrame:SelectSystem(systemFrame)
+    self.selected = systemFrame
+    EditModeSystemSettingsDialog:AttachToSystemFrame(systemFrame)
+end
+function EditModeManagerFrame:ClearSelectedSystem()
+    self.selected = nil
+    self.cleared = (self.cleared or 0) + 1
+    EditModeSystemSettingsDialog:Hide()
+end
+function EditModeManagerFrame:IsSnapEnabled()
+    return F.snap
+end
+-- Edit Mode opens as a panel; F.editModeRefused is the game saying no (a new player's restrictions, a game rule).
+EditModeManagerFrame:Hide()
+function EditModeManagerFrame:CanEnterEditMode()
+    return not F.editModeRefused
+end
+
+-- The panels the addons open and close, as Blizzard's panel manager does: Edit Mode's manager enters Edit Mode as it
+-- shows, and leaves it as it hides, as its OnShow and OnHide do.
+function ShowUIPanel(frame)
+    if not frame or frame:IsShown() then
+        return
+    end
+    F.shownPanel = frame
+    frame:Show()
+    if frame == EditModeManagerFrame then
+        F.TriggerRegistry("EditMode.Enter")
+    end
+end
+function HideUIPanel(frame)
+    if not (frame and frame:IsShown()) then
+        return
+    end
+    frame:Hide()
+    if frame == EditModeManagerFrame then
+        F.TriggerRegistry("EditMode.Exit")
+    end
+end
+
+-- Blizzard's options window, as far as the addons open and close it. Its Close keeps what was set; while a change
+-- waits for « Appliquer » (F.unapplied), it asks first and stays open, as Blizzard's does.
+SettingsPanel = CreateFrame("Frame", "SettingsPanel", UIParent)
+SettingsPanel:Hide()
+function SettingsPanel:Close(skipTransitionBackToOpeningPanel)
+    if F.unapplied then
+        F.popup = { which = "GAME_SETTINGS_CONFIRM_DISCARD" }
+        return
+    end
+    self.skippedTransition = skipTransitionBackToOpeningPanel
+    self:Hide()
+end
+-- Its layouts: the presets come first in the active layout's index, and aren't in the list. Their count is with Enum.
+F.editLayouts = { activeLayout = 1, layouts = { { layoutName = "Mine" } } }
+C_EditMode = {
+    GetLayouts = function()
+        return F.editLayouts
+    end,
+}
+
+-- The game's dropdown with a menu (WowStyle1DropdownTemplate): F.MenuRadios lists its radios as a menu would.
+function F.MakeDropdown(frame)
+    function frame:SetupMenu(generator)
+        self.generator = generator
+    end
+    function frame:GenerateMenu()
+        self.generated = (self.generated or 0) + 1
+    end
+    function frame:SetEnabled(enabled)
+        self.enabled = enabled and true or false
+    end
+end
+function F.MenuRadios(dropdown)
+    local radios = {}
+    local root = {}
+    function root:CreateRadio(text, isSelected, setSelected, value)
+        radios[#radios + 1] = { text = text, selected = isSelected(value), pick = function()
+            setSelected(value)
+        end }
+    end
+    dropdown.generator(dropdown, root)
+    return radios
+end
+
 -- The options page: F.settingsCategory.settings[variable] can be set as the panel would. F.settingsLayout.initializers
 -- holds the page's rows in order, a control as { setting = setting }.
 local function control(setting)
@@ -803,6 +1036,7 @@ Settings = {
     end,
     OpenToCategory = function(id)
         F.settingsOpened = id
+        SettingsPanel:Show()
     end,
 }
 function CreateSettingsListSectionHeaderInitializer(text)
@@ -909,13 +1143,18 @@ function PlaySound() end
 function IsModifiedClick(name)
     return F.modifier == name
 end
--- The key each modified click takes, SHIFT unless F.modifiedClicks says otherwise.
-F.modifiedClicks = {}
+-- The key each modified click takes: F.modifiedClicks for a test's own, else this build's default, which the runner
+-- reads from Forever's Bindings_Camelot.xml into F.MODIFIED_CLICKS ("SHIFT-BUTTON1" for CHATLINK, "SHIFT" for
+-- QUESTWATCHTOGGLE: an invented "SHIFT" for every one hid the API check's false alarm on CHATLINK, 2026-11-11).
+F.modifiedClicks, F.MODIFIED_CLICKS = {}, {}
 function GetModifiedClick(action)
-    return F.modifiedClicks[action] or "SHIFT"
+    return F.modifiedClicks[action] or F.MODIFIED_CLICKS[action]
 end
 function IsControlKeyDown()
     return F.ctrl == true
+end
+function IsShiftKeyDown()
+    return F.shift == true
 end
 function IsInGroup()
     return F.inGroup == true
@@ -928,14 +1167,18 @@ function QuestUtils_GetNumPartyMembersOnQuest(id)
     return F.partyOn and F.partyOn[id] or 0
 end
 Enum = { CraftingReagentType = { Modifying = 0, Basic = 1 }, ContentTrackingType = { Achievement = 2 }, ContentTrackingStopType = { Manual = 0 } }
--- The quest enums and constants of this build's API documentation.
+-- Forever's three preset layouts: Modern, Classic and Gamepad.
+Enum.EditModePresetLayoutsMeta = { NumValues = 3 }
+-- The quest enums of this build's API documentation, and its constants as the game has them. The docs name the quest
+-- tags' group QuestInfoLuaConsts, which the game doesn't have (Ikar's API check, build 70862); Blizzard's own Forever
+-- code reads Constants.QuestConsts (Blizzard_FrameXMLUtil/Camelot/QuestUtilsOverrides.lua).
 Enum.QuestTag = { Group = 1, PvP = 41, Raid = 62, Dungeon = 81, Legendary = 83, Heroic = 85, Raid10 = 88, Raid25 = 89 }
 Enum.QuestFrequency = { Default = 0, Daily = 1, Weekly = 2, ResetByScheduler = 3 }
 Enum.QuestClassification = { Important = 0, Legendary = 1, Campaign = 2, Calling = 3, Meta = 4, Recurring = 5, Questline = 6,
     Normal = 7, BonusObjective = 8, Threat = 9, WorldQuest = 10 }
 Enum.RelativeContentDifficulty = { Trivial = 0, Easy = 1, Fair = 2, Difficult = 3, Impossible = 4 }
 Constants = {
-    QuestInfoLuaConsts = { QUEST_INFO_ELITE_ID = 1, QUEST_INFO_DUNGEON_ID = 81, QUEST_INFO_PVP_ID = 41, QUEST_INFO_RAID_ID = 62 },
+    QuestConsts = { QUEST_INFO_ELITE_ID = 1, QUEST_INFO_DUNGEON_ID = 81, QUEST_INFO_PVP_ID = 41, QUEST_INFO_RAID_ID = 62 },
     QuestWatchConsts = { MAX_QUEST_WATCHES = 25 },
 }
 -- Recipes: F.recipes[true|false] lists tracked recipe IDs, F.schematics[id] their reagents. Items: F.itemNames, F.itemCounts.
@@ -1493,7 +1736,9 @@ Settings.CreateControlTextContainer = function()
 end
 -- A slider keeps its range on its setting, so the smoke test can compare it with what loading allows.
 Settings.CreateSliderOptions = function(min, max, step)
-    return { min = min, max = max, step = step, SetLabelFormatter = function() end }
+    return { min = min, max = max, step = step, SetLabelFormatter = function(self, _, format)
+        self.format = format
+    end }
 end
 Settings.CreateSlider = function(_, setting, options)
     setting.sliderOptions = options

@@ -1,6 +1,6 @@
 # KaLi
 
-Addons for World of Warcraft Forever, by Ikar. French first, English too.
+Addons for World of Warcraft Forever, by Ikar. French first, then English, German and Spanish.
 
 | Addon | What it does | Folder |
 | --- | --- | --- |
@@ -10,8 +10,9 @@ Addons for World of Warcraft Forever, by Ikar. French first, English too.
 To install one, copy its folder from `quest/addon/` or `recipe/addon/` (`KaLiQuest`, `KaLiRecipe`) into the game's
 `Interface\AddOns`. The `_Tests` and `_Probe` folders are for development; players don't need them.
 
-Found a bug? Each addon's `/kq report` or `/kr report` gives a report to copy into a
-[new issue](https://github.com/Ikar-Rahl/Warcraft-KaLi/issues/new). Its first line says which addon it's from.
+Found a bug? Each addon's `/kq report` or `/kr report` gives a link to copy: opened in a browser, it's a
+[new issue](https://github.com/Ikar-Rahl/Warcraft-KaLi/issues/new) whose title says which addon it's from, with a
+question about what happened. Then copy the report from the same window and paste it in.
 
 ## Layout
 
@@ -33,7 +34,10 @@ Needs Python 3.13, and Lua 5.1 through lupa, installed locally:
   addon takes from the game.
 - **The shared code:** edit `shared/`, never an addon's `Shared/` copy, then `python -I tools/sync_shared.py`.
 - **Deliberate breaks:** `python -I tools/breaks.py <file>` plants one fault at a time in a copy of the code and checks
-  the tests fail; `tools/breaks/shared.py` holds the shared code's.
+  the tests fail; `tools/breaks/shared.py` holds the shared code's, `quest.py` and `recipe.py` each addon's own.
+- **The game is the ground truth:** the fake game gives this build's own answers where its files hold them, but only
+  the game says what it really answers. Each addon's API check keeps what it found at login, per build, in the game's
+  saved `<Addon>DevDB` (`apiChecks`), with its errors and the last in-game test run (`lastTests`); read them there.
 - **In the game:** `tools\link_addons.cmd` links the six folders into `Interface\AddOns` (`unlink`, `relink`). Edits
   then show after `/reload`.
 

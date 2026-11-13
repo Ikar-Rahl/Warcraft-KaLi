@@ -1,7 +1,8 @@
 """Deliberate breaks of the shared code, each planted in both addons' copies: both addons' tests must catch every one.
 Run with: python -I tools/breaks.py tools/breaks/shared.py [word]
 """
-CORE, DEBUG, CHECK, REPORT, COMMANDS = (f"shared/addon/{name}.lua" for name in ("Core", "Debug", "SelfCheck", "Report", "Commands"))
+CORE, DEBUG, CHECK, REPORT, COMMANDS, DIALOG = (f"shared/addon/{name}.lua" for name in ("Core", "Debug", "SelfCheck", "Report",
+                                                                                   "Commands", "Dialog"))
 
 BREAKS = [
     # Core
@@ -12,13 +13,28 @@ BREAKS = [
     ("SafeCall: an error no longer reaches the debug log", CORE,
      "            ns.Debug.Error(err, debugstack and debugstack(2) or debug.traceback())", "            local _ = err"),
     ("Later: work asked twice in a frame runs twice", CORE, "    if pending[key] then\n        return\n    end\n", ""),
+    ("CombatRefused: the click doesn't say why", CORE,
+     '        UIErrorsFrame:AddExternalErrorMessage(ns.G("ERR_NOT_IN_COMBAT", "In combat"))', "        local _ = UIErrorsFrame"),
+    ("CombatRefused: refused out of a fight too", CORE, "    if not InCombatLockdown() then\n        return false\n    end\n", ""),
+    ("Finite: nan and inf taken as numbers a file holds", CORE,
+     '    return type(v) == "number" and not tostring(v):find("[^%d%.,eE%+%-]")', '    return type(v) == "number"'),
+    ("DeepCopy: a copy that shares its tables", CORE, "        copy[ns.DeepCopy(k, seen)] = ns.DeepCopy(val, seen)",
+     "        copy[k] = val"),
+    ("Count: nothing counted", CORE, "        for _ in pairs(t) do\n            n = n + 1\n", "        for _ in pairs(t) do\n"),
+    ("DropNonFinite: what's inside a table left", CORE, "            n = n + ns.DropNonFinite(v, seen)", "            local _ = v"),
+    ("DropNonFinite: a nan key left", CORE, '        if (type(k) == "number" and not finite(k)) or (type(v) == "number" and not finite(v)) then',
+     '        if type(v) == "number" and not finite(v) then'),
     # Debug
     ("debug: its saved data under another name", DEBUG, '        _G[ns.ADDON .. "DevDB"] = {}', '        _G[ns.ADDON .. "DebugDB"] = {}'),
     ("debug: errors not counted", DEBUG, "        e.count = e.count + 1\n", ""),
     ("debug: the log written with debug mode off", DEBUG,
      "    if not Debug.Enabled() then\n        return\n    end\n    local ok, msg", "    local ok, msg"),
     ("debug: Clear keeps the errors", DEBUG, "    d.log = {}\n    d.errors = {}\n", "    d.log = {}\n"),
+    ("debug: its table saved with a nan in it", DEBUG, 'ns.On("PLAYER_LOGOUT", Debug.BeforeSave)', "local _ = Debug.BeforeSave"),
     # SelfCheck
+    ("self-check: an assumption giving back no list stops the check", CHECK,
+     '        elseif type(wrong) ~= "table" then\n            -- One assumption giving back no list mustn\'t take the whole check, and the report\'s part, with it.\n'
+     '            wrong = { "the check gave no list of what didn\'t hold" }\n', ""),
     ("self-check: the CVars left unchecked", CHECK, '        { "cvar", needs.cvars, C_CVar and C_CVar.GetCVarInfo },\n', ""),
     ("self-check: an assumption that fails stops the check", CHECK,
      "        local ok, looked, wrong, note = pcall(a[2])", "        local ok, looked, wrong, note = true, a[2]()"),
@@ -37,7 +53,8 @@ BREAKS = [
      "    if Report.StatusLines then\n        lines[#lines + 1] = Report.StatusLines()\n    end\n", ""),
     ("report: colour codes kept", REPORT, ':gsub("|c%x%x%x%x%x%x%x%x", "")', ""),
     ("report: one failing part fails it all", REPORT, "        local ok, text = pcall(s[2])", "        local ok, text = true, s[2]()"),
-    ("report: the address never shown", REPORT, "    frame.URL:SetShown(Report.URL ~= nil)", "    frame.URL:SetShown(false)"),
+    ("report: the address never shown", REPORT, "    frame.URL:SetShown(address ~= nil)", "    frame.URL:SetShown(false)"),
+    ("report: its ``` closes the issue's block early", REPORT, """gsub("```", "'''")""", """gsub("````", "'''")"""),
     # Commands
     ("commands: the ones for any time wait for the saved data", COMMANDS,
      "        if not ANYTIME[cmd] and not o.ready() then", "        if not o.ready() then"),
@@ -46,4 +63,40 @@ BREAKS = [
     ("commands: only the first slash command registered", COMMANDS,
      '    for i, slash in ipairs(slashes) do\n        _G["SLASH_" .. id .. i] = slash\n    end', '    _G["SLASH_" .. id .. 1] = slashes[1]'),
     ("commands: debug on leaves it off", COMMANDS, '        d.debug = rest == "on"', "        d.debug = false"),
+    # The report's link: a new issue to paste the report in, never the report (Ikar, 2026-11-11)
+    ("link: the report put back in it", REPORT, '"\\n\\n\\n```text\\n" .. L.REPORT_PASTE .. "\\n```\\n")',
+     '"\\n\\n\\n```text\\n" .. Report.Text() .. "\\n```\\n")'),
+    ("link: no place said to paste the report", REPORT, '"\\n\\n\\n```text\\n" .. L.REPORT_PASTE .. "\\n```\\n")',
+     '"\\n")'),
+    ("link: spaces and | left as they are", REPORT, 'text:gsub("[^A-Za-z0-9%-%._~]", function(c)',
+     'text:gsub("[^A-Za-z0-9%-%._~ |]", function(c)'),
+    ("link: letters left to %w, which may take a byte of é for one", REPORT, 'text:gsub("[^A-Za-z0-9%-%._~]", function(c)',
+     'text:gsub("[^%w%-%._~]", function(c)'),
+    ("link: its button selects the whole report", REPORT, "    frame.URL:SetFocus()\n    frame.URL:HighlightText()",
+     "    frame.Box:SetFocus()\n    frame.Box:HighlightText()"),
+    ("link: Ctrl+C in its box says to paste into the issue", REPORT,
+     "onCopy(frame.URL, frame.LinkHint, L.REPORT_LINK_COPIED)", "onCopy(frame.URL, frame.LinkHint, L.REPORT_COPIED)"),
+    # The settings window (Dialog), KaLi Quest's in Edit Mode and KaLi Recipe's options
+    ("dialog: a change applied, nothing redrawn", DIALOG, "        ns.SafeCall(self.spec.apply, row, value, how)",
+     "        local _ = how"),
+    ("dialog: cancelling puts nothing back", DIALOG, "            t[row.key] = held[1]\n            applied(self, row, held[1], \"revert\")",
+     "            applied(self, row, held[1], \"revert\")"),
+    ("dialog: « Par défaut » leaves the values", DIALOG, "            t[row.key] = default\n", ""),
+    ("dialog: a section's bar opens it but never closes it", DIALOG,
+     "    self.openSection = self.openSection ~= section.id and section.id or nil", "    self.openSection = section.id"),
+    ("dialog: every section's rows shown at once", DIALOG, "            f:SetShown(open)\n            if open then",
+     "            f:SetShown(true)\n            if true then"),
+    ("dialog: « Annuler les modifications » lit with nothing to cancel", DIALOG,
+     "            frame[b.key]:SetEnabled(enabled and (not b.enabled or b.enabled(self)) and true or false)",
+     "            frame[b.key]:SetEnabled(enabled)"),
+    ("dialog: a check box writes nothing", DIALOG, "        ns.SafeCall(self.Set, self, row, button:GetChecked() and true or false)",
+     "        local _ = button"),
+    ("dialog: its rows usable in a fight", DIALOG,
+     "    local enabled = not (self.spec.combatLock and InCombatLockdown())\n    local window = self.spec.look == \"window\"",
+     "    local enabled = true\n    local window = self.spec.look == \"window\"", ("quest",)),
+    ("dialog: the window look's open header keeps its plus", DIALOG, "            bar.Sign:SetText(open and \"–\" or \"+\")",
+     "            bar.Sign:SetText(\"+\")", ("recipe",)),
+    ("dialog: the window look built as Edit Mode's", DIALOG,
+     "    local frame = newFrame(\"Frame\", UIParent, window and \"ButtonFrameTemplate\" or nil, spec.name)",
+     "    local frame = newFrame(\"Frame\", UIParent, nil, spec.name)", ("recipe",)),
 ]

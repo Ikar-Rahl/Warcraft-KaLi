@@ -1,6 +1,7 @@
 -- Copied from shared/addon/Core.lua by tools/sync_shared.py: edit the source, not this copy.
--- The namespace's core, shared by the KaLi addons: events, guarded calls, deferred work, chat. The addon's own
--- Core/Init.lua loads first and says who it is (ns.TITLE, ns.SHORT, ns.SLASH); everything else hangs from ns.
+-- The namespace's core, shared by the KaLi addons: events, guarded calls, deferred work, chat, the combat refusal, and
+-- what saved data needs (finite numbers, copies). The addon's own Core/Init.lua loads first and says who it is
+-- (ns.TITLE, ns.SHORT, ns.SLASH); everything else hangs from ns. ns.G, the game's strings, is its Locale.lua's.
 local ADDON, ns = ...
 
 ns.ADDON = ADDON
@@ -108,4 +109,76 @@ function ns.Later(key, fn)
         pending[key] = nil
         ns.SafeCall(fn)
     end)
+end
+
+-- In a fight the game's windows don't open from an addon: true then, with the game's own error line, so the click
+-- says why instead of doing nothing.
+function ns.CombatRefused()
+    if not InCombatLockdown() then
+        return false
+    end
+    if UIErrorsFrame and UIErrorsFrame.AddExternalErrorMessage then
+        UIErrorsFrame:AddExternalErrorMessage(ns.G("ERR_NOT_IN_COMBAT", "In combat"))
+    end
+    return true
+end
+
+-- ---------- Saved data ----------
+
+-- A number a saved file can hold, read from how it prints, not by comparing it: the game's Lua compares nan as equal
+-- to itself and to everything (KaLi Recipe's /kr test in game, 2026-11-10), so `v == v` and `v < math.huge` let it
+-- through. A finite number prints with digits, a point, e and signs only; nan and inf print with letters or # ("nan",
+-- "-nan(ind)", "inf", "1.#INF", "-1.#IND"), whatever the C library. The offline checks fail a value compared with
+-- itself in the addons' code.
+function ns.Finite(v)
+    return type(v) == "number" and not tostring(v):find("[^%d%.,eE%+%-]")
+end
+local finite = ns.Finite
+
+-- A copy all the way down; a table met twice is copied once.
+function ns.DeepCopy(v, seen)
+    if type(v) ~= "table" then
+        return v
+    end
+    seen = seen or {}
+    if seen[v] then
+        return seen[v]
+    end
+    local copy = {}
+    seen[v] = copy
+    for k, val in pairs(v) do
+        copy[ns.DeepCopy(k, seen)] = ns.DeepCopy(val, seen)
+    end
+    return copy
+end
+
+-- How many keys a table holds; 0 for anything else.
+function ns.Count(t)
+    local n = 0
+    if type(t) == "table" then
+        for _ in pairs(t) do
+            n = n + 1
+        end
+    end
+    return n
+end
+
+-- Before the game writes a saved table: a number it can't write back as one (nan, inf), as a key or a value, would
+-- make the whole file unreadable, so none stays, all the way down. Returns how many were taken out.
+function ns.DropNonFinite(t, seen)
+    seen = seen or {}
+    if type(t) ~= "table" or seen[t] then
+        return 0
+    end
+    seen[t] = true
+    local n = 0
+    for k, v in pairs(t) do
+        if (type(k) == "number" and not finite(k)) or (type(v) == "number" and not finite(v)) then
+            t[k] = nil
+            n = n + 1
+        elseif type(v) == "table" then
+            n = n + ns.DropNonFinite(v, seen)
+        end
+    end
+    return n
 end

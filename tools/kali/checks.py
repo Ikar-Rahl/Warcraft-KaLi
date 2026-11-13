@@ -28,6 +28,8 @@ FAKE = ROOT / "tools/lua/fakewow.lua"
 SHARED_SMOKE = ROOT / "tools/lua/smoke_shared.lua"
 API_DOCS = REFERENCE / "wow-ui-source/Interface/AddOns/Blizzard_APIDocumentationGenerated"
 UI_SOURCE = REFERENCE / "wow-ui-source/Interface"
+# Forever's key bindings and modified clicks, whose defaults the fake gives.
+BINDINGS = UI_SOURCE / "AddOns/Blizzard_FrameXML/Bindings_Camelot.xml"
 GLOBAL_API = REFERENCE / "BlizzardInterfaceResources/Resources/GlobalAPI.lua"
 DB2 = REFERENCE / "db2"
 
@@ -53,19 +55,20 @@ LUA_KEYWORDS = {
 STRING_METHODS = {"byte", "find", "format", "gmatch", "gsub", "len", "lower", "match", "rep", "reverse", "sub", "upper"}
 # Methods of the game's own frames that Blizzard's Lua calls but neither the docs nor its Lua define.
 ENGINE_METHODS = {"SetQuestLogSpecialItem", "SetQuestPartyProgress", "SetTag"}
-TOC_FIELDS = ("Interface", "Title", "Notes", "Author", "Version", "Category", "X-License")
+TOC_FIELDS = ("Interface", "Title", "Notes", "Author", "Version", "Category", "X-License", "X-Website")
 # Files a package may hold beside the TOC's own list and its icon. The game reads Bindings.xml by name.
 PACKAGE_EXTRAS = {"Bindings.xml", "LICENSE", "README.md", "CHANGELOG.md"}
 
+# Each global a file writes that isn't allowed goes in KALI_LEAKS, which the runner reports.
 LOADER = r"""
-KQ_LEAKS = {}
+KALI_LEAKS = {}
 return function(path, source, addonName, ns, allowed)
     local chunk, err = loadstring(source, "@" .. path)
     if not chunk then error(err, 0) end
     local env = setmetatable({}, {
         __index = _G,
         __newindex = function(_, key, value)
-            if not allowed[key] then KQ_LEAKS[#KQ_LEAKS + 1] = path .. ": " .. tostring(key) end
+            if not allowed[key] then KALI_LEAKS[#KALI_LEAKS + 1] = path .. ": " .. tostring(key) end
             rawset(_G, key, value)
         end,
     })
@@ -88,9 +91,20 @@ def toc_files(addon):
     return files
 
 
+def modified_click_defaults():
+    """Forever's default key for each modified click: { action: "SHIFT-BUTTON1" }."""
+    return dict(re.findall(r'<ModifiedClick action="(\w+)" default="([^"]*)"', BINDINGS.read_text(encoding="utf-8", errors="replace")))
+
+
+def fake_from_build(lua):
+    """Gives the fake, once loaded, this build's own answers where its files hold them."""
+    lua.globals().FakeWoW.MODIFIED_CLICKS = lua.table_from(modified_click_defaults())
+
+
 def runtime():
     lua = lupa.LuaRuntime(unpack_returned_tuples=True)
     lua.execute(FAKE.read_text(encoding="utf-8"))
+    fake_from_build(lua)
     loader = lua.execute(LOADER)
     allowed = lua.table_from({name: True for name in ALLOWED_GLOBALS})
 
@@ -107,9 +121,14 @@ def blizzard_addon(path):
     return path.relative_to(UI_SOURCE / "AddOns").parts[0]
 
 
+# The Enum tables and members Blizzard's own Lua names: { enum: { member } }, filled by ui_source_names(). Some, such as
+# Enum.GameRule, are missing from the docs but read by Blizzard's own code, so the game has them.
+BLIZZARD_ENUMS = {}
+
+
 def ui_source_names():
     """C_ functions Blizzard's own Lua calls, the global names it defines, the methods it defines, and which of its
-    addons define each global, each template and each font, in one pass."""
+    addons define each global, each template and each font, in one pass. Also fills BLIZZARD_ENUMS."""
     c_names, globals_, methods = set(), set(), set()
     defined_in, templates_in, fonts_in = {}, {}, {}
     for path in UI_SOURCE.rglob("*.lua"):
@@ -121,6 +140,10 @@ def ui_source_names():
             defined_in.setdefault(name, set()).add(blizzard_addon(path))
         methods.update(re.findall(r"function\s+[\w.]+[:.](\w+)\s*\(", text))
         methods.update(re.findall(r"^\s*(\w+)\s*=\s*function", text, re.M))
+        for enum, member in re.findall(r"\bEnum\.(\w+)(?:\.(\w+))?", text):
+            BLIZZARD_ENUMS.setdefault(enum, set())
+            if member:
+                BLIZZARD_ENUMS[enum].add(member)
     for path in UI_SOURCE.rglob("*.xml"):
         text = path.read_text(encoding="utf-8", errors="replace")
         methods.update(re.findall(r'method="(\w+)"', text))
@@ -256,6 +279,59 @@ def unknown_method_calls(sources, defined_by_blizzard):
     return sorted(set(unknown))
 
 
+def documented_enums():
+    """Every enumeration in this build's API docs: { name: { member: value } }."""
+    enums = {}
+    for path in API_DOCS.glob("*.lua"):
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for m in re.finditer(r'Name = "(\w+)",\s*Type = "Enumeration",.*?Fields =\s*\{(.*?)\n\t\t\t\}', text, re.S):
+            enums[m.group(1)] = {n: int(v) for n, v in re.findall(r'Name = "(\w+)", Type = "\w+", EnumValue = (-?\d+)', m.group(2))}
+    return enums
+
+
+def addon_enums(sources):
+    """The Enum tables the addons name, with the members they name: { enum: { member } }."""
+    used = {}
+    for path in sources:
+        code = strip_lua(path.read_text(encoding="utf-8"))
+        for enum, member in re.findall(r"\bEnum\.(\w+)(?:\.(\w+))?", code):
+            used.setdefault(enum, set())
+            if member:
+                used[enum].add(member)
+    return used
+
+
+def enum_problems(used, documented):
+    """Each Enum and member the addons name is in this build's docs, or read by Blizzard's own Lua (ui_source_names()
+    first). A name in neither is one the game may not have, and reads as nil."""
+    problems = []
+    for enum, members in sorted(used.items()):
+        blizzard = BLIZZARD_ENUMS.get(enum)
+        if enum not in documented and blizzard is None:
+            problems.append(f"enum not in this build's docs nor Blizzard's code: Enum.{enum}")
+            continue
+        for m in sorted(members):
+            if m not in documented.get(enum, {}) and m not in (blizzard or ()):
+                problems.append(f"enum member not in this build's docs nor Blizzard's code: Enum.{enum}.{m}")
+    return problems
+
+
+# A value compared with itself, the usual test for nan: the game's Lua compares nan as equal to itself, so it never
+# holds there (ns.Finite does it right).
+SELF_COMPARE = re.compile(r"(?<![\w.:\]])([A-Za-z_][\w.]*(?:\[[^\]\n]*\])*)\s*(?:~=|==)\s*\1(?![\w.\[(:])")
+
+
+def self_compare_problems(sources):
+    problems = []
+    for path in sources:
+        code = strip_lua(path.read_text(encoding="utf-8"))
+        for m in SELF_COMPARE.finditer(code):
+            line = code.count("\n", 0, m.start()) + 1
+            problems.append(f"nan: {rel(path)}:{line}: {m.group(0)} compares a value with itself, which the game's Lua "
+                            "doesn't do for nan: use ns.Finite")
+    return problems
+
+
 def atlas_names():
     """Every atlas this build's tables name, in lower case, as the game matches them."""
     folder = max(DB2.iterdir())
@@ -350,6 +426,28 @@ def icon_problem(path):
     return None
 
 
+def media_path(folder, inside):
+    """A file the game finds from a path inside the addon: with no extension, it tries .blp, then .tga."""
+    path = folder / inside
+    if path.suffix:
+        return path
+    return next((path.with_suffix(s) for s in (".blp", ".tga") if path.with_suffix(s).exists()), path.with_suffix(".tga"))
+
+
+def own_paths(addon, files):
+    """The paths into the addon's own folder its Lua and XML name (Interface\\AddOns\\<addon>\\...), with who names them."""
+    sep = r"(?:\\{1,2}|/)"
+    pattern = re.compile(rf"Interface{sep}AddOns{sep}{re.escape(addon)}{sep}([\w.\\/-]+)", re.I)
+    found = {}
+    for path in files:
+        if path.suffix.lower() in (".lua", ".xml") and path.exists():
+            for m in pattern.finditer(path.read_text(encoding="utf-8")):
+                inside = re.sub(r"[\\/]+", "/", m.group(1)).strip("/")
+                if inside:
+                    found.setdefault(inside, path)
+    return found
+
+
 def package_problems(addon):
     folder = ADDONS / addon
     toc = (folder / f"{addon}.toc").read_text(encoding="utf-8")
@@ -361,15 +459,19 @@ def package_problems(addon):
     icon = fields.get("IconTexture")
     prefix = f"interface\\addons\\{addon.lower()}\\"
     if icon and icon.lower().startswith(prefix):
-        path = folder / icon[len(prefix):].replace("\\", "/")
-        if not path.suffix:
-            path = next((path.with_suffix(s) for s in (".blp", ".tga") if path.with_suffix(s).exists()), path.with_suffix(".tga"))
+        path = media_path(folder, icon[len(prefix):].replace("\\", "/"))
         shipped.add(path)
         problem = icon_problem(path)
         if problem:
             problems.append(f"package: the icon {rel(path)}: {problem}")
     elif not icon and not fields.get("IconAtlas"):
         problems.append("package: the TOC names no icon")
+    # The minimap button's icon and the like: a file the code names inside the addon is shipped, and must be there.
+    for inside, source in sorted(own_paths(addon, listed).items()):
+        path = media_path(folder, inside)
+        shipped.add(path)
+        if not path.exists():
+            problems.append(f"package: {rel(source)} names {inside}, which isn't in the addon")
     known = {str(p).lower() for p in shipped}
     files = [p for p in folder.rglob("*") if p.is_file()]
     problems += [f"package: {rel(p)} isn't in the TOC or the package's extras" for p in files if str(p).lower() not in known]

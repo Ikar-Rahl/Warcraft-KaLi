@@ -1,7 +1,9 @@
 -- Copied from shared/addon/Report.lua by tools/sync_shared.py: edit the source, not this copy.
 -- The bug report, shared by the KaLi addons: what the addon sees, as plain text, and the window that hands it over.
--- An addon reaches neither the clipboard nor the web, so the button selects the text for Ctrl+C and the player pastes
--- it at the address shown. No character or realm name goes in it.
+-- An addon reaches neither the clipboard nor the web, so the window gives two things to copy: a link that opens a new
+-- issue in the browser, its title and question already there, then the report, pasted into it. The report stays out of
+-- the link: a real one runs well past what a link carries, and a link holding only its start passes for the whole
+-- (Ikar, 2026-11-11). No character or realm name goes in it.
 --
 -- The addon's UI/Report.lua sets Report.URL (where reports are posted, or nil), Report.StatusLines (more lines for
 -- the status, after Commands.StatusText()) and Report.Sections ({ name, fn } in order, between the game's warnings and
@@ -146,7 +148,8 @@ local function sections()
     return list
 end
 
--- Each part is made apart, so one that fails leaves the others.
+-- Each part is made apart, so one that fails leaves the others. No ``` in it, so it can't close the block the issue
+-- pastes it in.
 function Report.Text()
     local out = { string.format("%s bug report, %s", ns.TITLE, date("%Y-%m-%d %H:%M:%S")), "" }
     for _, s in ipairs(sections()) do
@@ -155,15 +158,34 @@ function Report.Text()
         out[#out + 1] = plain(ok and text or "(failed: " .. tostring(text) .. ")")
         out[#out + 1] = ""
     end
-    local text = table.concat(out, "\n")
+    local text = table.concat(out, "\n"):gsub("```", "'''")
     if #text > MAX_CHARS then
         text = (text:sub(1, MAX_CHARS):match("^(.*)\n") or "") .. "\n(cut at " .. MAX_CHARS .. " characters)"
     end
     return text
 end
 
+-- Byte by byte, so accents arrive whole and no | reaches the edit box, where the game would read it as a code. The
+-- letters are spelt out: %w follows the system's code page, and took the first byte of « é » for a letter (found
+-- 2026-11-11, on Windows).
+local function encode(text)
+    return (text:gsub("[^A-Za-z0-9%-%._~]", function(c)
+        return string.format("%%%02X", c:byte())
+    end))
+end
+
+-- The address of a new issue: a title to finish, a line asking what happened, and a block saying to paste the report
+-- in its place. A few hundred characters, which every browser and GitHub's sign-in keep. nil without Report.URL.
+function Report.Link()
+    if not Report.URL then
+        return nil
+    end
+    return Report.URL .. "?title=" .. encode(ns.TITLE .. " " .. tostring(ns.VERSION) .. ": ") .. "&body="
+        .. encode(L.REPORT_ASK .. "\n\n\n```text\n" .. L.REPORT_PASTE .. "\n```\n")
+end
+
 local frame
-local current = ""
+local current, link = "", ""
 
 -- What the player types is undone, so the text stays whole for Ctrl+C.
 local function readOnly(edit, text)
@@ -175,17 +197,31 @@ local function readOnly(edit, text)
     end)
 end
 
+-- The game copies on the key itself, so the box lets go of the keyboard just after, and says what comes next.
+local function onCopy(edit, hint, after)
+    edit:SetScript("OnKeyDown", function(_, key)
+        if key == "C" and (IsControlKeyDown() or IsMetaKeyDown and IsMetaKeyDown()) then
+            C_Timer.After(0, function()
+                edit:ClearFocus()
+                hint:SetText(after)
+            end)
+        end
+    end)
+end
+
 local function fill()
     current = Report.Text()
     frame.Box:SetText(current)
     frame.Box:SetCursorPosition(0)
     frame.Hint:SetText("")
-    frame.URL:SetShown(Report.URL ~= nil)
-    frame.NoURL:SetShown(Report.URL == nil)
-    if Report.URL then
-        frame.URL:SetText(Report.URL)
-        frame.URL:SetCursorPosition(0)
-    end
+    frame.LinkHint:SetText("")
+    local address = Report.Link()
+    link = address or ""
+    frame.URL:SetShown(address ~= nil)
+    frame.LinkCopy:SetShown(address ~= nil)
+    frame.NoURL:SetShown(address == nil)
+    frame.URL:SetText(link)
+    frame.URL:SetCursorPosition(0)
 end
 
 local function build()
@@ -198,7 +234,7 @@ local function build()
     frame = CreateFrame("Frame", name, nil, "DefaultPanelFlatTemplate")
     frame:SetParent(UIParent)
     frame:SetFrameStrata("DIALOG")
-    frame:SetSize(560, 480)
+    frame:SetSize(560, 540)
     frame:SetPoint("CENTER")
     frame:SetTitle(L.REPORT_TITLE)
     frame:SetMovable(true)
@@ -223,18 +259,33 @@ local function build()
     label:SetText(L.REPORT_ADDRESS)
     frame.URL = child("EditBox", "InputBoxTemplate")
     frame.URL:SetAutoFocus(false)
+    -- The link runs past what an edit box may hold by default.
+    frame.URL:SetMaxLetters(0)
     frame.URL:SetSize(400, 20)
     frame.URL:SetPoint("LEFT", label, "RIGHT", 14, 0)
     readOnly(frame.URL, function()
-        return Report.URL or ""
+        return link
     end)
+    frame.URL:SetScript("OnEscapePressed", frame.URL.ClearFocus)
     frame.NoURL = frame:CreateFontString(nil, "ARTWORK", "GameFontDisable")
     frame.NoURL:SetPoint("LEFT", label, "RIGHT", 8, 0)
     frame.NoURL:SetText(L.REPORT_NO_ADDRESS)
 
+    frame.LinkCopy = child("Button", "UIPanelButtonTemplate")
+    frame.LinkCopy:SetSize(200, 24)
+    frame.LinkCopy:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -14)
+    frame.LinkCopy:SetText(L.REPORT_LINK)
+    frame.LinkCopy:SetScript("OnClick", function()
+        ns.SafeCall(Report.SelectLink)
+    end)
+    frame.LinkHint = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    frame.LinkHint:SetPoint("LEFT", frame.LinkCopy, "RIGHT", 12, 0)
+    onCopy(frame.URL, frame.LinkHint, L.REPORT_LINK_COPIED)
+
+    -- Then the report, to paste into the issue.
     frame.Copy = child("Button", "UIPanelButtonTemplate")
     frame.Copy:SetSize(200, 24)
-    frame.Copy:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -14)
+    frame.Copy:SetPoint("TOPLEFT", frame.LinkCopy, "BOTTOMLEFT", 0, -10)
     frame.Copy:SetText(L.REPORT_COPY)
     frame.Copy:SetScript("OnClick", function()
         ns.SafeCall(Report.Select)
@@ -256,15 +307,7 @@ local function build()
         return current
     end)
     frame.Box:SetScript("OnEscapePressed", frame.Box.ClearFocus)
-    -- The game copies on the key itself, so the box lets go of the keyboard just after.
-    frame.Box:SetScript("OnKeyDown", function(_, key)
-        if key == "C" and (IsControlKeyDown() or IsMetaKeyDown and IsMetaKeyDown()) then
-            C_Timer.After(0, function()
-                frame.Box:ClearFocus()
-                frame.Hint:SetText(L.REPORT_COPIED)
-            end)
-        end
-    end)
+    onCopy(frame.Box, frame.Hint, L.REPORT_COPIED)
 
     frame:SetScript("OnShow", function()
         ns.SafeCall(fill)
@@ -278,6 +321,17 @@ function Report.Select()
     frame.Box:SetFocus()
     frame.Box:HighlightText()
     frame.Hint:SetText(L.REPORT_PRESS_COPY)
+end
+
+-- The link's button: made again with the report, selected, for Ctrl+C.
+function Report.SelectLink()
+    fill()
+    if link == "" then
+        return
+    end
+    frame.URL:SetFocus()
+    frame.URL:HighlightText()
+    frame.LinkHint:SetText(L.REPORT_PRESS_COPY)
 end
 
 function Report.Open()

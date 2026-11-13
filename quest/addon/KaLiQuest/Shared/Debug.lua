@@ -165,6 +165,14 @@ function Debug.Clear()
     d.errors = {}
 end
 
+-- At logout, the last event before the game writes the files: no number it can't write back stays in this table
+-- either (ns.DropNonFinite). Returns how many were taken out.
+function Debug.BeforeSave()
+    local d = dev()
+    return type(d) == "table" and ns.DropNonFinite(d) or 0
+end
+ns.On("PLAYER_LOGOUT", Debug.BeforeSave)
+
 -- One line per key, sorted, nested tables indented. For dumps.
 local function serialize(value, indent, lines, seen)
     indent = indent or ""

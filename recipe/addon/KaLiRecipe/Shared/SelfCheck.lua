@@ -57,8 +57,11 @@ function SelfCheck.Assumptions()
         local ok, looked, wrong, note = pcall(a[2])
         if not ok then
             wrong, looked, note = { "the check failed: " .. tostring(looked) }, 0, nil
+        elseif type(wrong) ~= "table" then
+            -- One assumption giving back no list mustn't take the whole check, and the report's part, with it.
+            wrong = { "the check gave no list of what didn't hold" }
         end
-        out[#out + 1] = { name = a[1], looked = looked, wrong = wrong, note = note }
+        out[#out + 1] = { name = a[1], looked = tonumber(looked) or 0, wrong = wrong, note = note ~= nil and tostring(note) or nil }
         failing = failing + #wrong
     end
     return out, failing
