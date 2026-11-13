@@ -105,16 +105,32 @@ local function only(...)
     end
 end
 
-T.Add("Filter", "a filter hides quests, their empty groups and bars, and counts what's left", function()
+T.Add("Filter", "a filter hides quests, their empty headers and bars, and counts what's left", function()
     local open = ns.DB.Load(nil).open
     open.categories.world = true
     open.headers["Forêt d'Elwynn"] = true
     local lines, shown, total = ns.Layout.Lines(sample(), open, { passes = only(1, 4) })
-    T.List(kinds(lines), { "bar:journal", "bar:world", "group:Forêt d'Elwynn", "quest:1", "bar:instances" },
-        "Suivi and Marche de l'Ouest go, and the moved line with them")
-    T.Eq(lines[1].count, "2", "a count is how many show")
+    T.List(kinds(lines), { "bar:mine", "bar:journal", "bar:world", "group:Forêt d'Elwynn", "quest:1", "bar:instances" },
+        "Marche de l'Ouest goes, and the moved line with it")
+    T.Eq(lines[2].count, "2", "a count is how many show")
     T.Eq(shown .. "/" .. total, "2/4", "two of four")
     T.True(not open.categories.instances, "a closed level stays closed")
+end)
+
+T.Add("Filter", "a filter keeps Suivi and the player's groups, to drag quests into, matches or not", function()
+    local open = ns.DB.Load(nil).open
+    open.categories.mine = true
+    local tree = sample()
+    tree[1].groups[2] = { key = "g2", group = { id = 2, name = "B", quests = {} }, name = "B", quests = {} }
+    local lines = ns.Layout.Lines(tree, open, { passes = only(4) })
+    T.List(kinds(lines), { "bar:mine", "group:A", "group:B", "bar:journal", "bar:instances" }, "both groups, A's quest hidden")
+    T.Eq(lines[1].count .. " " .. lines[2].count .. " " .. lines[3].count, "0 0 0", "each counts its matches: none")
+    T.True(not (lines[2].open or lines[3].open), "and stays as it was left, closed")
+    lines = ns.Layout.Lines(sample(), ns.DB.Load(nil).open, { passes = only(4) })
+    T.Eq(kinds(lines)[1], "bar:mine", "Suivi stays when closed too, to start a group on")
+    open = ns.DB.Load(nil).open
+    lines = ns.Layout.Lines(ns.Tree.Build({}, {}, {}, ""), open, { passes = only() })
+    T.List(kinds(lines), { "bar:mine" }, "and with no group at all, for its +")
 end)
 
 T.Add("Filter", "a search opens every level holding a match, without saving it", function()
@@ -123,4 +139,11 @@ T.Add("Filter", "a search opens every level holding a match, without saving it",
     T.List(kinds(lines), { "bar:mine", "group:A", "quest:2", "bar:journal", "bar:instances", "group:Les Mortemines", "quest:4" },
         "all open")
     T.True(not (open.categories.mine or open.groups[1] or open.categories.instances), "nothing saved")
+    lines = ns.Layout.Lines(sample(), open, { passes = only(4), searching = true })
+    T.List(kinds(lines), { "bar:mine", "bar:journal", "bar:instances", "group:Les Mortemines", "quest:4" },
+        "Suivi, without a match, stays as it was left")
+    open.categories.mine = true
+    lines = ns.Layout.Lines(sample(), open, { passes = only(4), searching = true })
+    T.Eq(kinds(lines)[2], "group:A", "Suivi left open shows its group")
+    T.True(lines[2].open == false, "which, without a match, stays as it was left too")
 end)

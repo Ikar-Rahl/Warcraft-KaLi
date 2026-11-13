@@ -19,7 +19,7 @@ Ikar's decisions that shape the list, 2026-11-06:
 
 | Kept | Why |
 | --- | --- |
-| The host frame, `ObjectiveTrackerFrame` | Edit Mode has no official way to add a system, so position, height, opacity and text size belong to this frame. It also stacks with other right-side frames through `RightManagedFrameTemplate`. DynamicCam and LoreForever hide it by name |
+| The host frame, `ObjectiveTrackerFrame` | It stacks with other right-side frames through `RightManagedFrameTemplate`, and the addon's frame stands on it until moved in Edit Mode. DynamicCam and LoreForever hide it by name, Forever Quest Tint reads the titles in it. Until 2026-11-13 its Edit Mode settings were the tracker's position, height, opacity and text size; since, the tracker is an Edit Mode frame of its own and the host's box is see-through ([organiser-design.md](organiser-design.md#the-trackers-frame-in-edit-mode)) |
 | `QuestTimerFrame` | A child of the host. Forever turns off row timers (`CanShowTimerBar` returns false), so this panel is the native look |
 | Sorting watches, auto-tracking accepted quests | The host's own `OnEvent` |
 | `QuestObjectiveTracker` and the other sections, hidden | `QuestFrame.lua` calls `QuestObjectiveTracker:AddAutoQuestPopUp` directly, and the hidden section adds completion popups on `QUEST_AUTOCOMPLETE` |
@@ -88,12 +88,12 @@ Plan values:
 
 | ID | Feature | Source | Plan |
 | --- | --- | --- | --- |
-| F1 | Position, dragged in Edit Mode | `EditModeObjectiveTrackerSystemTemplate` | Host |
+| F1 | Position, dragged in Edit Mode | `EditModeObjectiveTrackerSystemTemplate` | **Changed:** the tracker's own Edit Mode frame, one place per layout, on the host until moved |
 | F2 | Height setting, 400 to 1000, away from the default position only. Default 800 | `ShouldShowSetting`, `UpdateHeight` | Host, read with `GetAvailableHeight`. **Added:** the addon's Height option, with the last change winning |
 | F3 | At the default position, height follows the parent, minimum 20 | `UpdateHeight` | Host |
 | F4 | Stacks with other right-side frames | `RightManagedFrameTemplate`, `ManageFramePositions` | Host |
-| F5 | Background opacity, default 0 | `SetOpacity`, `NineSlice` | Host, with its bottom anchored to the last row. **Changed:** its left anchor moves from 30 to 5 left of the rows. See [Options](organiser-design.md#options) |
-| F6 | Text size 12 to 20, headers 2 larger | `SetTextSize`, `ObjectiveTrackerLineFont`, `ObjectiveTrackerHeaderFont` | **Changed:** the addon's own font objects, copied from these, so its Text size option writes nothing to Blizzard's. Edit Mode's slider still applies, with the last change winning |
+| F5 | Background opacity, default 0 | `SetOpacity`, `NineSlice` | **Changed:** the addon's own background, 5 left of the rows where Blizzard's starts 30 left, with its own opacity in the tracker's dialog, Blizzard's until set. See [Options](organiser-design.md#options) |
+| F6 | Text size 12 to 20, headers 2 larger | `SetTextSize`, `ObjectiveTrackerLineFont`, `ObjectiveTrackerHeaderFont` | **Changed:** the addon's own font objects on Blizzard's families at 12 and 14; the zoom sizes the tracker, and Edit Mode's text size no longer applies (2026-11-13) |
 | F7 | Strata LOW | XML | Host |
 | F8 | Title "Tous les objectifs" | `TRACKER_ALL_OBJECTIVES`, `ObjectiveTrackerContainerHeaderTemplate` | Template |
 | F9 | Collapse-all button, four atlases, standard sound | `ui-questtrackerbutton-collapse-all`, `expand-all`, pressed versions | Template. The addon saves the state, Blizzard doesn't. **Changed:** locked in combat until the player unlocks |

@@ -162,3 +162,17 @@ T.Add("Categories", "each class's QuestSort ID is a class header in the game's t
     end
     T.Eq(n, classes, "as many classes as class headers")
 end)
+
+T.Add("Categories", "each language the addon speaks names every QuestSort header, as English does", function()
+    local missing = {}
+    for _, locale in ipairs({ "frFR", "enUS", "deDE", "esES", "esMX" }) do
+        local names = ns.SORT_NAMES[locale] or {}
+        for id in pairs(ns.SORT_KIND) do
+            if type(names[id]) ~= "string" or names[id] == "" then
+                missing[#missing + 1] = locale .. " " .. id
+            end
+        end
+    end
+    table.sort(missing)
+    T.Eq(table.concat(missing, ", "), "", "headers without a name")
+end)

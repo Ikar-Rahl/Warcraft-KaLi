@@ -8,6 +8,7 @@
 ## Dependencies: KaLiQuest
 
 Shared\Harness.lua
+Shared\Locales.lua
 FakeWorld.lua
 Test_DB.lua
 Test_Categories.lua

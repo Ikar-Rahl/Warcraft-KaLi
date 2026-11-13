@@ -1,6 +1,10 @@
 -- The addon's page in the game's options, under AddOns. Reached from the gear on the title row, the addon
 -- compartment and /kq options. Changes apply at once; the panel's Defaults button resets them all, and the last
--- row of each section resets that section's.
+-- row of a section resets that section's.
+--
+-- The tracker's size, place and look are set in Edit Mode only, on its own frame there (UI/EditPanel.lua): Ikar, on
+-- 2026-11-13, "comme dans flare, enlever les options kali quest qui sont gérées par le mode édition, et y mettre un
+-- bouton vers le mode édition". The page keeps what Edit Mode doesn't hold, and a button that goes there.
 local _, ns = ...
 local L = ns.L
 
@@ -15,65 +19,14 @@ local function refresh()
     ns.RequestRefresh()
 end
 
-local function percent(value)
-    return string.format("%d %%", value)
-end
-
-local function slider(setting, key, step, tooltip, format)
-    local range = ns.DB.RANGES[key]
-    local options = Settings.CreateSliderOptions(range[1], range[2], step)
-    if MinimalSliderWithSteppersMixin and MinimalSliderWithSteppersMixin.Label then
-        options:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, format)
-    end
-    Settings.CreateSlider(category, setting, options, tooltip)
-    table.insert(sectionSettings, setting)
-end
-
-local function number(key, name, default, step, tooltip, format)
-    local o = ns.db.options
-    local setting = Settings.RegisterAddOnSetting(category, "KALIQUEST_" .. key:upper(), key, o, Settings.VarType.Number, name, default)
-    setting:SetValueChangedCallback(refresh)
-    slider(setting, key, step, tooltip, format)
-end
-
--- tbl: where the value is kept, the options table unless given.
-local function checkbox(key, name, default, tooltip, onChange, tbl, variable)
-    local setting = Settings.RegisterAddOnSetting(category, variable or "KALIQUEST_" .. key:upper(), key, tbl or ns.db.options,
+local function checkbox(key, name, default, tooltip, onChange)
+    local setting = Settings.RegisterAddOnSetting(category, "KALIQUEST_" .. key:upper(), key, ns.db.options,
         Settings.VarType.Boolean, name, default and Settings.Default.True or Settings.Default.False)
     setting:SetValueChangedCallback(function(_, value)
         ns.SafeCall(onChange or refresh, value)
     end)
     Settings.CreateCheckbox(category, setting, tooltip)
     table.insert(sectionSettings, setting)
-end
-
--- values: { { value, label } }, in the list's order.
-local function dropdown(key, name, default, values, tooltip)
-    local o = ns.db.options
-    local setting = Settings.RegisterAddOnSetting(category, "KALIQUEST_" .. key:upper(), key, o, Settings.VarType.String, name, default)
-    setting:SetValueChangedCallback(refresh)
-    Settings.CreateDropdown(category, setting, function()
-        local container = Settings.CreateControlTextContainer()
-        for _, v in ipairs(values) do
-            container:Add(v[1], v[2])
-        end
-        return container:GetData()
-    end, tooltip)
-    table.insert(sectionSettings, setting)
-end
-
--- Height follows Edit Mode until set here; whichever was changed last wins.
-local function proxy(key, name, default, step, current)
-    local o = ns.db.options
-    local setting = Settings.RegisterProxySetting(category, "KALIQUEST_" .. key:upper(), Settings.VarType.Number, name, default,
-        function()
-            return o[key] or current()
-        end,
-        function(value)
-            o[key] = value
-            refresh()
-        end)
-    slider(setting, key, step, L.OPTION_LAST_WINS)
 end
 
 local function section(layout, text)
@@ -99,7 +52,7 @@ local function resetRow(layout)
     end
 end
 
--- Each marker by the name its tooltip gives it.
+-- Each marker by the name its tooltip gives it, for Edit Mode's dialog.
 local function markerName(kind)
     local names = {
         offlist = L.PAST_LIMIT_SHORT, timed = L.FILTER_V_TIMED, size = L.MARKER_GROUP_SIZE,
@@ -109,6 +62,7 @@ local function markerName(kind)
     }
     return names[kind]
 end
+Options.MarkerName = markerName
 
 -- Shortcuts and the rules no button shows, laid out as Blizzard's own pages: a title over a divider, white section
 -- headings, then a gold label with its text wrapping beside it.
@@ -176,48 +130,20 @@ function Options.Register()
         ns.G("OPTION_TOOLTIP_AUTO_QUEST_WATCH", nil), function(value)
             ns.Tracking.SetAutoQuestWatch(value)
         end)
-    checkbox("progressFlash", L.GLOW, true, L.OPTION_GLOW_TIP)
-    checkbox("areaHighlight", L.AREA_HIGHLIGHT, true, L.OPTION_AREA_TIP, function()
-        ns.Area.Apply()
-    end)
     -- Forever doesn't load Blizzard's group finder, so there the eye couldn't open anything.
     if ns.Filter.GroupFinderAvailable() then
         checkbox("findGroup", L.OPTION_FIND_GROUP, false, ns.G("TOOLTIP_TRACKER_FIND_GROUP_BUTTON", nil))
     end
-    checkbox("shareOnHover", L.OPTION_SHARE_HOVER, true, L.OPTION_SHARE_HOVER_TIP)
     resetRow(layout)
 
-    local D = ns.DB.DEFAULTS
+    -- Where the size and look went: Edit Mode, the tracker picked, under the game's own name for it.
     section(layout, L.OPTIONS_LOOK)
-    number("zoom", L.OPTION_ZOOM, D.zoom, 5, L.OPTION_ZOOM_TIP, percent)
-    number("width", L.OPTION_WIDTH, D.width, 2)
-    proxy("height", L.OPTION_HEIGHT, D.height, 10, function()
-        return math.floor(ns.Host.Height() + 0.5)
-    end)
-    number("blockRest", L.OPTION_BLOCK_REST, D.blockRest, 5, nil, percent)
-    number("blockCombat", L.OPTION_BLOCK_COMBAT, D.blockCombat, 5, nil, percent)
-    number("blockHover", L.OPTION_BLOCK_HOVER, D.blockHover, 5, nil, percent)
-    number("opacity", L.OPTION_OPACITY, D.opacity, 5, nil, percent)
-    number("opacityCombat", L.OPTION_OPACITY_COMBAT, D.opacityCombat, 5, nil, percent)
-    number("saturation", L.OPTION_SATURATION, D.saturation, 5, nil, percent)
-    dropdown("markerStyle", L.OPTION_MARKERS, "icons", { { "icons", L.MARKERS_ICONS }, { "text", L.MARKERS_TEXT },
-        { "none", L.MARKERS_NONE } }, L.OPTION_MARKERS_TIP)
-    resetRow(layout)
-
-    section(layout, L.OPTIONS_MARKERS)
-    for _, kind in ipairs(ns.DB.MARKERS) do
-        checkbox(kind, markerName(kind), true, L.OPTION_MARKER_TIP, nil, ns.db.options.markers, "KALIQUEST_MARKER_" .. kind:upper())
+    if layout and layout.AddInitializer and CreateSettingsButtonInitializer then
+        layout:AddInitializer(CreateSettingsButtonInitializer(L.OPTION_EDIT_MODE, ns.G("HUD_EDIT_MODE_MENU", "Mode Édition"),
+            function()
+                ns.SafeCall(ns.EditFrame.OpenEditMode)
+            end, L.OPTION_EDIT_MODE_TIP, true))
     end
-    resetRow(layout)
-
-    section(layout, L.OPTIONS_ADVANCED)
-    number("titleGap", L.OPTION_TITLE_GAP, D.titleGap, 1)
-    number("groupIndent", L.OPTION_GROUP_INDENT, D.groupIndent, 1)
-    number("questIndent", L.OPTION_QUEST_INDENT, D.questIndent, 1)
-    number("groupGap", L.OPTION_GROUP_GAP, D.groupGap, 1)
-    number("barGap", L.OPTION_BAR_GAP, D.barGap, 1)
-    number("markerSize", L.OPTION_MARKER_SIZE, D.markerSize, 1)
-    resetRow(layout)
 
     section(layout, L.DIAG_TITLE)
     if layout and layout.AddInitializer and CreateSettingsButtonInitializer then
@@ -237,10 +163,7 @@ end
 
 -- The options panel can't open in combat.
 local function open(target)
-    if InCombatLockdown() then
-        if UIErrorsFrame and UIErrorsFrame.AddExternalErrorMessage then
-            UIErrorsFrame:AddExternalErrorMessage(ns.G("ERR_NOT_IN_COMBAT", "In combat"))
-        end
+    if ns.CombatRefused() then
         return
     end
     if target then

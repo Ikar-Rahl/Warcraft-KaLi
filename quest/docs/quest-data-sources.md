@@ -221,7 +221,7 @@ Ikar's question on 2026-11-08: can the map show quests the character could take,
 
 ### Client game tables, via wago.tools
 
-Downloaded to `reference/db2/1.60.1.70790/` from `https://wago.tools/db2/<Table>/csv?build=1.60.1.70790`. Add `&locale=frFR` for French. Used to build a dataset, not readable by an addon at runtime.
+Downloaded to `reference/db2/1.60.1.70790/` from `https://wago.tools/db2/<Table>/csv?build=1.60.1.70790`. Add `&locale=frFR` for French. Used to build a dataset, not readable by an addon at runtime. On 2026-11-13, `QuestSort`, `TradeSkillCategory` and `SkillLine` in `deDE`, `esES` and `esMX` too, for the addons' German and Spanish name tables: same IDs and fields as the French ones, only the names differ (Castilian and Mexican Spanish differ among themselves: « Botánica », « Herboristería »).
 
 | Table | Rows | What it offers |
 | --- | --- | --- |

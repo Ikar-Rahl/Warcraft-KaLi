@@ -277,7 +277,7 @@ local ATLASES = {
     "questlog-questtypeicon-raid", "questlog-questtypeicon-pvp", "questlog-questtypeicon-clockyellow", "questlog-questtypeicon-group",
     "questlog-questtypeicon-daily", "questlog-questtypeicon-weekly", "questlog-questtypeicon-legendary", "questlog-questtypeicon-class",
     "questrepeatableturnin", "socialqueuing-icon-group", "socialqueuing-icon-eye", "questsharing-questlog-button",
-    "poi-traveldirections-arrow", "common-search-magnifyingglass", "minimal-scrollbar-small-thumb-middle",
+    "gearUpdate-arrow-bullet-point", "common-search-magnifyingglass", "minimal-scrollbar-small-thumb-middle",
 }
 
 local function checkAtlases()

@@ -1,6 +1,8 @@
--- Blizzard's tracker as the host. It stays, for Edit Mode, the timer panel and other addons, with its own title
--- and sections parked under a hidden frame. Blizzard's code keeps running on them unseen. Nothing is written into
--- Blizzard's tables but secure hooks, and nothing of Blizzard's is shown or updated from here.
+-- Blizzard's tracker as the host. It stays, for the timer panel and other addons (Forever Quest Tint looks for the
+-- titles in it, DynamicCam and LoreForever hide it by name, ForeverCore's column hangs under it), with its own title
+-- and sections parked under a hidden frame. Blizzard's code keeps running on them unseen. In Edit Mode its selection
+-- is see-through and lets the mouse through, so only the addon's own frame (UI/EditFrame.lua) can be picked. Nothing
+-- is written into Blizzard's tables but secure hooks, and nothing of Blizzard's is shown or updated from here.
 local _, ns = ...
 
 local Host = {}
@@ -101,14 +103,46 @@ function Host.Park(width, zoom)
     originalWidth = host:GetWidth()
     Host.width = nil
     Host.SetWidth(width, zoom)
+    Host.HideSelection(true)
     log("parked %d frames, host width %s", #parked, tostring(Host.width))
 end
 
--- The rows' width option plus the scrollbar's room, zoomed as the rows are, so Edit Mode's box fits them. Only while
--- parked: unparked, the host is Blizzard's.
+-- Blizzard's selection box for its tracker in Edit Mode: see-through and deaf to the mouse while the addon draws the
+-- tracker, which has its own. Two widget calls, which run no script; Blizzard only ever shows and hides the box. Its
+-- dialog, open when the tracker starts, closes, as a click elsewhere would close it.
+function Host.HideSelection(hide)
+    local selection = ObjectiveTrackerFrame and ObjectiveTrackerFrame.Selection
+    if not selection then
+        return
+    end
+    pcall(selection.SetAlpha, selection, hide and 0 or 1)
+    pcall(selection.EnableMouse, selection, not hide)
+    local dialog = EditModeSystemSettingsDialog
+    if hide and dialog and dialog.attachedToSystem == ObjectiveTrackerFrame and EditModeManagerFrame
+        and EditModeManagerFrame.ClearSelectedSystem and not InCombatLockdown() then
+        pcall(EditModeManagerFrame.ClearSelectedSystem, EditModeManagerFrame)
+    end
+end
+
+-- How much smaller than the addon's frame a frame draws what hangs from it, or itself: 1 unless another addon scales
+-- Blizzard's tracker. FlareUI's minimap matches the tracker's width to the minimap's, so in Ikar's game it draws at
+-- 0.61, and the rows hanging from it did too (Ikar, 2026-11-13: in Edit Mode they filled "only a quarter" of their
+-- box, and the zoom took 140 % to look right). The rows, the "Temps" panel and the host's width are scaled back by it,
+-- so the zoom alone sizes the tracker.
+function Host.Unscale(frame)
+    local own = ns.EditFrame.Holder():GetEffectiveScale()
+    local theirs = frame and frame:GetEffectiveScale()
+    if type(own) ~= "number" or own <= 0 or type(theirs) ~= "number" or theirs <= 0 then
+        return 1
+    end
+    return own / theirs
+end
+
+-- The rows' width option plus the scrollbar's room, zoomed as the rows are, so the host spans the rows on screen where
+-- they follow it, and ForeverCore's column under it spans them too. Only while parked: unparked, the host is Blizzard's.
 function Host.SetWidth(width, zoom)
-    local w = (width + Host.SCROLLBAR_ROOM) * (zoom or 1)
-    if not parked or Host.width == w then
+    local w = (width + Host.SCROLLBAR_ROOM) * (zoom or 1) * Host.Unscale(ObjectiveTrackerFrame)
+    if not parked or Host.width and math.abs(Host.width - w) < 0.01 then
         return
     end
     Host.width = w
@@ -116,10 +150,10 @@ function Host.SetWidth(width, zoom)
 end
 
 -- Blizzard's "Temps" panel of timed quests sits 10 under the host's top and leaves its own height plus 18 above the
--- sections. Here it's scaled with the text as the popups are, up to the rows' width, then zoomed with them, and
--- centred on the rows, which the scrollbar's room puts left of the host's centre.
+-- sections. Here it sits so on the addon's frame, scaled with the text as the popups are, up to the rows' width, then
+-- zoomed with them, and centred on the rows, which the scrollbar's room puts left of the frame's centre.
 local TIMER_WIDTH, TIMER_TOP, TIMER_SPACING = 158, 10, 18
-local timerScale, timerZoom
+local timerScale, timerZoom, timerUnscale -- its scale against the addon's frame, the zoom, and the host's undone
 
 -- In the rows' own units, which the zoom scales.
 local function timerRoom(zoom)
@@ -127,7 +161,7 @@ local function timerRoom(zoom)
     if timer and timer.GetTopPadding then
         local ok, room = pcall(timer.GetTopPadding, timer)
         if ok and type(room) == "number" and room > 0 then
-            return (room - TIMER_SPACING) * (timer:GetScale() or 1) / zoom + TIMER_SPACING
+            return (room - TIMER_SPACING) * (timerScale or timer:GetScale() or 1) / zoom + TIMER_SPACING
         end
     end
     return 0
@@ -139,12 +173,13 @@ function Host.PlaceTimer(width, textSize, zoom)
     local timer = QuestTimerFrame
     if timer and parked then
         local scale = math.min(textSize / 12, width / TIMER_WIDTH) * zoom
-        if scale ~= timerScale or zoom ~= timerZoom then
-            timerScale, timerZoom = scale, zoom
-            timer:SetScale(scale)
+        local unscale = Host.Unscale(timer:GetParent())
+        if scale ~= timerScale or zoom ~= timerZoom or unscale ~= timerUnscale then
+            timerScale, timerZoom, timerUnscale = scale, zoom, unscale
+            timer:SetScale(scale * unscale)
             timer:ClearAllPoints()
             local x, y = -Host.SCROLLBAR_ROOM / 2 * zoom / scale, -TIMER_TOP * zoom / scale
-            timer:SetPoint("TOP", ObjectiveTrackerFrame, "TOP", x, y)
+            timer:SetPoint("TOP", ns.EditFrame.Holder(), "TOP", x, y)
         end
     end
     return timerRoom(zoom)
@@ -153,7 +188,7 @@ end
 local function resetTimer()
     local timer = QuestTimerFrame
     if timer and timerScale then
-        timerScale, timerZoom = nil, nil
+        timerScale, timerZoom, timerUnscale = nil, nil, nil
         timer:SetScale(1)
         timer:ClearAllPoints()
         timer:SetPoint("TOP", ObjectiveTrackerFrame, "TOP", 0, -TIMER_TOP)
@@ -170,6 +205,7 @@ function Host.Unpark()
     end
     parked = nil
     Host.width = nil
+    Host.HideSelection(false)
     if originalWidth then
         pcall(ObjectiveTrackerFrame.SetWidth, ObjectiveTrackerFrame, originalWidth)
     end
@@ -195,28 +231,36 @@ local function shadowOf(host)
     return shadow
 end
 
--- The root hangs from the host while it's shown, so Forever Quest Tint finds the titles there and fading applied to
--- the host applies to the rows. Blizzard hides the host when it tracks nothing, so the root then moves to UIParent
--- and stays on screen.
-function Host.Place(root)
+-- Where the addon's frame stands while it follows Blizzard's tracker, as the rows did before it had a frame of its
+-- own: on the host's top left, on its stand-in, or where a host never shown since login would be.
+function Host.Anchor(frame)
     local host = ObjectiveTrackerFrame
-    root:SetParent(host:IsShown() and host or UIParent)
-    root:SetFrameStrata("LOW")
-    root:ClearAllPoints()
     if shadow then
         shadow:Hide()
     end
     local moved = host.IsInDefaultPosition and not host:IsInDefaultPosition()
     if host:GetTop() then
-        root:SetPoint("TOPLEFT", host, "TOPLEFT", 0, 0)
+        frame:SetPoint("TOPLEFT", host, "TOPLEFT", 0, 0)
     elseif moved and host:GetPoint(1) then
-        root:SetPoint("TOPLEFT", shadowOf(host), "TOPLEFT", 0, 0)
+        frame:SetPoint("TOPLEFT", shadowOf(host), "TOPLEFT", 0, 0)
     elseif RightManagedFrameContainer then
-        -- A host never shown since login has no position yet. At its default place it would top this container.
-        root:SetPoint("TOPRIGHT", RightManagedFrameContainer, "TOPRIGHT", -Host.SCROLLBAR_ROOM, 0)
+        -- At its default place it would top this container.
+        frame:SetPoint("TOPRIGHT", RightManagedFrameContainer, "TOPRIGHT", 0, 0)
     else
-        root:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", -Host.SCROLLBAR_ROOM - 5, -280)
+        frame:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", -5, -280)
     end
+end
+
+-- The root hangs from the host while it's shown, so Forever Quest Tint finds the titles there and fading applied to
+-- the host applies to the rows. Blizzard hides the host when it tracks nothing, so the root then moves to UIParent
+-- and stays on screen. It sits on the addon's frame, wherever that stands.
+function Host.Place(root)
+    local host = ObjectiveTrackerFrame
+    root:SetParent(host:IsShown() and host or UIParent)
+    root:SetFrameStrata("LOW")
+    root:ClearAllPoints()
+    root:SetPoint("TOPLEFT", ns.EditFrame.Holder(), "TOPLEFT", 0, 0)
+    ns.EditFrame.Apply()
 end
 
 local hooked = false
@@ -225,30 +269,36 @@ function Host.Follow(root)
         return
     end
     hooked = true
+    -- The rows' scale, which undoes their parent's, is worked out again at the redraw that follows.
     local function place()
         if ns.Tracker.IsActive() then
             ns.SafeCall(Host.Place, root)
+            ns.RequestRefresh()
         end
     end
     ObjectiveTrackerFrame:HookScript("OnShow", place)
     ObjectiveTrackerFrame:HookScript("OnHide", place)
-    -- Edit Mode's height and the screen's size reach the rows. Away from the default position, a height set in
-    -- Edit Mode wins over the addon's own until that's changed again: the last change wins.
+    -- Another addon scaling Blizzard's tracker, through Edit Mode's SetScale or the widget's own, or the interface's
+    -- scale changing: the rows are scaled back at once.
+    for _, method in ipairs({ "SetScale", "SetScaleBase" }) do
+        if type(ObjectiveTrackerFrame[method]) == "function" then
+            hooksecurefunc(ObjectiveTrackerFrame, method, function()
+                if ns.Tracker.IsActive() then
+                    ns.RequestRefresh()
+                end
+            end)
+        end
+    end
+    ns.On("UI_SCALE_CHANGED", function()
+        if ns.Tracker.IsActive() then
+            ns.RequestRefresh()
+        end
+    end)
+    -- A new size of the host reaches the rows, whose height follows it while none is set, and the addon's frame.
     ObjectiveTrackerFrame:HookScript("OnSizeChanged", function()
-        if not ns.Tracker.IsActive() then
-            return
+        if ns.Tracker.IsActive() then
+            ns.RequestRefresh()
         end
-        local host = ObjectiveTrackerFrame
-        local o = ns.db.options
-        local moved = host.IsInDefaultPosition and not host:IsInDefaultPosition()
-        local h = host:GetHeight()
-        if moved and type(h) == "number" then
-            if o.editModeHeight and math.abs(o.editModeHeight - h) > 0.5 then
-                o.height = nil
-            end
-            o.editModeHeight = h
-        end
-        ns.RequestRefresh()
     end)
 end
 
@@ -259,8 +309,12 @@ function Host.Height()
     return h > 0 and h or 600
 end
 
--- Edit Mode's background opacity, which Blizzard applies to the background now parked.
+-- The background's opacity: the addon's own once set, Blizzard's from Edit Mode before that.
 function Host.BackgroundAlpha()
+    local own = ns.db and ns.db.options.bgOpacity
+    if type(own) == "number" then
+        return own / 100
+    end
     local manager = ObjectiveTrackerManager
     return manager and type(manager.backgroundAlpha) == "number" and manager.backgroundAlpha or 0
 end

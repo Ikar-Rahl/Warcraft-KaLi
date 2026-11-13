@@ -12,7 +12,10 @@ Shared.TITLE_HEIGHT = 32
 Shared.BAR_HEIGHT = 26
 Shared.SIDE = 30 -- room left of the rows inside the scrolling area, for the bars' art
 Shared.TOOLS_REST_ALPHA = 0.5
-Shared.AREA_ARROW = "|A:poi-traveldirections-arrow:%d:%d|a"
+-- The area highlight's mark: Ikar's pick of 2026-11-12 among the build's small icons (bench/area-mark.html). It was the
+-- tracker's travel arrow, which Blizzard's own tracker puts on a quest's route line: « go elsewhere », the opposite.
+-- Nearly square, so drawn square, sized with the text.
+Shared.AREA_ARROW = "|A:gearUpdate-arrow-bullet-point:%d:%d|a"
 
 local COLOR = {
     gold = { 1, 0.824, 0 },

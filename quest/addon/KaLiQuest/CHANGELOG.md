@@ -13,5 +13,7 @@ First version.
 - Search and filters; markers; the quests of your area; a glow on progress.
 - Quest items, popups, timers, recipes and achievements, as in Blizzard's tracker.
 - Options in the game's settings, with a zoom for the whole tracker, a Tips page and a reset for each section; the addon compartment; `/kq`.
-- A bug report to copy, from the gear's menu or `/kq report`, with a check that the game still has all the addon uses and still answers as the addon assumes. When it doesn't, a line in chat says so, once per game version.
+- In Edit Mode, the tracker is a frame of its own, as Blizzard's frames are: picked, dragged with snapping or moved with the arrows, with a place for each layout. Its one dialog holds all of its size and look in folding sections, with « Annuler les modifications », « Revenir à la position par défaut » and « Par défaut ». The zoom alone sizes it, and the background's opacity is the addon's. Its size and look are set there only: the options page keeps the rest, with a « Mode Édition » button that opens Edit Mode with the tracker picked, as the gear's menu does.
+- A bug report, from the gear's menu or `/kq report`: a link that opens a new issue, then the report to copy and paste into it, with a check that the game still has all the addon uses and still answers as the addon assumes. When it doesn't, a line in chat says so, once per game version.
 - Blizzard's tracker comes back on an error, or when a section the addon doesn't draw fills.
+- In French, English, German and Spanish (Spain's, and Mexico's with the game's own Mexican words); other clients get English.

@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Area mark options</title>
+<!-- Local only: it draws Blizzard's art from art/, which is never published (the repository's .gitignore). -->
+<style>
+  @font-face { font-family: "Friz"; src: url(art/FRIZQT__.TTF) format("truetype"); }
+  :root { --line: #34383f; --ink: #d9dce1; --ink-dim: #8e949d; --accent: #e0b34c;
+    --normal-hl: #fff; --header: #bf9c00; --header-hl: #ffd200; --group: #c8b88e; --count: #b8a878; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #17191d; color: var(--ink); font: 13px/1.45 "Segoe UI", system-ui, sans-serif; }
+  header { padding: 14px 20px 6px; }
+  h1 { margin: 0; font-size: 18px; }
+  header p { margin: 4px 0 0; color: var(--ink-dim); max-width: 1000px; }
+  #pick { color: var(--accent); font-weight: 600; }
+  h2 { margin: 18px 0 8px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-dim); }
+  main { padding: 0 20px 30px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+  .cell { display: grid; grid-template-columns: 40px 1fr; gap: 8px; padding: 7px; border: 1px solid var(--line); border-radius: 5px; background: #1d2026; cursor: pointer; }
+  .cell:hover { border-color: #5a5f69; }
+  .cell.on { border-color: var(--accent); background: #262219; }
+  .cell.now { border-color: #6a3a3a; }
+  .big { width: 40px; height: 40px; display: grid; place-items: center; background: #0c0d10; border-radius: 4px; }
+  .name { grid-column: 1 / -1; color: var(--ink-dim); font: 11px Consolas, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .name b { color: #f0a0a0; font-weight: 600; font-family: "Segoe UI", sans-serif; }
+  .world { padding: 4px 6px; border-radius: 3px; background: linear-gradient(160deg, #3b4a33, #26301f 60%, #1e241b); }
+  .ot { font-family: "Friz", "Arial Narrow", Arial, sans-serif; font-size: 12px; line-height: 1.2; letter-spacing: .028em; text-shadow: 1px 1px 0 #000; white-space: nowrap; overflow: hidden; }
+  .tex { display: inline-block; flex: none; background-repeat: no-repeat; vertical-align: -2px; }
+  .group { display: flex; align-items: center; gap: 4px; color: var(--group); }
+  .group .gname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .group .here { color: #fff; display: flex; align-items: center; gap: 2px; }
+  .group .count { color: var(--count); }
+  .row { margin-top: 3px; color: var(--header-hl); overflow: hidden; text-overflow: ellipsis; }
+  .row .tex { margin-right: 3px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>KaLi Quest: candidates for the « you're in this quest's area » mark</h1>
+    <p>Every small icon of this build that could say « here »: map pings, targets, dots, raid markers, map places, pins, flags, stars,
+      gems, orbs. Each is drawn at the tracker's size, before a quest's title (12 px) and beside a group's count (10 px), and enlarged
+      on the left. Click one to mark it, then tell me its name. <span id="pick"></span></p>
+  </header>
+  <main id="main"></main>
+
+  <script src="js/atlas-data.js"></script>
+  <script>
+    const GROUPS = [
+      ["Now (misleads)", ["poi-traveldirections-arrow"]],
+      ["Map pings", ["Ping_Marker_Icon_NonThreat", "Ping_Marker_Icon_OnMyWay", "Ping_Marker_Icon_Assist", "Ping_Marker_Icon_Warning",
+        "Ping_Marker_Icon_Threat", "Ping_Marker_Icon_Attack", "Ping_Chat_NonThreat", "Ping_Chat_OnMyWay", "Ping_Chat_Assist",
+        "Ping_Chat_Warning", "Ping_Map_NonThreat", "Ping_Map_OnMyWay", "Ping_Map_Assist", "Ping_MapPin_NonThreat",
+        "Ping_MapPin_OnMyWay", "Ping_MapPin_Assist", "Ping_Wheel_Icon_OnMyWay_Small", "Ping_Wheel_Icon_Assist_Small"]],
+      ["Targets and objectives", ["Navigation-Tracked-Icon", "Navigation-Tombstone-Icon", "Target", "Target-Tracker",
+        "DungeonTargetIndicator", "Adventures-Target-Indicator", "Islands-MarkedArea", "QuestObjective", "TaskPOI-Icon",
+        "TaskPOI-IconSelect", "Bonus-Objective-Star", "Rare-Elite-Star"]],
+      ["Dots and blips", ["playerpartyblip", "PlayerRaidBlip", "WhiteCircle-RaidBlips", "WhiteDotCircle-RaidBlips", "LevelUp-Dot-Gold",
+        "LevelUp-Dot-Green", "Warfront-AllianceDot", "Warfront-HordeDot", "perks-radio-dot", "plunderstorm-new-dot-sm",
+        "plunderstorm-new-dot-lg", "groupfinder-waitdot", "lootroll-pendingdot", "UI-Taxi-Icon-Nub", "Objective-Nub",
+        "AftLevelup-Dots1", "UI-prey-Pip-Green", "common-dropdown-icon-radialtick-yellow", "common-dropdown-tickradial"]],
+      ["Raid markers", ["GM-raidMarker1", "GM-raidMarker2", "GM-raidMarker3", "GM-raidMarker4", "GM-raidMarker5", "GM-raidMarker6",
+        "GM-raidMarker7", "GM-raidMarker8"]],
+      ["Places on the map", ["poi-town", "poi-majorcity", "poi-door", "poi-lighthouse-neutral", "poi-rift1", "poi-graveyard-neutral",
+        "TaxiNode_Undiscovered", "taxinode_neutral", "map-icon-SuramarDoor.tga", "ChromieMap", "Map-MarkedDefeated",
+        "legioninvasion-map-icon-portal", "lorewalking-map-icon", "homestone-minimap-icon", "housing-map-plot-player-house",
+        "housing-map-plot-occupied-friend", "housing-map-plot-unoccupied", "UI-EventPoi-Cave", "UI-EventPoi-Horn-big",
+        "minimap-genericevent-hornicon-small", "trading-post-minimap-icon", "poi-soulspiritghost"]],
+      ["Pins", ["friends-icon-pinned", "friendslist-recentallies-Pin", "friendslist-recentallies-Pin-yellow", "Waypoint-MapPin-ChatIcon",
+        "Waypoint-MapPin-Tracked", "Waypoint-MapPin-Untracked", "Waypoint-MapPin-Minimap-Tracked", "waypoint-mappin-minimap-untracked"]],
+      ["Quest markers", ["worldquest-tracker-questmarker", "worldquest-tracker-questmarker-gray", "worldquest-questmarker-rare",
+        "Recurringactivequesticon", "AdventureMapIcon-Quest", "VignetteLoot", "VignetteEventElite", "questblob"]],
+      ["Flags", ["delves-scenario-flag", "housing-dashboard-activity-listitem-flag", "CrossedFlags", "nameplates-icon-flag-neutral",
+        "nameplates-icon-flag-alliance"]],
+      ["Stars, diamonds and gems", ["tradeskills-star", "recipetoast-icon-star", "currency-star-shine", "CampCollection-icon-star",
+        "wowlabs_spellbucketicon-stars", "activities-incomplete-diamond", "activities-complete-diamond", "DruidEclipse-Diamond",
+        "UF-Arcane-MagicDiamond", "Adventurers-Followers-Uncommon-Gem", "Adventurers-Followers-Rare-Gem",
+        "Adventurers-Followers-Epic-Gem", "Adventurers-Followers-Legendary-Gem"]],
+      ["Bullets, orbs and suns", ["gearUpdate-arrow-bullet-point", "interstitial-newplayerexperience-upgrade-bullet",
+        "timerunning-infographic-bullet", "nameplates-icon-orb-blue", "nameplates-icon-orb-green", "nameplates-icon-orb-orange",
+        "nameplates-icon-orb-purple", "MonkUI-LightOrb-small", "UF-Arcane-Orb", "DruidEclipse-SolarSun", "DruidEclipse-LunarSun"]],
+      ["Rings, portals and the rest", ["UI-prey-Scoutingmap-ring", "worldquest-tracker-ring", "shop-count-ring",
+        "Relic-Rankselected-circle", "PortalBlue", "PortalPurple", "shop-games-magnifyingglass", "common-search-magnifyingglass",
+        "hearthsteel-icon-16x16", "ui-hud-minimap-arrow-player"]],
+    ];
+
+    function art(name) {
+      const entry = window.ATLAS_DATA[name.toLowerCase()];
+      return entry && (entry["0"] || entry[Object.keys(entry)[0]]);
+    }
+    // An atlas fitted to a height, its own shape kept, as |A:name:height:width|a sizes it in the addon.
+    function tex(name, height, maxWidth) {
+      const a = art(name);
+      const el = document.createElement("span");
+      el.className = "tex";
+      if (!a) { el.textContent = "?"; return el; }
+      let h = height, w = Math.round(height * a.w / a.h);
+      if (maxWidth && w > maxWidth) { w = maxWidth; h = Math.round(maxWidth * a.h / a.w); }
+      const sx = w / a.pw, sy = h / a.ph;
+      el.style.cssText = `width:${w}px;height:${h}px;background-image:url(art/sheet-${a.f}.png);background-size:${a.sw * sx}px ${a.sh * sy}px;background-position:${-a.x * sx}px ${-a.y * sy}px`;
+      return el;
+    }
+    function h(tag, cls, ...kids) {
+      const el = document.createElement(tag);
+      if (cls) el.className = cls;
+      for (const k of kids.flat()) if (k != null) el.append(k.nodeType ? k : document.createTextNode(k));
+      return el;
+    }
+
+    const KEY = "kq-area-mark-pick2";
+    let picked = null;
+    try { picked = localStorage.getItem(KEY); } catch (e) { /* private window: no memory */ }
+    const main = document.getElementById("main");
+    function draw() {
+      main.replaceChildren();
+      let missing = 0;
+      for (const [title, names] of GROUPS) {
+        main.append(h("h2", null, title));
+        const grid = h("div", "grid");
+        for (const name of names) {
+          if (!art(name)) { missing++; continue; }
+          const cell = h("div", "cell" + (picked === name ? " on" : "") + (title.startsWith("Now") ? " now" : ""),
+            h("div", "big", tex(name, 32, 36)),
+            h("div", "world", h("div", "ot",
+              h("div", "group", h("span", "gname", "Forêt d'Elwynn"), h("span", "here", tex(name, 10, 14), "2"), h("span", "count", "1/3")),
+              h("div", "row", tex(name, 12, 16), "Les loups de la forêt"))),
+            h("div", "name", title.startsWith("Now") ? h("b", null, "now · ") : null, name));
+          cell.title = name;
+          cell.addEventListener("click", () => {
+            picked = picked === name ? null : name;
+            try { picked ? localStorage.setItem(KEY, picked) : localStorage.removeItem(KEY); } catch (e) { /* not remembered */ }
+            draw();
+          });
+          grid.append(cell);
+        }
+        main.append(grid);
+      }
+      document.getElementById("pick").textContent = picked ? `Picked: ${picked}` : "";
+      if (missing) main.prepend(h("p", null, `${missing} icons have no art yet: run python -I quest/tools/bench_art.py.`));
+    }
+    draw();
+  </script>
+</body>
+</html>

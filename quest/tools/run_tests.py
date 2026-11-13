@@ -11,13 +11,16 @@
 6. Every :Method( they call is a widget method in that documentation, one Blizzard's own code defines, one they
    define themselves, or a string method. A misspelt or retail-only method name fails here, not in game.
 7. KaLiQuest's folder is a complete package: the TOC's fields, an icon the game can read, every listed file
-   present, and no file the TOC doesn't account for.
+   present, every file its code names inside the addon there, and no file the TOC doesn't account for.
 8. KaLiQuest/Data/Needs.lua, the list of what the addon takes from the game that it checks at login, game strings
    included, is the one its code gives today. --write-needs writes it.
 9. The game's numbers the addon reads that no enum of the game holds are those its own tables give: the quest tags,
    by their names in this build's QuestInfo table.
+10. Every Enum table and member the addons name is in this build's docs or read by Blizzard's own code.
+11. No code of the shipped addon tests a value against itself, the usual test for nan, which the game's Lua doesn't
+   honour (ns.Finite does).
 
-The checks of 1 to 8 are the family's, in tools/kali/checks.py. Run with: python -I quest/tools/run_tests.py
+The checks of 1 to 8, 10 and 11 are the family's, in tools/kali/checks.py. Run with: python -I quest/tools/run_tests.py
 --addons <dir> runs on a copy, for experiments: quest/addon is linked into the game.
 """
 import csv
@@ -92,11 +95,18 @@ def main():
     found = checks.needs(shipped, checks.documented_functions(called_by_blizzard), defined_in, templates_in, fonts_in)
     expected = checks.needs_lua(found)
     if "--write-needs" in sys.argv:
-        needs_path.write_text(expected, encoding="utf-8")
+        needs_path.write_text(expected, encoding="utf-8", newline="\n")
     elif not needs_path.exists() or needs_path.read_text(encoding="utf-8") != expected:
         problems.append(f"needs: {rel(needs_path)} is out of date: run quest/tools/run_tests.py --write-needs")
     print(f"needs: {len(found['globals'])} globals, {len(found['events'])} events, {len(found['atlases'])} atlases, "
           f"{len(found['templates'])} templates, {len(found['cvars'])} CVars, {len(found['strings'])} strings")
+    used_enums = checks.addon_enums(sources)
+    enums = checks.enum_problems(used_enums, checks.documented_enums())
+    print(f"enums: {len(used_enums)} named, {len(enums)} not in this build's docs nor Blizzard's code")
+    problems += enums
+    nan = checks.self_compare_problems(shipped)
+    print(f"nan: {len(nan)} values compared with themselves in the shipped addon")
+    problems += nan
 
     lua, load_addon = checks.runtime()
     load_addon("KaLiQuest")
@@ -119,7 +129,7 @@ def main():
     shared_failures = checks.shared_smoke(lua, "KaLiQuest")
     print(f"shared: {'PASS' if not shared_failures else 'FAIL'}")
     problems += shared_failures
-    leaks = sorted(set(lua.globals().KQ_LEAKS.values()))
+    leaks = sorted(set(lua.globals().KALI_LEAKS.values()))
     problems += [f"global written: {leak}" for leak in leaks]
 
     print()

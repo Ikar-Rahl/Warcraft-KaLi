@@ -64,7 +64,8 @@ local DIFFICULTY = { "Trivial", "Easy", "Fair", "Difficult", "Impossible" }
 local CLASSIFICATION = { "Important", "Legendary", "Campaign", "Calling", "Meta", "Recurring" }
 
 -- The game's own numbers the filter reads. The two lists above are in the game's order, from 0. In game the API
--- check holds each against the game's enums, and offline run_lua_tests.py holds the tags against its QuestInfo table.
+-- check holds each against the game's enums and constants, and offline quest/tools/run_tests.py holds the tags against
+-- this build's QuestInfo table.
 Filter.DIFFICULTY, Filter.CLASSIFICATION, Filter.QUESTLINE = DIFFICULTY, CLASSIFICATION, 6
 Filter.TAG = { elite = 1, life = 21, pvp = 41, raid = 62, dungeon = 81, worldevent = 82, legendary = 83, raid10 = 88, raid25 = 89 }
 Filter.FREQUENCY = { Default = 0, Daily = 1, Weekly = 2, ResetByScheduler = 3 }

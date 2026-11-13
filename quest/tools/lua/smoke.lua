@@ -159,6 +159,24 @@ local function rowOf(id)
         return line.quest.id == id
     end)
 end
+-- The size and look are set in Edit Mode's dialog only, since 2026-11-13 ("comme dans flare"): a row of it, and a value
+-- set as its control sets it.
+local function lookRow(key, marker)
+    for _, section in ipairs(ns.EditPanel.handle:Sections()) do
+        for _, row in ipairs(section.rows) do
+            if row.key == key and (row.markers or false) == (marker or false) then
+                return row
+            end
+        end
+    end
+end
+local function setLook(key, value, marker)
+    local row = lookRow(key, marker)
+    if not row then
+        error("Edit Mode's dialog has no row " .. key)
+    end
+    ns.EditPanel.handle:Set(row, value)
+end
 local function barOf(id)
     return shown("bar", function(line)
         return line.id == id
@@ -187,12 +205,12 @@ expect(tracker.frames.background.template == nil and tracker.frames.background.n
     "the background is a plain frame given its nine-slice art, as NineSlicePanelTemplate's OnLoad needs a parent")
 expect(CreateFrame("Button"):IsMouseEnabled() and not CreateFrame("Frame"):IsMouseEnabled(),
     "fake: a button takes the mouse from the start")
-expect(select(2, KaLiQuestTracker:GetPoint()) == RightManagedFrameContainer,
-    "a host never shown since login has no position, so the rows top the right-hand container")
+expect(select(2, KaLiQuestTracker:GetPoint()) == KaLiQuestHolder and select(2, KaLiQuestHolder:GetPoint()) == RightManagedFrameContainer,
+    "the rows sit on the tracker's own frame, which, with a host never shown since login, tops the right-hand container")
 ObjectiveTrackerFrame:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", -80, -200)
 ns.Host.Place(KaLiQuestTracker)
 do
-    local stand = select(2, KaLiQuestTracker:GetPoint())
+    local stand = select(2, KaLiQuestHolder:GetPoint())
     local point, rel, relPoint, x, y = stand:GetPoint()
     expect(stand ~= ObjectiveTrackerFrame and stand ~= RightManagedFrameContainer and stand:IsShown() and point == "TOPRIGHT"
         and rel == UIParent and relPoint == "TOPRIGHT" and x == -80 and y == -200,
@@ -203,7 +221,8 @@ ObjectiveTrackerFrame.top = 900
 F.entries[2].objectives = { { text = "Fermiers : 2/5", finished = false }, { text = "Gnolls : 10/10", finished = true } }
 ns.RequestRefresh()
 F.RunTimers()
-expect(select(2, KaLiQuestTracker:GetPoint()) == ObjectiveTrackerFrame, "once it has one, they hang from its top left")
+expect(select(2, KaLiQuestHolder:GetPoint()) == ObjectiveTrackerFrame and select(1, KaLiQuestHolder:GetPoint()) == "TOPLEFT",
+    "once it has one, the frame hangs from its top left")
 expect(tracker.IsActive() and ns.Host.IsParked(), "the tracker is on and Blizzard's sections are parked")
 expect(ObjectiveTrackerManager:GetContainerForModule(QuestObjectiveTracker) == ObjectiveTrackerFrame, "Blizzard's setup ran after login")
 expect(QuestObjectiveTracker:GetParent() ~= ObjectiveTrackerFrame and ObjectiveTrackerFrame.Header:GetParent() ~= ObjectiveTrackerFrame,
@@ -466,11 +485,12 @@ do
     expect(text == [[header "Guerrier": its key puts it in classprof/class, its name in classprof/ownclass]],
         "a header its key places otherwise than its name: " .. text)
     local locale = ns.LOCALE
-    ns.LOCALE, smith.headerSortKey = "deDE", 0x20000000 + 82
+    -- Italian, which has no name table (German has one since 2026-11-13).
+    ns.LOCALE, smith.headerSortKey = "itIT", 0x20000000 + 82
     text = problems()
     ns.LOCALE = locale
     expect(text == [[header "Guerrier": QuestSort 82, but WARRIOR's is 81]], "and, with no name table, a class header with another class's key: " .. text)
-    -- Forgeron's header in German, which no name table here holds, so only its key can place it.
+    -- Forgeron's header in German, which the French categories in use don't hold, so only its key can place it.
     smith.title, smith.headerSortKey = "Schmiedekunst", keys.Forgeron
     db.open.headers = { ["Marche de l'Ouest"] = true }
     ns.RequestRefresh()
@@ -524,6 +544,294 @@ expect(not rowOf(12):IsMouseEnabled() and not barOf("mine"):IsMouseEnabled(), "E
 F.TriggerRegistry("EditMode.Exit")
 F.RunTimers()
 expect(rowOf(12):IsMouseEnabled(), "and come back after")
+
+-- Edit Mode: the tracker is an Edit Mode frame of its own, with one dialog for its size and look (Ikar's choice on
+-- 2026-11-13, "One dialog, FlareUI's way"). Blizzard's tracker's box is see-through and lets the mouse through.
+do
+    local L = ns.L
+    local o = db.options
+    local D = ns.DB.DEFAULTS
+    local held = ns.DeepCopy(o)
+    local heldPositions = ns.DeepCopy(db.editMode.positions)
+    local blizzard = ObjectiveTrackerFrame.Selection
+    local uiWidth, uiHeight = UIParent.width, UIParent.height
+    UIParent:SetSize(1920, 1080)
+    expect(blizzard:GetAlpha() == 0 and not blizzard:IsMouseEnabled(),
+        "Blizzard's tracker's box is see-through and lets the mouse through while the addon draws the tracker")
+    F.TriggerRegistry("EditMode.Enter")
+    F.RunTimers()
+    local holder = KaLiQuestHolder
+    local box
+    for _, child in ipairs(holder.fakeChildren or {}) do
+        if child.template == "EditModeSystemSelectionTemplate" then
+            box = child
+        end
+    end
+    expect(box and box:IsShown() and box.state == "highlight", "in Edit Mode the tracker's own frame shows its box, as Blizzard's frames do")
+    box = box or CreateFrame("Frame", nil, nil, "EditModeSystemSelectionTemplate")
+    expect(holder:GetWidth() == (o.width + ns.Host.SCROLLBAR_ROOM) * o.zoom / 100
+        and holder:GetHeight() == (o.height or ObjectiveTrackerFrame:GetHeight()),
+        "its box is the rows' width with the scrollbar's room, zoomed, by the height set: "
+        .. holder:GetWidth() .. " " .. holder:GetHeight())
+    -- Another addon scaling Blizzard's tracker, as FlareUI's minimap does to match its width, scaled the rows hanging
+    -- from it too (Ikar, 2026-11-13: in Edit Mode "it use only a quarter of it"). Now they're scaled back, and fill their
+    -- box at the zoom; so does the host, and the "Temps" panel keeps the rows' size.
+    ObjectiveTrackerFrame:SetScale(0.615)
+    F.RunTimers()
+    do
+        local onScreen = KaLiQuestTracker:GetEffectiveScale() / holder:GetEffectiveScale()
+        local zoom = o.zoom / 100
+        expect(math.abs(onScreen - zoom) < 0.0001
+            and math.abs((KaLiQuestTracker:GetWidth() + ns.Host.SCROLLBAR_ROOM) * onScreen - holder:GetWidth()) < 0.01
+            and math.abs(KaLiQuestTracker:GetHeight() * onScreen - holder:GetHeight()) < 0.01
+            and math.abs(ObjectiveTrackerFrame:GetWidth() * 0.615 - holder:GetWidth()) < 0.01,
+            "with Blizzard's tracker scaled by another addon, the rows are scaled back and fill their box, as the host does: "
+            .. onScreen .. " " .. ObjectiveTrackerFrame:GetWidth())
+        if QuestTimerFrame:GetParent() == ObjectiveTrackerFrame then
+            expect(math.abs(QuestTimerFrame:GetEffectiveScale() / holder:GetEffectiveScale() - zoom) < 0.0001,
+                "and the \"Temps\" panel keeps the rows' size")
+        end
+    end
+    ObjectiveTrackerFrame:SetScale(1)
+    F.RunTimers()
+
+    -- Picked: Blizzard's selected frame and its dialog let go, and the addon's dialog opens beside the tracker.
+    EditModeManagerFrame:SelectSystem(CreateFrame("Frame"))
+    holder.left, holder.top = 1500, 900
+    F.RunScript(box, "OnMouseDown")
+    local dialog = KaLiQuestEditModeDialog
+    expect(box.state == "selected" and box.Label:GetText() == "KaLi Quest" and dialog and dialog:IsShown()
+        and EditModeManagerFrame.selected == nil and not EditModeSystemSettingsDialog:IsShown(),
+        "a click picks it: its box says its name, its dialog opens, and Blizzard's frame and dialog let go")
+    if dialog then
+        local point, rel, relPoint, x, y = dialog:GetPoint()
+        expect(point == "TOPRIGHT" and rel == UIParent and relPoint == "BOTTOMLEFT" and x == 1490 and y == 900,
+            "the dialog opens beside the tracker, on the side away from the screen's edge")
+        local function rowFor(key, marker)
+            for _, f in ipairs(dialog.rows) do
+                if f.row.key == key and (f.row.markers or false) == (marker or false) then
+                    return f
+                end
+            end
+        end
+        local function shownRows()
+            local list = {}
+            for _, f in ipairs(dialog.rows) do
+                if f:IsShown() then
+                    list[#list + 1] = f.row.key
+                end
+            end
+            return table.concat(list, ",")
+        end
+        local function open(i)
+            if not rowFor(dialog.sections[i].section.rows[1].key, dialog.sections[i].section.rows[1].markers):IsShown() then
+                F.RunScript(dialog.sections[i], "OnClick")
+            end
+        end
+        expect(dialog.Title:GetText() == "KaLi Quest" and #dialog.sections == 5
+            and dialog.sections[1].Text:GetText() == L.EDIT_SECTION_FRAME and shownRows() == "zoom,width,height,bgOpacity",
+            "one dialog, titled with the addon's name, five sections, the frame's open first: " .. shownRows())
+        local short = dialog:GetHeight()
+        F.RunScript(dialog.sections[2], "OnClick")
+        expect(shownRows() == "opacity,opacityCombat,blockRest,blockCombat,blockHover", "one section open at a time: " .. shownRows())
+        F.RunScript(dialog.sections[4], "OnClick")
+        local markers = 0
+        for _, f in ipairs(dialog.rows) do
+            markers = markers + ((f.row.markers and f:IsShown()) and 1 or 0)
+        end
+        expect(markers == #ns.DB.MARKERS and dialog:GetHeight() > short, "the markers' section lists every marker, and the dialog grows to hold them")
+        F.RunScript(dialog.sections[4], "OnClick")
+        expect(shownRows() == "", "a click on the open bar closes it")
+
+        open(1)
+        rowFor("zoom").Slider:SetValue(150)
+        rowFor("bgOpacity").Slider:SetValue(40)
+        F.RunTimers()
+        expect(o.zoom == 150 and KaLiQuestTracker:GetScale() == 1.5 and holder:GetWidth() == (o.width + ns.Host.SCROLLBAR_ROOM) * 1.5,
+            "a zoom set there applies at once, and the frame's box grows with the rows")
+        expect(o.bgOpacity == 40 and tracker.frames.background:GetAlpha() == 0.4, "the background's opacity is the addon's own now")
+        expect(dialog.Revert:IsEnabled() and not dialog.ResetPosition:IsEnabled(),
+            "« Annuler les modifications » once something changed, no position to reset before a move")
+        F.RunScript(rowFor("zoom"), "OnEnter")
+        expect(F.tooltip.lines[1] == L.OPTION_ZOOM and F.tooltip.lines[2] == L.OPTION_ZOOM_TIP, "a row's tooltip says what it does")
+        F.RunScript(rowFor("zoom"), "OnLeave")
+        open(3)
+        local flash = rowFor("progressFlash")
+        flash.Button:SetChecked(false)
+        F.RunScript(flash.Button, "OnClick")
+        local radios = F.MenuRadios(rowFor("markerStyle").Dropdown)
+        expect(o.progressFlash == false and #radios == 3 and radios[1].selected, "a box sets its option, and the markers' style has its three values, the current one ticked")
+        radios[2].pick()
+        expect(o.markerStyle == "text", "and picking one sets it")
+        open(4)
+        local dungeon = rowFor("dungeon", true)
+        dungeon.Button:SetChecked(false)
+        F.RunScript(dungeon.Button, "OnClick")
+        expect(o.markers.dungeon == false, "a marker's box switches it, in the markers' own table")
+
+        -- Dragged: held by its top corner on its side of the screen, in the active layout, snapping when Edit Mode does.
+        local w = holder:GetWidth()
+        holder.left, holder.top = 400, 700
+        F.RunScript(box, "OnDragStart")
+        F.RunScript(box, "OnDragStop")
+        local p = db.editMode.positions.preset1
+        expect(p and p.point == "TOPLEFT" and p.x == 400 and p.y == 700 - 1080 and select(2, holder:GetPoint()) == UIParent
+            and dialog.ResetPosition:IsEnabled(), "dropped on the left half, it's held by its top left, in the active layout")
+        F.snap = true
+        holder.left, holder.top = 6, 1075
+        F.RunScript(box, "OnDragStart")
+        F.RunScript(box, "OnDragStop")
+        p = db.editMode.positions.preset1
+        expect(p.x == 0 and p.y == 0, "with Edit Mode's snapping on, dropped near the screen's corner it lands on it: " .. p.x .. " " .. p.y)
+        EditModeManagerFrame.Grid.shown = true
+        holder.left, holder.top = 1365, 643
+        F.RunScript(box, "OnDragStart")
+        F.RunScript(box, "OnDragStop")
+        p = db.editMode.positions.preset1
+        expect(p.point == "TOPRIGHT" and p.x == 1360 + w - 1920 and p.y == 640 - 1080,
+            "on the right half it's held by its top right, and on a grid line while the grid shows: " .. p.x .. " " .. p.y)
+        F.snap, EditModeManagerFrame.Grid.shown = false, false
+        holder.left, holder.top = 1360, 640
+        F.RunScript(dialog, "OnKeyDown", "LEFT")
+        holder.left = 1359 -- the fake doesn't move it: where the game would have it now
+        F.shift = true
+        F.RunScript(dialog, "OnKeyDown", "UP")
+        F.shift = false
+        p = db.editMode.positions.preset1
+        expect(p.x == 1359 + w - 1920 and p.y == 650 - 1080, "the arrows move it 1, with Shift 10")
+        F.combat = true
+        holder.left, holder.top = 100, 100
+        F.RunScript(box, "OnDragStart")
+        F.RunScript(box, "OnDragStop")
+        expect(db.editMode.positions.preset1.y == 650 - 1080, "not in a fight")
+        F.combat = false
+
+        -- Each layout its own place; one where it was never moved has it on Blizzard's tracker.
+        F.editLayouts.activeLayout = 4
+        F.Fire("EDIT_MODE_LAYOUTS_UPDATED")
+        expect(select(2, holder:GetPoint()) == ObjectiveTrackerFrame and not dialog.ResetPosition:IsEnabled(),
+            "in another layout, never moved there, it's on Blizzard's tracker")
+        holder.left, holder.top = 300, 800
+        F.RunScript(box, "OnDragStart")
+        F.RunScript(box, "OnDragStop")
+        expect(db.editMode.positions["custom:Mine"] and db.editMode.positions.preset1, "each layout keeps its own place, the player's own by name")
+        F.editLayouts.activeLayout = 1
+        F.Fire("EDIT_MODE_LAYOUTS_UPDATED")
+        expect(select(2, holder:GetPoint()) == UIParent and select(4, holder:GetPoint()) == 1359 + w - 1920, "back in the first, its place there")
+        F.RunScript(dialog.ResetPosition, "OnClick")
+        expect(db.editMode.positions.preset1 == nil and select(2, holder:GetPoint()) == ObjectiveTrackerFrame,
+            "« Revenir à la position par défaut » puts it back on Blizzard's tracker")
+
+        -- Cancelling: back to what it was on entering Edit Mode, or at its last save.
+        F.RunScript(dialog.Revert, "OnClick")
+        F.RunTimers()
+        expect(o.zoom == held.zoom and o.bgOpacity == held.bgOpacity and o.progressFlash == held.progressFlash
+            and o.markerStyle == held.markerStyle and o.markers.dungeon == held.markers.dungeon
+            and db.editMode.positions["custom:Mine"] == nil and not ns.EditPanel.HasChanges() and not dialog.Revert:IsEnabled(),
+            "« Annuler les modifications » puts back the settings and places as they were on entering Edit Mode")
+        open(1)
+        rowFor("zoom").Slider:SetValue(120)
+        F.TriggerRegistry("EditMode.SavedLayouts")
+        rowFor("zoom").Slider:SetValue(130)
+        F.RunScript(dialog.Revert, "OnClick")
+        expect(o.zoom == 120 and rowFor("zoom").Slider.rightText == "120 %", "after Edit Mode's save, back to what was saved")
+        F.RunScript(dialog.Defaults, "OnClick")
+        F.RunTimers()
+        expect(o.zoom == D.zoom and o.bgOpacity == D.bgOpacity and o.markerStyle == "icons" and o.progressFlash == true
+            and o.markers.dungeon == true, "« Par défaut » puts every row back to its default")
+
+        -- Letting go: a frame of Blizzard's picked, Escape, a fight, leaving Edit Mode.
+        EditModeManagerFrame:SelectSystem(CreateFrame("Frame"))
+        expect(box.state == "highlight" and not dialog:IsShown(), "a frame of Blizzard's picked lets go of it")
+        EditModeSystemSettingsDialog:Hide()
+        F.RunScript(box, "OnMouseDown")
+        F.RunScript(dialog, "OnKeyDown", "ESCAPE")
+        expect(not dialog:IsShown() and box.state == "highlight", "Escape closes the dialog")
+        F.RunScript(box, "OnMouseDown")
+        open(1)
+        F.combat = true
+        F.Fire("PLAYER_REGEN_DISABLED")
+        expect(not rowFor("zoom").Slider:IsSliderEnabled() and not dialog.Defaults:IsEnabled(), "in a fight its rows and buttons wait")
+        F.combat = false
+        F.Fire("PLAYER_REGEN_ENABLED")
+        expect(rowFor("zoom").Slider:IsSliderEnabled(), "and come back after")
+    end
+    F.TriggerRegistry("EditMode.Exit")
+    F.RunTimers()
+    expect(not box:IsShown() and not (dialog and dialog:IsShown()), "leaving Edit Mode hides its box and its dialog")
+
+    -- The options page's « Mode Édition », where the size and look were (Ikar, 2026-11-13: "comme dans flare"):
+    -- Blizzard's options close keeping what was set, Edit Mode opens, and the tracker is picked with its dialog open.
+    local editButton
+    for _, init in ipairs(F.settingsLayout.initializers) do
+        if init.name == L.OPTION_EDIT_MODE then
+            editButton = init
+        end
+    end
+    expect(editButton and editButton.buttonText == "Mode Édition" and editButton.tooltip == L.OPTION_EDIT_MODE_TIP,
+        "the options page has a « Mode Édition » button where the size and look were")
+    if editButton then
+        Settings.OpenToCategory(77)
+        editButton.buttonClick()
+        F.RunTimers()
+        expect(not SettingsPanel:IsShown() and SettingsPanel.skippedTransition and EditModeManagerFrame:IsShown()
+            and box:IsShown() and box.state == "selected" and dialog:IsShown(),
+            "it closes the options, without the game menu, opens Edit Mode and picks the tracker, its dialog open")
+        HideUIPanel(EditModeManagerFrame)
+        F.RunTimers()
+        expect(not box:IsShown() and not dialog:IsShown(), "setup: Edit Mode left")
+        Settings.OpenToCategory(77)
+        F.unapplied = true
+        editButton.buttonClick()
+        F.RunTimers()
+        expect(SettingsPanel:IsShown() and F.popup and F.popup.which == "GAME_SETTINGS_CONFIRM_DISCARD"
+            and not EditModeManagerFrame:IsShown(), "with a change waiting for « Appliquer », Blizzard asks first and Edit Mode waits")
+        F.unapplied, F.popup = nil, nil
+        SettingsPanel:Hide()
+        local errorsBefore = #F.uiErrors
+        F.editModeRefused = true
+        editButton.buttonClick()
+        F.RunTimers()
+        expect(not EditModeManagerFrame:IsShown() and F.uiErrors[errorsBefore + 1] == ERROR_SLASH_EDITMODE_CANNOT_ENTER,
+            "the game refusing Edit Mode, it says so with the game's own line: " .. tostring(F.uiErrors[errorsBefore + 1]))
+        F.editModeRefused = nil
+        F.combat = true
+        editButton.buttonClick()
+        F.combat = false
+        F.RunTimers()
+        expect(not EditModeManagerFrame:IsShown() and #F.uiErrors == errorsBefore + 2, "and not in a fight")
+    end
+
+    -- With Blizzard's tracker back, Blizzard's box is too; started again, the addon's tracker closes Blizzard's dialog.
+    SlashCmdList.KALIQUEST("tracker off")
+    F.RunTimers()
+    expect(blizzard:GetAlpha() == 1 and blizzard:IsMouseEnabled(), "with Blizzard's tracker back, its box is back")
+    EditModeManagerFrame:SelectSystem(ObjectiveTrackerFrame)
+    SlashCmdList.KALIQUEST("tracker on")
+    F.RunTimers()
+    expect(blizzard:GetAlpha() == 0 and not EditModeSystemSettingsDialog:IsShown(), "and the addon's back, Blizzard's box goes, with its dialog")
+
+    -- Back as they were, in the same tables: the options page's settings read the markers' own.
+    for k in pairs(o) do
+        if held[k] == nil then
+            o[k] = nil
+        end
+    end
+    for k, v in pairs(held) do
+        if k == "markers" then
+            for kind, on in pairs(v) do
+                o.markers[kind] = on
+            end
+        else
+            o[k] = v
+        end
+    end
+    db.editMode.positions = heldPositions
+    UIParent.width, UIParent.height = uiWidth, uiHeight
+    ns.EditFrame.Apply()
+    ns.RequestRefresh()
+    F.RunTimers()
+end
 
 -- The title row's padlock and gear, quiet title buttons, tooltips, key bindings and the scrollbar.
 local lock, gear, tools = tracker.frames.title.Lock, tracker.frames.title.Gear, tracker.frames.title.Tools
@@ -639,6 +947,21 @@ do
     ns.model:MoveQuest(12, nil)
     ns.RequestRefresh()
     F.RunTimers()
+    -- A player who gave Ctrl to the game's tracking click: Ctrl+click tracks, as the game's own tracker does, rather
+    -- than picking.
+    F.modifiedClicks.QUESTWATCHTOGGLE = "CTRL"
+    row = rowOf(12)
+    F.RunScript(row, "OnEnter")
+    press("QUESTWATCHTOGGLE", true)
+    expect(word() == "Suivre (1 1 1)", "with Ctrl the tracking key, holding it says Suivre, not Multisélection: " .. word())
+    click(row)
+    expect(ns.model:GroupOf(12) and not ns.Rows.IsPicked(12), "and a Ctrl+click tracks the quest rather than picking it")
+    press(nil, nil)
+    F.RunScript(row, "OnLeave")
+    F.modifiedClicks.QUESTWATCHTOGGLE = nil
+    ns.model:MoveQuest(12, nil)
+    ns.RequestRefresh()
+    F.RunTimers()
 end
 
 F.RunScript(lock, "OnEnter")
@@ -740,10 +1063,21 @@ F.MenuItem("Suivi automatique de quête").choose()
 expect(db.options.autoQuestWatch == false and F.cvars.autoQuestWatch == "0", "and back")
 F.MenuItem("Options").choose()
 expect(F.settingsOpened == 77, "and opens the addon's page in the game's options")
+SettingsPanel:Hide()
 click(gear)
-F.MenuItem("Diagnostic").choose()
+F.MenuItem("Mode Édition").choose()
+F.RunTimers()
+expect(EditModeManagerFrame:IsShown() and ns.EditFrame.IsSelected() and KaLiQuestEditModeDialog:IsShown(),
+    "and « Mode Édition » opens Edit Mode with the tracker picked, where its size and look are set")
+HideUIPanel(EditModeManagerFrame)
+F.RunTimers()
+click(gear)
+local gearItems = F.lastMenu and F.lastMenu.items or {}
+expect(not F.MenuItem("Diagnostic") and gearItems[#gearItems - 1] and gearItems[#gearItems - 1].text == "Options",
+    "the gear's menu has no Diagnostic: players report bugs, they don't diagnose (Ikar, 2026-11-11)")
+ns.DebugPanel.Open()
 local diagPanel = ns.DebugPanel.Frames()
-expect(diagPanel and diagPanel:IsShown(), "the gear's menu opens the diagnostics panel")
+expect(diagPanel and diagPanel:IsShown(), "the diagnostics panel still opens")
 diagPanel:Hide()
 local diagButton
 for _, init in ipairs(F.settingsLayout.initializers) do
@@ -896,7 +1230,19 @@ daily.choose()
 F.RunTimers()
 expect(search().status:GetText() == "1 quête affichée sur " .. inLog .. " · " and search().filterButton.Lit:IsShown(),
     "ticking one hides the rest, and the filter button is lit")
-expect(tracker.lines[1].id == "journal" and tracker.lines[1].count == "1", "Suivi, with no match, goes, and Journal counts its match")
+do
+    local mineBar, groupHeaders, journal = tracker.lines[1], 0, nil
+    for _, l in ipairs(tracker.lines) do
+        if l.kind == "group" and l.group then
+            groupHeaders = groupHeaders + 1
+        elseif l.kind == "bar" and l.id == "journal" then
+            journal = l
+        end
+    end
+    expect(mineBar.id == "mine" and mineBar.count == "0" and groupHeaders == (db.open.categories.mine and #db.groups or 0),
+        "Suivi and the player's groups stay, with no match, to drag quests into")
+    expect(journal and journal.count == "1", "and Journal counts its match")
+end
 expect(ns.DB.Load(db).filters["repeat"].daily == true, "the filter is saved")
 click(search().filterButton)
 F.MenuItem("Tout effacer").choose()
@@ -1069,8 +1415,8 @@ do
     F.blobs = { [214] = true }
     check()
     local row = rowOf(214)
-    expect(row and row.area and row.Title:GetText():find("^|A:poi%-traveldirections%-arrow") and (row.AreaFlash.plays or 0) == 1,
-        "inside a quest's area, its row brightens, gains the arrow and glows once")
+    expect(row and row.area and row.Title:GetText():find("^|A:gearUpdate%-arrow%-bullet%-point:(%d+):%1|a") and (row.AreaFlash.plays or 0) == 1,
+        "inside a quest's area, its row brightens, gains the mark, square with the text, and glows once")
     local group = groupOf("Les Mortemines")
     expect(group and group.Here:IsShown() and group.Here:GetText():find("|a1$") and barOf("instances").Here:GetText():find("|a1$")
         and barOf("journal").Here:GetText():find("|a1$") and not barOf("world").Here:IsShown(),
@@ -1140,10 +1486,10 @@ do
     F.RunTimers()
     expect(db.spots[1579] == nil, "off, progress learns nothing")
     local plays = rowOf(214).AreaFlash.plays or 0
-    F.settingsCategory.settings.KALIQUEST_AREAHIGHLIGHT:SetValue(true)
+    setLook("areaHighlight", true)
     F.RunTimers()
     expect(rowOf(214).area and (rowOf(214).AreaFlash.plays or 0) == plays,
-        "switched on from the options page, a quest already here shows without a glow")
+        "switched on from Edit Mode's dialog, a quest already here shows without a glow")
     F.blobs, F.playerPos, F.pins, e1579.objectives = nil, nil, nil, nil
     check()
 end
@@ -1213,10 +1559,10 @@ do
     local tipShown = F.tooltip.shown or #F.tooltip.lines > 0
     F.RunScript(rowOf(1579), "OnLeave")
     expect(not tipShown, "and no tooltip names it, icons only, Ikar's ruling on 2026-11-10")
-    F.settingsCategory.settings.KALIQUEST_MARKERSIZE:SetValue(16)
+    setLook("markerSize", 16)
     F.RunTimers()
     expect(rowOf(1579).Title:GetText():find(":16:16|a", 1, true), "the marker size option sizes it")
-    F.settingsCategory.settings.KALIQUEST_MARKERSIZE:SetValue(13)
+    setLook("markerSize", 13)
     local g = db.groups[1]
     ns.model:MoveQuest(214, g.id)
     db.open.categories.mine, db.open.groups[g.id] = true, true
@@ -1281,31 +1627,30 @@ do
     expect(rowOf(1579) and not rowOf(1579).Title:GetText():find("|A:", 1, true), "a plain quest in its own place has none")
 
     -- The option: icons, text or none.
-    local style = F.settingsCategory.settings.KALIQUEST_MARKERSTYLE
     local choices = {}
-    for _, c in ipairs(style.options()) do
-        choices[#choices + 1] = c.value .. "=" .. c.label
+    for _, c in ipairs(lookRow("markerStyle").values) do
+        choices[#choices + 1] = c[1] .. "=" .. c[2]
     end
     expect(db.options.markerStyle == "icons" and table.concat(choices, ",") == "icons=Icônes,text=Texte,none=Aucun",
-        "icons by default, and the options page offers Icônes, Texte and Aucun: " .. table.concat(choices, ","))
+        "icons by default, and Edit Mode's dialog offers Icônes, Texte and Aucun: " .. table.concat(choices, ","))
     F.tags = { [1579] = { tagID = 81 } }
     e1579.suggestedGroup = 5
-    style:SetValue("text")
+    setLook("markerStyle", "text")
     F.RunTimers()
     t = rowOf(1579).Title:GetText()
     expect(t:find("(5)", 1, true) and t:find("(Donjon)", 1, true) and not t:find("|A:", 1, true), "as text, they read (5) and (Donjon): " .. t)
-    style:SetValue("none")
+    setLook("markerStyle", "none")
     F.RunTimers()
     t = rowOf(1579).Title:GetText()
     expect(not t:find("(5)", 1, true) and not t:find("|A:", 1, true), "none: the title has none")
-    style:SetValue("text")
-    F.settingsCategory.settings.KALIQUEST_MARKER_DUNGEON:SetValue(false)
+    setLook("markerStyle", "text")
+    setLook("dungeon", false, true)
     F.RunTimers()
     t = rowOf(1579).Title:GetText()
     expect(db.options.markers.dungeon == false and t:find("(5)", 1, true) and not t:find("Donjon", 1, true),
-        "a marker switched off in the options doesn't show; the others stay")
-    F.settingsCategory.settings.KALIQUEST_MARKER_DUNGEON:SetValue(true)
-    style:SetValue("icons")
+        "a marker switched off in Edit Mode's dialog doesn't show; the others stay")
+    setLook("dungeon", true, true)
+    setLook("markerStyle", "icons")
     F.tags, e1579.suggestedGroup = nil, 0
     F.RunTimers()
 end
@@ -1338,14 +1683,14 @@ do
     click(r, "RightButton")
     F.MenuItem("Partage de quête").choose()
     expect(F.shared == 12, "the quest's menu shares it too")
-    F.settingsCategory.settings.KALIQUEST_SHAREONHOVER:SetValue(false)
+    setLook("shareOnHover", false)
     F.RunTimers()
     expect(rowOf(12).Share:IsShown(), "with the option off it always shows")
     F.partyOn[12] = 2
     ns.RequestRefresh()
     F.RunTimers()
     expect(not rowOf(12).Share:IsShown(), "and not once everyone has the quest")
-    F.settingsCategory.settings.KALIQUEST_SHAREONHOVER:SetValue(true)
+    setLook("shareOnHover", true)
     F.inGroup, F.partySize, F.partyOn = nil, nil, nil
     F.RunTimers()
 end
@@ -1460,20 +1805,22 @@ end
 do
     local o = db.options
     local width = o.width
-    local function placed()
+    local function placed(on)
         local point, rel, relPoint, x, y = QuestTimerFrame:GetPoint()
         local s = QuestTimerFrame:GetScale()
-        return point == "TOP" and rel == ObjectiveTrackerFrame and relPoint == "TOP", s, (x or 0) * s, (y or 0) * s
+        return point == "TOP" and rel == (on or KaLiQuestHolder) and relPoint == "TOP", s, (x or 0) * s, (y or 0) * s
     end
     F.questTimerHeight = 59
     o.width = 310
     ObjectiveTrackerManager:SetTextSize(18)
+    ns.RequestRefresh()
     F.RunTimers()
     local ok, scale, x, y = placed()
     local _, _, _, _, titleY = tracker.frames.title:GetPoint()
-    expect(ok and math.abs(scale - 1.5) < 0.001 and math.abs(x + 6) < 0.01 and math.abs(y + 10) < 0.01,
-        "at Edit Mode's text 18 the panel grows by half, 10 under the host's top, centred on the rows: " .. scale .. " " .. x .. " " .. y)
-    expect(math.abs(-titleY - (59 * 1.5 + 18)) < 0.01, "and the rows start under it, as Blizzard's sections would: " .. -titleY)
+    expect(ok and math.abs(scale - 1) < 0.001 and math.abs(x + 6) < 0.01 and math.abs(y + 10) < 0.01,
+        "Edit Mode's text size no longer sizes the panel: the rows' own size, 10 under the frame's top, centred on the rows: "
+        .. scale .. " " .. x .. " " .. y)
+    expect(math.abs(-titleY - (59 + 18)) < 0.01, "and the rows start under it, as Blizzard's sections would: " .. -titleY)
     ObjectiveTrackerManager:SetTextSize(12)
     o.zoom = 150
     ns.RequestRefresh()
@@ -1481,17 +1828,17 @@ do
     ok, scale, x, y = placed()
     _, _, _, _, titleY = tracker.frames.title:GetPoint()
     expect(ok and math.abs(scale - 1.5) < 0.001 and math.abs(x + 9) < 0.01 and math.abs(y + 15) < 0.01,
-        "zoomed by half, it grows with the rows, 10 of their units under the host's top, centred on them: " .. scale .. " " .. x .. " " .. y)
+        "zoomed by half, it grows with the rows, 10 of their units under the frame's top, centred on them: " .. scale .. " " .. x .. " " .. y)
     expect(math.abs(-titleY - (59 + 18)) < 0.01, "and the zoomed rows start under it: " .. -titleY)
     o.zoom = 100
     o.width = 220
-    ObjectiveTrackerManager:SetTextSize(20)
+    ns.RequestRefresh()
     F.RunTimers()
     ok, scale = placed()
-    expect(math.abs(scale - 220 / 158) < 0.001, "it never grows wider than the rows: " .. scale)
+    expect(math.abs(scale - 1) < 0.001, "it never grows wider than the rows: " .. scale)
     SlashCmdList.KALIQUEST("tracker off")
     F.RunTimers()
-    ok, scale, x, y = placed()
+    ok, scale, x, y = placed(ObjectiveTrackerFrame)
     expect(ok and scale == 1 and math.abs(x) < 0.01 and math.abs(y + 10) < 0.01, "with Blizzard's tracker back, it's Blizzard's size and place again")
     SlashCmdList.KALIQUEST("tracker on")
     ObjectiveTrackerManager:SetTextSize(12)
@@ -1682,38 +2029,46 @@ do
     expect(not panel:IsShown(), "/kq diag closes it again")
 end
 
--- The options page's sliders.
-local settings = F.settingsCategory.settings
+-- The sliders, in Edit Mode's dialog: one for each saved number, in the range loading keeps it in.
 do
-    local wrong = {}
-    for key, range in pairs(ns.DB.RANGES) do
-        local s = settings["KALIQUEST_" .. key:upper()]
-        local o = s and s.sliderOptions
-        if not (o and o.min == range[1] and o.max == range[2]) then
+    local wrong, seen = {}, {}
+    for _, section in ipairs(ns.EditPanel.handle:Sections()) do
+        for _, row in ipairs(section.rows) do
+            if row.kind == "slider" then
+                seen[row.key] = true
+                if ns.EditPanel.handle:Range(row) ~= ns.DB.RANGES[row.key] then
+                    wrong[#wrong + 1] = row.key
+                end
+            end
+        end
+    end
+    for key in pairs(ns.DB.RANGES) do
+        if not seen[key] then
             wrong[#wrong + 1] = key
         end
     end
-    expect(#wrong == 0, "every slider's range is the one loading keeps saved numbers in: " .. table.concat(wrong, ", "))
+    expect(#wrong == 0, "every saved number has its slider in Edit Mode's dialog, in the range loading keeps it in: "
+        .. table.concat(wrong, ", "))
 end
-settings.KALIQUEST_WIDTH:SetValue(300)
+setLook("width", 300)
 F.RunTimers()
 expect(KaLiQuestTracker:GetWidth() == 300 and ObjectiveTrackerFrame:GetWidth() == 300 + ns.Host.SCROLLBAR_ROOM,
     "the width option widens the rows and the host")
-settings.KALIQUEST_WIDTH:SetValue(260)
-settings.KALIQUEST_HEIGHT:SetValue(400)
+setLook("width", 260)
+setLook("height", 400)
 F.RunTimers()
 expect(KaLiQuestTracker:GetHeight() == 400, "the height option sets the tracker's height")
 db.options.height = nil
-settings.KALIQUEST_OPACITY:SetValue(50)
+setLook("opacity", 50)
 F.RunTimers()
 expect(KaLiQuestTracker:GetAlpha() == 0.5, "the opacity option fades it")
-settings.KALIQUEST_OPACITY:SetValue(100)
+setLook("opacity", 100)
 -- The zoom scales the whole tracker, Ikar's ruling on 2026-11-10: the rows and Edit Mode's box, not the height on
 -- screen nor the text's size, which stays Edit Mode's.
-expect(settings.KALIQUEST_TEXTSIZE == nil and settings.KALIQUEST_ZOOM:GetValue() == 100,
+expect(lookRow("textSize") == nil and ns.EditPanel.handle:Value(lookRow("zoom")) == 100,
     "a zoom at 100 %, and no text size of the addon's own")
 local heightBefore = KaLiQuestTracker:GetHeight()
-settings.KALIQUEST_ZOOM:SetValue(150)
+setLook("zoom", 150)
 F.RunTimers()
 expect(KaLiQuestTracker:GetScale() == 1.5 and ObjectiveTrackerFrame:GetWidth() == (260 + ns.Host.SCROLLBAR_ROOM) * 1.5,
     "zoomed by half, the rows grow and Edit Mode's box with them")
@@ -1737,13 +2092,14 @@ do
     expect(math.abs(tipX + row.gutter * 1.5) < 0.01 and math.abs(hintX + row.gutter * 1.5 / 0.75) < 0.01,
         "the tooltip and the click word stay clear of the zoomed level badge: " .. tostring(tipX) .. " " .. tostring(hintX))
 end
-settings.KALIQUEST_ZOOM:SetValue(100)
+setLook("zoom", 100)
 F.RunTimers()
 expect(KaLiQuestTracker:GetScale() == 1 and ObjectiveTrackerFrame:GetWidth() == 260 + ns.Host.SCROLLBAR_ROOM, "and back to 100 %")
 ObjectiveTrackerManager:SetTextSize(16)
 F.RunTimers()
-expect(select(2, KaLiQuestLineFont:GetFont()) == 16 and select(2, KaLiQuestHeaderFont:GetFont()) == 18
-    and KaLiQuestLineFont.parentFont == ObjectiveTrackerLineFont, "Edit Mode's text size sizes the rows' fonts, through Blizzard's")
+expect(select(2, KaLiQuestLineFont:GetFont()) == 12 and select(2, KaLiQuestHeaderFont:GetFont()) == 14
+    and KaLiQuestLineFont.parentFont == ObjectiveTrackerFont12 and KaLiQuestHeaderFont.parentFont == ObjectiveTrackerFont14,
+    "the rows' fonts are Blizzard's tracker fonts at 12 and 14, whatever Edit Mode's text size: the zoom alone sizes them")
 local fontSets = KaLiQuestLineFont.sets
 ns.RequestRefresh()
 F.RunTimers()
@@ -1899,6 +2255,23 @@ F.combat = false
 F.Fire("PLAYER_REGEN_ENABLED")
 F.RunTimers()
 expect(not ns.model:GroupOf(1579), "and its end drops nothing")
+-- Searching or filtering, the player's groups stay, so a quest can still go into one (Ikar, 2026-11-11).
+do
+    if not search().open then
+        click(search().searchButton)
+    end
+    expect(searchFor("rivetage") == "1579", "a search for one quest in the log")
+    local header = groupOf(gB.name)
+    expect(header and header:IsShown(), "leaves the player's groups shown, with no match in them")
+    if header then
+        dragTo(rowOf(1579), yOf(header) + 2)
+    end
+    expect(ns.model:GroupOf(1579) == gB, "and a quest dropped on one goes there")
+    SlashCmdList.KALIQUEST("move 1579 0")
+    F.RunScript(search().box, "OnEscapePressed")
+    F.RunTimers()
+    expect(not search().open and not ns.model:GroupOf(1579), "drag under a search: cleaned up")
+end
 do
     local before = list(gA)
     local first = rowOf(gA.quests[1])
@@ -2321,7 +2694,7 @@ do
     end
     expect(not tips.Clic:find("lien", 1, true) and tips["Maj+clic"]:find("lien", 1, true),
         "Astuces: a link goes into chat on Maj+clic, as ChatFrameUtil.TryInsertChatLink wants the link modifier")
-    expect(not tips["Flèche blanche"]:find("fermé", 1, true), "Astuces: the area count shows on open headers too")
+    expect(tips["Flèche dorée"] and not tips["Flèche dorée"]:find("fermé", 1, true), "Astuces: the area count shows on open headers too")
 end
 
 -- Clicking a finished auto-complete quest's row opens its turn-in and takes its popup away, as Blizzard's.
@@ -2427,7 +2800,7 @@ do
             wrong[#wrong + 1] = s.name
         end
     end
-    expect(resets == 4 and #wrong == 0, "the options page's four sections with settings each end with a reset row: "
+    expect(resets == 1 and #wrong == 0, "the options page's one section with settings ends with a reset row, the others have none: "
         .. table.concat(wrong, ", "))
 
     local before = ns.DeepCopy(db.options)
@@ -2474,17 +2847,16 @@ do
         end
     end
     expect(#leaks == 0, "each reset row puts back its own section's settings, and no other's: " .. table.concat(leaks, ", "))
-    expect(tracker.IsActive() and F.cvars.autoQuestWatch == "0" and KaLiQuestTracker:GetWidth() == ns.DB.DEFAULTS.width,
-        "and what they drive follows: KaLi Quest's tracker back, auto-tracking off, the default width")
+    expect(tracker.IsActive() and F.cvars.autoQuestWatch == "0", "and what they drive follows: KaLi Quest's tracker back, auto-tracking off")
 
     F.filled.ScenarioObjectiveTracker = true
     F.UpdateSections()
     F.RunTimers()
     expect(not tracker.IsActive(), "setup: a scenario puts KaLi Quest's tracker aside")
-    F.settingsCategory.settings.KALIQUEST_PROGRESSFLASH:SetValue(false)
+    F.settingsCategory.settings.KALIQUEST_AUTOQUESTWATCH:SetValue(true)
     withReset[1].reset.buttonClick()
     F.RunTimers()
-    expect(db.options.progressFlash == true and not tracker.IsActive(),
+    expect(db.options.autoQuestWatch == false and not tracker.IsActive(),
         "a reset leaves alone a tracker switch already on, so the tracker stays aside for the scenario")
     F.filled.ScenarioObjectiveTracker = nil
     F.UpdateSections()
@@ -2565,11 +2937,11 @@ do
     expect(problems("game numbers") == "Enum.QuestFrequency.Weekly is 5, the addon reads 2",
         "a game number the addon reads that moved is named: " .. problems("game numbers"))
     Enum.QuestFrequency.Weekly = weekly
-    local tagConsts = Constants.QuestInfoLuaConsts
-    Constants.QuestInfoLuaConsts = nil
-    expect(problems("game numbers"):find("Constants.QuestInfoLuaConsts.QUEST_INFO_DUNGEON_ID is nil, the addon reads 81", 1, true),
+    local tagConsts = Constants.QuestConsts
+    Constants.QuestConsts = nil
+    expect(problems("game numbers"):find("Constants.QuestConsts.QUEST_INFO_DUNGEON_ID is nil, the addon reads 81", 1, true),
         "and one the game no longer has")
-    Constants.QuestInfoLuaConsts = tagConsts
+    Constants.QuestConsts = tagConsts
     local count = C_QuestLog.GetNumQuestLogEntries
     C_QuestLog.GetNumQuestLogEntries = function()
         local entries, quests = count()
@@ -2644,9 +3016,11 @@ do
         and text:find("WARRIOR, level 23", 1, true) and g1 and text:find(g1.name, 1, true)
         and (not g1.quests[1] or text:find("#" .. g1.quests[1] .. " ", 1, true)),
         "with the addons loaded, the character's class and level, and the groups with their quests")
-    expect(frame.URL:IsShown() and not frame.NoURL:IsShown()
-        and frame.URL:GetText() == "https://github.com/Ikar-Rahl/Warcraft-KaLi/issues/new",
-        "it shows the repository's page for a new issue, in a box to copy")
+    local issue = "https://github.com/Ikar-Rahl/Warcraft-KaLi/issues/new?title=KaLi%20Quest%200.1.0-test%3A%20&body="
+    local shown = frame.URL:GetText()
+    expect(frame.URL:IsShown() and not frame.NoURL:IsShown() and shown:sub(1, #issue) == issue
+        and shown:find("Collez%20le%20rapport%20ici", 1, true) and not shown:find("status", 1, true),
+        "it shows a link to the repository's new issue, saying where to paste the report, without the report")
 
     F.focus = nil
     click(frame.Copy)
@@ -2660,13 +3034,13 @@ do
     F.RunScript(frame.Box, "OnKeyDown", "C")
     F.ctrl = false
     F.RunTimers()
-    expect(F.focus ~= frame.Box and frame.Hint:GetText() == "Copié : collez-le à l'adresse ci-dessus.",
+    expect(F.focus ~= frame.Box and frame.Hint:GetText() == "Copié : collez-le dans le ticket.",
         "after Ctrl+C the box lets go of the keyboard and says what to do next")
 
-    local url = ns.Report.URL
+    local url, shownLink = ns.Report.URL, frame.URL:GetText()
     frame.URL:SetText("x")
     F.RunScript(frame.URL, "OnTextChanged", true)
-    expect(frame.URL:GetText() == url, "typing in the address box changes nothing either")
+    expect(frame.URL:GetText() == shownLink, "typing in the link's box changes nothing either")
     ns.Report.URL = nil
     ns.Report.Open()
     expect(frame.NoURL:IsShown() and not frame.URL:IsShown(), "with no address, it says one is to come")
@@ -2847,9 +3221,12 @@ end
 expect(list(db.groups[1]) .. "|" .. list(db.groups[2]) == layout, "the probe's watch test leaves the layout as it was")
 SlashCmdList.KQPROBE("reset")
 
+-- A nan that reached the options, as the game's Lua lets one through, isn't written: the file would no longer read.
+db.options.editModeHeight = 0 / 0
 F.Fire("PLAYER_LOGOUT")
 expect(F.cvars.autoQuestWatch == "1", "the game's own auto-tracking is put back at logout")
 expect(db.options.autoQuestWatch == false, "putting it back doesn't change the player's choice")
+expect(db.options.editModeHeight == nil and db.nonFinite == 1, "at logout, the number the file can't hold is taken out")
 
 local errorCount = 0
 for msg in pairs(KaLiQuestDevDB.errors) do

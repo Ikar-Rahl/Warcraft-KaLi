@@ -70,14 +70,16 @@ function SelfCheck.Listing()
     return quests, wrong, collapsed .. " headers collapsed in the game's log"
 end
 
--- The game's own numbers the addon reads, against the game's enums and constants for them.
+-- The game's own numbers the addon reads, against the game's enums and constants for them. The quest tags' constants
+-- are where Blizzard's own Forever code reads them, Constants.QuestConsts (Camelot's QuestUtilsOverrides.lua): the
+-- API docs name their group QuestInfoLuaConsts, which this client doesn't have (Ikar's API check, build 70862).
 function SelfCheck.Numbers()
     local F = ns.Filter
     local list = {
-        { "Constants.QuestInfoLuaConsts.QUEST_INFO_ELITE_ID", F.TAG.elite },
-        { "Constants.QuestInfoLuaConsts.QUEST_INFO_PVP_ID", F.TAG.pvp },
-        { "Constants.QuestInfoLuaConsts.QUEST_INFO_RAID_ID", F.TAG.raid },
-        { "Constants.QuestInfoLuaConsts.QUEST_INFO_DUNGEON_ID", F.TAG.dungeon },
+        { "Constants.QuestConsts.QUEST_INFO_ELITE_ID", F.TAG.elite },
+        { "Constants.QuestConsts.QUEST_INFO_PVP_ID", F.TAG.pvp },
+        { "Constants.QuestConsts.QUEST_INFO_RAID_ID", F.TAG.raid },
+        { "Constants.QuestConsts.QUEST_INFO_DUNGEON_ID", F.TAG.dungeon },
         { "Enum.QuestTag.Legendary", F.TAG.legendary },
         { "Enum.QuestTag.Raid10", F.TAG.raid10 },
         { "Enum.QuestTag.Raid25", F.TAG.raid25 },
@@ -123,6 +125,8 @@ local function noteZone()
 end
 
 -- An addon may set auto-tracking, and Shift is the game's key for tracking and for links, as the tips and hints say.
+-- The game writes a click's key with its button or without ("SHIFT-BUTTON1" for links, "SHIFT" for tracking,
+-- Forever's defaults in Bindings_Camelot.xml), so the button is left out: the key is what the tips name.
 function SelfCheck.Settings()
     local wrong = {}
     local value, _, _, _, locked, secure, readOnly = C_CVar.GetCVarInfo("autoQuestWatch")
@@ -132,7 +136,7 @@ function SelfCheck.Settings()
     end
     for _, action in ipairs({ "QUESTWATCHTOGGLE", "CHATLINK" }) do
         local key = GetModifiedClick(action)
-        if key ~= "SHIFT" then
+        if type(key) ~= "string" or key:gsub("%-?BUTTON%d+", "") ~= "SHIFT" then
             wrong[#wrong + 1] = string.format("%s is %s, not SHIFT", action, tostring(key))
         end
     end

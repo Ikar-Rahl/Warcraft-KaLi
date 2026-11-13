@@ -291,7 +291,7 @@ function Search.Layout(fixed, hiding, shownCount, totalCount, top)
         if shownCount == 0 then
             text = ns.G("QUEST_LOG_NO_RESULTS", "Aucun résultat trouvé")
         else
-            text = string.format(shownCount > 1 and L.SHOWN_MANY or L.SHOWN_ONE, shownCount, totalCount)
+            text = string.format(ns.One(shownCount) and L.SHOWN_ONE or L.SHOWN_MANY, shownCount, totalCount)
         end
         status:SetText(text .. " · ")
         status:ClearAllPoints()

@@ -36,7 +36,11 @@ def sort_names(path):
         return {int(r["ID"]): r["SortName_lang"] for r in csv.DictReader(f)}
 
 
-names = {"enUS": sort_names(DB2 / "QuestSort.csv"), "frFR": sort_names(DB2 / "QuestSort.frFR.csv")}
+# The client languages the addon speaks; every other falls back to enUS. The German and Spanish tables came from
+# wago.tools with &locale= on 2026-11-13, as the French one before (docs/quest-data-sources.md).
+LOCALES = ("enUS", "frFR", "deDE", "esES", "esMX")
+names = {locale: sort_names(DB2 / ("QuestSort.csv" if locale == "enUS" else f"QuestSort.{locale}.csv"))
+         for locale in LOCALES}
 used_areas = {num(q, ZONE) for q in vanilla.values() if num(q, ZONE) > 0}
 # Forever adds dungeons no vanilla quest uses, such as La salle des Thanes, so every top-level area of a dungeon or
 # raid map counts too, unless an outdoor area shares its French name.
@@ -75,7 +79,7 @@ for sort_id in sorted(names["enUS"]):
         continue
     lines.append(f"    [{sort_id}] = \"{kind(sort_id)}\", -- {names['enUS'][sort_id]}")
 lines += ["}", "", "-- The headers' names, per client language. Languages missing here fall back to enUS.", "ns.SORT_NAMES = {"]
-for locale in ("enUS", "frFR"):
+for locale in LOCALES:
     lines.append(f"    {locale} = {{")
     for sort_id in sorted(names[locale]):
         if names["enUS"].get(sort_id, "").startswith("REUSE"):

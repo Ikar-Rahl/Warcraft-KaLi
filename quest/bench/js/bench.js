@@ -119,7 +119,7 @@ window.Bench = (function () {
       ["Ligne grise", "Dans le Journal, la place d'une quête rangée dans un groupe. Son bouton l'y remet."],
       ["Rouage", "Suivi automatique, lueur, quêtes de la zone, et l'annulation de la dernière suppression d'un groupe."],
       ["Hors liste", "Au-delà des 25 quêtes suivies par le jeu, une quête placée à la main reste dans son groupe, marquée."],
-      ["Flèche blanche", "Les quêtes de la zone où vous êtes ; sur une barre ou un groupe, combien il en contient."],
+      ["Flèche dorée", "Les quêtes de la zone où vous êtes ; sur une barre ou un groupe, combien il en contient."],
     ]],
   ];
 

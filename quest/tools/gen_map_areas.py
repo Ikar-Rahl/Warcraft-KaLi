@@ -40,5 +40,5 @@ lines = [
 ]
 lines += [f"    [{ui_map}] = {area}," for ui_map, area in sorted(single.items())]
 lines += ["}", ""]
-OUT.write_text("\n".join(lines), encoding="utf-8")
+OUT.write_text("\n".join(lines), encoding="utf-8", newline="\n")
 print(f"{OUT}: {len(single)} maps, {len(areas) - len(single)} left out as they show several areas")

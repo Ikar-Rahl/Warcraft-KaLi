@@ -2,10 +2,16 @@
 ## Title: KaLi Quest
 ## Notes: Your own quest groups, in a rewritten objective tracker.
 ## Notes-frFR: Vos propres groupes de quêtes, dans un suivi des objectifs réécrit.
+## Notes-deDE: Eure eigenen Questgruppen, in einer neu geschriebenen Zielverfolgung.
+## Notes-esES: Tus propios grupos de misiones, en un rastreador de objetivos reescrito.
+## Notes-esMX: Tus propios grupos de misiones, en un rastreador de objetivos reescrito.
 ## Author: Ikar
 ## Version: 0.1.0-dev
 ## Category: Quests
 ## Category-frFR: Quêtes
+## Category-deDE: Quests
+## Category-esES: Misiones
+## Category-esMX: Misiones
 ## SavedVariables: KaLiQuestDevDB
 ## SavedVariablesPerCharacter: KaLiQuestCharDB
 ## IconTexture: Interface\AddOns\KaLiQuest\Media\Icon
@@ -51,6 +57,9 @@ UI\Popups.lua
 UI\Search.lua
 UI\Drag.lua
 UI\Options.lua
+Shared\Dialog.lua
+UI\EditFrame.lua
+UI\EditPanel.lua
 UI\DebugPanel.lua
 Shared\Report.lua
 UI\Report.lua

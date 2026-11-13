@@ -106,6 +106,10 @@ function Panel.Lines()
             math.floor(host:GetHeight() + 0.5), yesNo(ns.Host.IsParked())))
     end
     if ns.db then
+        add(string.format(L.DIAG_PLACE, ns.EditFrame.HasPosition() and L.DIAG_PLACE_OWN or L.DIAG_PLACE_HOST,
+            ns.EditFrame.LayoutKey()))
+    end
+    if ns.db then
         local _, numQuests = C_QuestLog.GetNumQuestLogEntries()
         add(string.format(L.DIAG_LIST, #(ns.Tracker.lines or {}), numQuests or 0, C_QuestLog.GetNumQuestWatches() or 0, #ns.db.groups))
     end

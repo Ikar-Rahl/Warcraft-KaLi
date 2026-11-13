@@ -1251,8 +1251,9 @@
   click(gear());
   check("Clicking it opens a menu", gearMenu());
   check("Three switches, then Options", SWITCHES.every((t) => gearItem(t) && gearItem(t).classList.contains("check")) && gearItem("Options"));
-  check("Then Diagnostic, and Signaler un bug last, as in game",
-    [...gearMenu().querySelectorAll(".menu-item")].map((i) => i.textContent).slice(-3).join("|") === "Options|Diagnostic|Signaler un bug");
+  check("Then Signaler un bug last, and no Diagnostic: it's on the options page, as in game",
+    [...gearMenu().querySelectorAll(".menu-item")].map((i) => i.textContent).slice(-2).join("|") === "Options|Signaler un bug"
+    && !gearItem("Diagnostic"));
   const autoBefore = Bench.settings.autoQuestWatch;
   gearItem(SWITCHES[0]).click();
   check("A switch changes its option, and the menu stays open", Bench.settings.autoQuestWatch === !autoBefore && gearMenu());

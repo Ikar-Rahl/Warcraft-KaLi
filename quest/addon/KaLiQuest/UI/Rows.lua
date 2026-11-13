@@ -20,6 +20,15 @@ local retip
 
 -- Clicks, colours and tooltips --------------------------------------------------------------------------------
 
+-- Ctrl+click picks a quest's row, unless the player gave Ctrl to the game's own tracking click: the game's verb wins.
+local function picking(row)
+    if not (IsControlKeyDown() and row.line and row.line.kind == "quest") then
+        return false
+    end
+    local key = GetModifiedClick and GetModifiedClick("QUESTWATCHTOGGLE")
+    return not (type(key) == "string" and key:find("CTRL", 1, true))
+end
+
 local function onRowClick(self, button)
     if ns.Drag.JustDragged() then
         return
@@ -41,7 +50,7 @@ local function onRowClick(self, button)
         return
     end
     -- Ctrl+click picks or unpicks a quest's row. It moves nothing, so combat and the padlock allow it.
-    if IsControlKeyDown() and self.line.kind == "quest" then
+    if picking(self) then
         Rows.TogglePick(q.id)
         if hovered == self then
             retip(self)
@@ -85,7 +94,7 @@ end
 local function clickHint(row, q)
     if IsModifiedClick("CHATLINK") and ChatFrameUtil and ChatFrameUtil.GetActiveWindow and ChatFrameUtil.GetActiveWindow() then
         return L.HINT_LINK
-    elseif IsControlKeyDown() and row.line.kind == "quest" then
+    elseif picking(row) then
         return picked[q.id] and L.UNPICK or L.HINT_PICK
     elseif IsModifiedClick("QUESTWATCHTOGGLE") then
         local text = ns.model:GroupOf(q.id) and ns.G("OBJECTIVES_STOP_TRACKING", "Arrêter le suivi") or L.HINT_TRACK
@@ -830,7 +839,7 @@ function Rows.DrawRow(row, line, ctx, superTracked)
     row.Title:SetWidth(textWidth)
     row.markers = leaving and {} or markersOf(q, line.group ~= nil)
     row.area = not leaving and ns.Area.Is(q.id) ~= nil
-    local areaMark = row.area and string.format(Shared.AREA_ARROW, ctx.size, math.floor(ctx.size * 0.75 + 0.5)) .. " " or ""
+    local areaMark = row.area and string.format(Shared.AREA_ARROW, ctx.size, ctx.size) .. " " or ""
     row.Title:SetText(areaMark .. partyPrefix(q) .. titleOf(row, q, textWidth) .. markerText(row.markers))
     row.HeadGlow:SetWidth(ctx.rowWidth)
     local height = row.Title:GetStringHeight()

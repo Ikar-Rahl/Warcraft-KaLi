@@ -350,7 +350,7 @@ window.ProposalTracker = (function () {
         levelBadge(q, diff),
         Bench.settings.questPOI ? UI.poiButton(q) : null,
         h("div", { class: "ot-head-text", "data-key": "text" },
-          area ? tex("poi-traveldirections-arrow", "here-arrow", "", 9, 12) : null,
+          area ? tex("gearUpdate-arrow-bullet-point", "here-arrow", "", 12, 12) : null,
           q.party ? h("span", { class: "ot-party" }, `[${q.party + 1}] `) : null,
           h("span", { class: "pt-title-text" }, title.slice(0, lastWord)),
           lastWord < title.length ? h("span", { class: "pt-title-end" }, title.slice(lastWord), tint, markerNodes.length ? h("span", { class: "mk-strip" }, markerNodes) : null) : null)),
@@ -392,7 +392,7 @@ window.ProposalTracker = (function () {
       renaming
         ? h("input", { class: "pt-rename", "data-key": "rename", value: g.group.name, maxlength: "40" })
         : h("div", { class: "pt-group-name" }, g.name),
-      here ? h("div", { class: "pt-here" }, tex("poi-traveldirections-arrow", "", "", 8, 10), String(here)) : null,
+      here ? h("div", { class: "pt-here" }, tex("gearUpdate-arrow-bullet-point", "", "", 10, 10), String(here)) : null,
       h("div", { class: "pt-focus", "data-action": "focus-group", "data-groupkey": g.key, "data-tip": "focus", "data-key": "focus" }, tex("gm-icon-visible", "", "", 16, 16)),
       // A section left with only moved quests' lines has nothing to count.
       h("div", { class: "pt-count", "data-key": "count" }, g.group || list.length ? countText(list) : ""),
@@ -409,7 +409,7 @@ window.ProposalTracker = (function () {
       h("div", { class: "ot-bar-text pt-bar-text" }, CATEGORIES[cat.id]),
       h("div", { class: "pt-bar-right", "data-key": "right" },
         cat.id === "mine" ? h("div", { class: "pt-add", "data-action": "new-group", "data-tip": "new-group", "data-key": "add" }, tex("ui-questtrackerbutton-secondary-expand", "", "", 14, 14)) : null,
-        here ? h("div", { class: "pt-here", "data-key": "here" }, tex("poi-traveldirections-arrow", "", "", 8, 10), String(here)) : null,
+        here ? h("div", { class: "pt-here", "data-key": "here" }, tex("gearUpdate-arrow-bullet-point", "", "", 10, 10), String(here)) : null,
         h("div", { class: "pt-count", "data-key": "count" }, all.length || (cat.id === "mine" && S.groups.length) ? countText(all) : "")),
       toggleArrow(open));
   }
@@ -1033,7 +1033,6 @@ window.ProposalTracker = (function () {
       { text: "Signaler les quêtes de la zone", checkbox: true, checked: Bench.settings.areaHighlight, keepOpen: true, onClick: toggle("areaHighlight") },
       { divider: true },
       { text: "Options", onClick: () => { Game.log("call", "Settings.OpenToCategory(categoryID)"); Bench.revealOptions(); } },
-      { text: "Diagnostic", onClick: () => Game.log("call", "ns.DebugPanel.Open()") },
       { text: "Signaler un bug", onClick: () => Game.log("call", "ns.Report.Open()") },
     ]);
     menu.classList.add("gear-menu");

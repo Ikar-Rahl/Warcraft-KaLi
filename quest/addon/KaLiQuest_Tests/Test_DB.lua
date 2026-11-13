@@ -14,7 +14,9 @@ T.Add("DB", "a first run gets the current version and the defaults", function()
     T.Eq(db.options.areaHighlight, true, "area highlight on by default, Ikar's defaults of 2026-11-07")
     T.Eq(db.options.findGroup, false, "the find-group eye off by default")
     T.Eq(db.options.width .. "/" .. db.options.height .. "/" .. db.options.opacityCombat, "310/530/50", "width, height, opacity in combat")
-    T.Eq(db.options.zoom, 100, "zoom at 100 %; the text follows Edit Mode's size")
+    T.Eq(db.options.zoom, 100, "zoom at 100 %, the text at Blizzard's tracker's smallest")
+    T.Eq(db.options.bgOpacity, nil, "the background's opacity follows Blizzard's from Edit Mode until set")
+    T.True(next(db.editMode.positions) == nil, "the tracker follows Blizzard's in every Edit Mode layout until moved")
     T.List(DB.RANGES.zoom, { 50, 200 }, "the zoom goes from 50 to 200 %, as Ikar took it on 2026-11-10")
     T.Eq(db.options.tracker, true, "the addon's tracker on by default")
     T.Eq(db.options.markerStyle, "icons", "markers as icons by default")
@@ -33,6 +35,33 @@ T.Add("DB", "something that isn't a table is refused", function()
     local db, reason = DB.Load("broken")
     T.Eq(db, nil, "refused")
     T.Eq(reason, "not a table", "reason")
+end)
+
+T.Add("DB", "a version that isn't a whole number is refused, the table left as it was", function()
+    for _, version in ipairs({ "1", 0.5, -1, 0 / 0, math.huge }) do
+        local saved = { version = version, groups = { { id = 1, name = "x", quests = { 5, 5 } } } }
+        local db, reason = DB.Load(saved)
+        T.Eq(db, nil, "refused: " .. tostring(version))
+        T.Eq(reason, "bad version", "reason for " .. tostring(version))
+        T.Eq(#saved.groups[1].quests, 2, "not repaired either")
+    end
+end)
+
+-- The game would write a nan or an inf in a form it can't read back, and lose the whole file: none is written.
+T.Add("DB", "at logout, a number the file can't hold is taken out, and the file reads back", function()
+    local db = DB.Load(nil)
+    db.groups[1] = { id = 4, name = "A", quests = { 12 } }
+    db.options.width, db.options.editModeHeight, db.spots[12] = 0 / 0, math.huge, { 1436, -math.huge, 0.5 }
+    T.Eq(DB.BeforeSave(db), 3, "a nan and two inf taken out")
+    T.Eq(db.nonFinite, 3, "and counted")
+    T.True(ns.Finite(db.options.height) and db.spots[12][1] == 1436 and db.groups[1].quests[1] == 12, "the rest kept")
+    local read = T.ReadSaved(T.Saved("KaLiQuestCharDB", db))
+    T.True(read ~= nil, "the file reads back")
+    local again = DB.Load(read.KaLiQuestCharDB)
+    T.Eq(again.options.width, DB.DEFAULTS.width, "the option taken out comes back at its default")
+    T.Eq(again.groups[1].name, "A", "the groups as they were")
+    T.Eq(again.spots[12], nil, "a spot left without a number is dropped")
+    T.Eq(DB.BeforeSave(again), 0, "and the next logout has nothing to take out")
 end)
 
 T.Add("DB", "an upgrade works on a copy", function()
@@ -137,7 +166,7 @@ T.Add("DB", "repair: broken filters, Journal order and sizes are dropped, good o
     T.List(db.categoryOrder, { "pvp", "world" }, "a good order stays")
     T.Eq(db.options.zoom, 100, "a zoom that isn't a number goes back to 100 %")
     T.True(db.options.textSize == nil and db.options.editModeTextSize == nil,
-        "the addon's own text size from before the zoom goes, so Edit Mode's sets the text")
+        "the addon's own text size from before the zoom goes")
     T.Eq(db.options.height, 500, "a height set here stays")
     saved.filters = { state = "ready" }
     saved.categoryOrder = { "pvp", 3 }
@@ -148,6 +177,23 @@ T.Add("DB", "repair: broken filters, Journal order and sizes are dropped, good o
     T.Eq(DB.Load(saved).categoryOrder, nil, "and one that isn't a list")
     saved.options.height, saved.options.heightDefaulted = nil, true
     T.Eq(DB.Load(saved).options.height, nil, "the default height is given once, so a height Edit Mode took over stays Edit Mode's")
+end)
+
+T.Add("DB", "repair: the tracker's places in Edit Mode keep only a top corner and two numbers each", function()
+    local saved = DB.Load(nil)
+    saved.options.editModeHeight, saved.options.bgOpacity = 600, 0 / 0
+    saved.editMode.positions = { preset1 = { point = "TOPRIGHT", x = -40, y = -200 }, ["custom:Mine"] = { point = "TOPLEFT", x = 10, y = -5 },
+        preset2 = { point = "CENTER", x = 0, y = 0 }, preset3 = { point = "TOPLEFT", x = 1 / 0, y = 0 }, [4] = { point = "TOPLEFT", x = 0, y = 0 },
+        layout5 = "TOPLEFT" }
+    local db = DB.Load(saved)
+    local p = db.editMode.positions
+    T.True(p.preset1 and p.preset1.x == -40 and p["custom:Mine"] and p["custom:Mine"].y == -5, "good places stay")
+    T.True(p.preset2 == nil and p.preset3 == nil and p[4] == nil and p.layout5 == nil,
+        "a corner the tracker isn't held by, an infinite number, a key that isn't a layout's and a place that isn't one go")
+    T.Eq(db.options.editModeHeight, nil, "Edit Mode's own height, read until the tracker had a frame of its own, goes")
+    T.Eq(db.options.bgOpacity, nil, "a background opacity the file can't hold follows Blizzard's again")
+    saved.editMode = "here"
+    T.True(next(DB.Load(saved).editMode.positions) == nil, "an Edit Mode table that isn't one starts empty")
 end)
 
 T.Add("DB", "repair: a number outside its option's range comes back inside it, NaN goes back to the default", function()

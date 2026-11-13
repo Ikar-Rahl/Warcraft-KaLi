@@ -1,4 +1,4 @@
-// Candidates for the addon's icon, drawn in a 64 by 64 space. tools/scripts/make_icon.py exports one as the TGA.
+// Candidates for the addon's icon, drawn in a 64 by 64 space. quest/tools/make_icon.py exports one as the TGA.
 window.KQIcons = (() => {
   const GOLD = [[0, "#fff8cc"], [0.28, "#ffd94d"], [0.68, "#efa300"], [1, "#a35a00"]];
   const DIM_GOLD = [[0, "#f3dfa6"], [0.4, "#c8902a"], [1, "#5e3500"]];

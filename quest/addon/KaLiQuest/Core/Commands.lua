@@ -3,11 +3,7 @@
 local _, ns = ...
 local L = ns.L
 
-local say, refused, serialize = ns.Say, ns.Refused, ns.Serialize
-
-local function onOff(v)
-    return v and L.ON or L.OFF
-end
+local say, refused, serialize, onOff = ns.Say, ns.Refused, ns.Serialize, ns.Commands.OnOff
 
 local function readLog()
     return ns.QuestLog.Read(ns.categories.Classify)
@@ -32,7 +28,8 @@ local function statusText()
     end
     local lines = {
         string.format("%s %s, client %s (%s), interface %s, %s", ns.TITLE, ns.VERSION, version, build, interface, ns.LOCALE),
-        "saved data: " .. (ns.disabled and ("refused, " .. ns.disabled) or ("version " .. db.version .. (ns.firstRun and ", first run" or ""))),
+        "saved data: " .. (ns.disabled and ("refused, " .. ns.disabled) or ("version " .. db.version .. (ns.firstRun and ", first run" or "")
+            .. (db.nonFinite and (", numbers the file can't hold taken out at logout " .. tostring(db.nonFinite)) or ""))),
         string.format("log: %d quests, game tracks %d", numQuests or 0, C_QuestLog.GetNumQuestWatches()),
         string.format("groups: %d, quests in them: %d, past the game's limit: %d", db and #db.groups or 0, inGroups, offList),
         string.format("autoQuestWatch: option %s, game %s, original %s", tostring(db and db.options.autoQuestWatch), tostring(GetCVar("autoQuestWatch")), tostring(db and db.autoQuestWatchOriginal)),

@@ -31,7 +31,8 @@ Tous les objectifs             [loupe] [filtre] -
 | Status line | Only while something is hidden: count shown out of total, and `CLEAR_ALL` ("Tout effacer"). This stops a saved filter looking like lost quests |
 | No match | `QUEST_LOG_NO_RESULTS`, "Aucun résultat trouvé", as the quest log says |
 | Bars and group headers | With no matching quest, hidden. Others show the count of matches |
-| Collapsed levels | **Search:** every level holding a match opens while the search is active. **Filter:** levels stay as the player left them, and only the counts change. Neither touches the saved open state |
+| Suivi and the player's groups | Always shown, matches or not, counting their matches (« 0 »), so a quest can still be dragged into a group, or onto Suivi to start one. Ikar, 2026-11-11: "when filtering, it should not hide the custom category, so people could still drag and drop in there" |
+| Collapsed levels | **Search:** every level holding a match opens while the search is active; one without a match, Suivi or a player's group, stays as the player left it. **Filter:** levels stay as the player left them, and only the counts change. Neither touches the saved open state |
 
 ## Filter
 

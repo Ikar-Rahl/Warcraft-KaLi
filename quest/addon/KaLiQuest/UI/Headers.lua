@@ -162,7 +162,8 @@ local function drawHere(fs, line, size)
     local n = ns.Area.Count(line.quests)
     fs:SetShown(n > 0)
     if n > 0 then
-        fs:SetText(string.format(Shared.AREA_ARROW, math.floor(size * 0.83 + 0.5), math.floor(size * 0.67 + 0.5)) .. n)
+        local side = math.floor(size * 0.83 + 0.5)
+        fs:SetText(string.format(Shared.AREA_ARROW, side, side) .. n)
     end
     return n > 0 and fs:GetStringWidth() or 0
 end

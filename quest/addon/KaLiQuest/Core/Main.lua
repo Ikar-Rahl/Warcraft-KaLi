@@ -1,5 +1,6 @@
--- Startup. Saved data is first touched in this addon's own ADDON_LOADED, the earliest documented point, so
--- nothing written while files load is lost when the client restores the saved values.
+-- Startup and logout. Saved data is first touched in this addon's own ADDON_LOADED, the earliest documented point, so
+-- nothing written while files load is lost when the client restores the saved values; and last touched in
+-- PLAYER_LOGOUT, the last event before the client writes the files.
 local ADDON, ns = ...
 
 local function onAddonLoaded(_, name)
@@ -21,6 +22,16 @@ local function onAddonLoaded(_, name)
     ns.Debug.Log("init", "%s %s loaded, data v%d, first run %s, repaired %d", ns.TITLE, ns.VERSION, data.version, tostring(ns.firstRun), fixedOrReason)
 end
 ns.On("ADDON_LOADED", onAddonLoaded)
+
+-- No number the file can't hold is written: refused data, never touched, stays as it is.
+ns.On("PLAYER_LOGOUT", function()
+    if ns.db then
+        local n = ns.DB.BeforeSave(ns.db)
+        if n > 0 then
+            ns.Debug.Log("init", "%d numbers the file can't hold taken out before saving", n)
+        end
+    end
+end)
 
 ns.On("PLAYER_LOGIN", function()
     if not ns.db then

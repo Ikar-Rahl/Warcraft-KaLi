@@ -31,8 +31,9 @@ end
 
 -- tree: from Tree.Build, with tree.extra the other sections from Sections.Read. open: the saved open state.
 -- view: while filtering or searching, { passes = fn(quest), searching = bool }, else nil. Hidden quests take their
--- empty groups and bars with them, counts become matches, moved lines go, and a search opens every level holding a
--- match without touching what's saved.
+-- empty headers and bars with them, counts become matches, moved lines go, and a search opens every level holding a
+-- match without touching what's saved. Suivi and the player's groups stay, matches or not, so a quest can still be
+-- dragged into them (Ikar, 2026-11-11: "it should not hide the custom category").
 -- Each line is a bar, group, quest, moved or entry line. None while the tracker is collapsed. Bars and
 -- groups carry the quests they show or hold. Also returns how many quests show and how many there are.
 function Layout.Lines(tree, open, view)
@@ -61,14 +62,14 @@ function Layout.Lines(tree, open, view)
         return view and tostring(#list) or countText(list)
     end
 
-    -- Each group's visible quests, and the groups left to show.
+    -- Each group's visible quests, and the groups left to show: the player's own always.
     local function prepare(cat)
         local groups, all = {}, {}
         for _, g in ipairs(cat.groups) do
             local shown = visible(g.quests)
             total = total + #g.quests
             shownTotal = shownTotal + #shown
-            if not view or #shown > 0 then
+            if not view or #shown > 0 or g.group then
                 groups[#groups + 1] = { g = g, shown = shown }
                 for _, q in ipairs(shown) do
                     all[#all + 1] = q
@@ -81,7 +82,8 @@ function Layout.Lines(tree, open, view)
     local function groups(cat, list)
         for _, entry in ipairs(list) do
             local g = entry.g
-            local isOpen = searching or Layout.GroupOpen(open, g)
+            -- A search opens what holds a match; a player's group without one stays as it was left.
+            local isOpen = (searching and #entry.shown > 0) or Layout.GroupOpen(open, g)
             -- A header left with only moved quests' lines has nothing to count.
             add({ kind = "group", key = g.key, group = g.group, name = g.name, headerKey = g.headerKey, cat = cat.id,
                 open = isOpen, quests = entry.shown,
@@ -100,15 +102,15 @@ function Layout.Lines(tree, open, view)
         end
     end
 
-    -- Suivi shows with no groups too, so its + can start the first one.
+    -- Suivi shows with no groups too, so its + can start the first one, and while filtering, as a quest dropped on
+    -- it starts a group.
     local mine = tree[1]
     local mineGroups, mineQuests = prepare(mine)
-    if not view or #mineQuests > 0 then
-        add({ kind = "bar", id = "mine", top = true, open = searching or open.categories.mine == true, quests = mineQuests,
-            count = (#mineQuests > 0 or #mine.groups > 0) and countOf(mineQuests) or "" })
-        if searching or open.categories.mine then
-            groups(mine, mineGroups)
-        end
+    local mineOpen = (searching and #mineQuests > 0) or open.categories.mine == true
+    add({ kind = "bar", id = "mine", top = true, open = mineOpen, quests = mineQuests,
+        count = (#mineQuests > 0 or #mine.groups > 0) and countOf(mineQuests) or "" })
+    if mineOpen then
+        groups(mine, mineGroups)
     end
 
     local sections, journalQuests = {}, {}

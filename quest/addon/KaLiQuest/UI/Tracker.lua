@@ -18,7 +18,7 @@ local FIXED_GAP = 6 -- Blizzard's first section sits 6 under the title, as the s
 
 local root, title, scroll, scrollBar, content, background
 local active = false
-local zoomed -- the scale last given to the root
+local zoomed -- the scale last given to the root: the zoom, and its parent's own scale undone
 local offset = 0
 local maxOffset = 0
 local hadPosition
@@ -257,6 +257,10 @@ local function drawAll()
     ns.Fonts.Apply()
     local width = layout.width
     ns.Host.SetWidth(width, layout.zoom)
+    -- The tracker's own frame, which Edit Mode shows and the rows sit on: as wide as they are with the scrollbar's
+    -- room, and as tall as set, on screen. It keeps its size while the rows hide, so Edit Mode still shows its box.
+    local height = db.options.height or ns.Host.Height()
+    ns.EditFrame.SetSize((width + ns.Host.SCROLLBAR_ROOM) * layout.zoom, height)
     local quests, order = ns.QuestLog.Read(ns.categories.Classify)
     ns.Area.Note(quests, ns.Motion.Scan(quests, InCombatLockdown()))
     ns.Filter.Forget(quests)
@@ -330,12 +334,14 @@ local function drawAll()
     end
 
     local timerRoom = ns.Host.PlaceTimer(width, ns.Fonts.Size(), layout.zoom)
-    -- The zoom scales the whole tracker, Ikar's ruling on 2026-11-10. The height stays the one set, on screen.
-    if zoomed ~= layout.zoom then
-        zoomed = layout.zoom
-        root:SetScale(zoomed)
+    -- The zoom scales the whole tracker, Ikar's ruling on 2026-11-10. The height stays the one set, on screen. The
+    -- rows hang from Blizzard's tracker, whose own scale, when another addon sets one, is undone (Host.Unscale).
+    local scale = layout.zoom * ns.Host.Unscale(root:GetParent())
+    if not zoomed or math.abs(zoomed - scale) > 0.0001 then
+        zoomed = scale
+        root:SetScale(scale)
     end
-    local rootHeight = (db.options.height or ns.Host.Height()) / zoomed
+    local rootHeight = height / layout.zoom
     root:SetSize(width, rootHeight)
     root:SetAlpha((InCombatLockdown() and db.options.opacityCombat or db.options.opacity) / 100)
     local base = root:GetFrameLevel() or 1
@@ -538,26 +544,25 @@ local function hookOnce()
     end
     hooksDone = true
     local manager = ObjectiveTrackerManager
-    if manager then
-        -- Edit Mode's text size and opacity reach the rows through Blizzard's font objects and this redraw.
-        if type(manager.SetTextSize) == "function" then
-            hooksecurefunc(manager, "SetTextSize", ns.RequestRefresh)
-        end
-        if type(manager.SetOpacity) == "function" then
-            hooksecurefunc(manager, "SetOpacity", ns.RequestRefresh)
-        end
+    -- Blizzard's background opacity, from Edit Mode, reaches the background while the addon has none of its own.
+    if manager and type(manager.SetOpacity) == "function" then
+        hooksecurefunc(manager, "SetOpacity", ns.RequestRefresh)
     end
+    -- In Edit Mode the rows let the clicks through to the tracker's own frame, which shows its box.
     if EventRegistry and EventRegistry.RegisterCallback then
         EventRegistry:RegisterCallback("EditMode.Enter", function()
             Shared.SetEditMode(true)
             ns.Drag.Cancel()
+            ns.SafeCall(ns.EditFrame.Enter)
             ns.RequestRefresh()
         end, Tracker)
         EventRegistry:RegisterCallback("EditMode.Exit", function()
             Shared.SetEditMode(false)
+            ns.SafeCall(ns.EditFrame.Exit)
             ns.RequestRefresh()
         end, Tracker)
     end
+    ns.EditFrame.Hook()
     for _, event in ipairs({ "ZONE_CHANGED_NEW_AREA", "ZONE_CHANGED", "SUPER_TRACKING_CHANGED", "PLAYER_REGEN_DISABLED",
         "PLAYER_REGEN_ENABLED", "QUEST_REMOVED", "QUEST_TURNED_IN", "PLAYER_MONEY", "GROUP_ROSTER_UPDATE", "UNIT_QUEST_LOG_CHANGED",
         "QUEST_AUTOCOMPLETE", "QUEST_POI_UPDATE" }) do
@@ -649,6 +654,7 @@ function Tracker.SetEnabled(on)
         ns.Items.Sync()
         ns.Host.Unpark()
     end
+    ns.EditFrame.Sync()
     ns.Area.Apply()
 end
 
