@@ -103,9 +103,13 @@ end
 
 -- One of the addon's skill lines (the base professions' numbers, 185 for cooking): the number the game gave, its
 -- parent's when it's an expansion's own line, or the profession's name. Lines that match none are noted for the API
--- check.
+-- check. 0 is the game's own "no profession" (the professions window, closed, answers it, and Blizzard's code reads
+-- it so): nothing, and nothing to note.
 Game.unknownSkillLines = {}
 function Game.Skill(id, name)
+    if id == 0 then
+        id = nil
+    end
     if id and ns.PROFESSION_ICONS[id] then
         return id
     end
@@ -149,8 +153,13 @@ local function record(db)
 end
 Game.Record = record
 
--- Name and class, and the professions with their ranks, from the professions book's own functions.
-function Game.ReadProfessions(db)
+-- Seconds before an empty list of professions, where some were noted, is read again to be believed.
+Game.EMPTY_RECHECK = 10
+
+-- Name and class, and the professions with their ranks, from the professions book's own functions. Returns whether
+-- they changed, and true when the game listed no profession at all while the character had some: that can be the game
+-- not ready yet, so nothing is given up then, and the caller reads again later with trustEmpty to believe it.
+function Game.ReadProfessions(db, trustEmpty)
     local c = record(db)
     if not c then
         return false
@@ -160,11 +169,12 @@ function Game.ReadProfessions(db)
     c.class = classFile
     c.seen = time()
     local profs, maxes = {}, {}
-    local unread = 0
+    local unread, listed = 0, 0
     local list = { GetProfessions() }
     for i = 1, 6 do
         local index = list[i]
         if index then
+            listed = listed + 1
             local name, _, rank, maxRank, _, _, line = GetProfessionInfo(index)
             local skillLine = Game.Skill(line, name)
             if skillLine and rank then
@@ -174,8 +184,11 @@ function Game.ReadProfessions(db)
             end
         end
     end
-    -- A profession listed but not recognised may be one the character had: then none is taken as given up, as that
-    -- would forget its recipes on a misreading.
+    -- Giving up a profession forgets its recipes, so a list that may be a misreading gives up none.
+    if listed == 0 and next(c.profs) and not trustEmpty then
+        return false, true
+    end
+    -- A profession listed but not recognised may be one the character had: then none is taken as given up.
     if unread > 0 then
         for skill, rank in pairs(c.profs) do
             if not profs[skill] then

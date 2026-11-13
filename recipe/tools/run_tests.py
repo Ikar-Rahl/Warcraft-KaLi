@@ -1,6 +1,7 @@
 """Run KaLi Recipe's Lua checks outside the game, on Lua 5.1 as the game uses.
 
-The checks of 1, 2, 5, 6 and 7 are the family's (tools/kali/checks.py, first written for KaLi Quest):
+The checks of 1, 2, 5, 6, 7 and 11, and the enums' of 9, are the family's (tools/kali/checks.py, first written for KaLi
+Quest):
 1. Every .lua file under recipe/addon/ compiles.
 2. Each addon loads in its TOC's order on the fake WoW API (tools/lua/fakewow.lua, then this addon's
    recipe/tools/lua/fakewow_recipe.lua). A global written that isn't on the allowed list is reported.
@@ -10,18 +11,23 @@ The checks of 1, 2, 5, 6 and 7 are the family's (tools/kali/checks.py, first wri
    way in both addons.
 5. Every C_ function, bare global function and :Method( the addons call exists in this build's API docs or
    Blizzard's own code.
-6. KaLiRecipe's folder is a complete package: the TOC's fields, every listed file present, no stray file.
+6. KaLiRecipe's folder is a complete package: the TOC's fields, an icon the game can read, every listed file
+   present, every file its code names inside the addon (the minimap button's icon) there, no stray file.
 7. KaLiRecipe/Data/Needs.lua, what the addon takes from the game for its in-game API check, is the one its code gives
    today. --write-needs writes it.
 8. The generated data holds together: its build is the tables', every recipe item teaches a recipe in it, every
    category a recipe names is in it.
 9. What the fake would otherwise invent comes from this build: every Enum table the addons name is the API docs' own,
-   member for member (the bank's bag numbers were invented once, and wrong); the addon's XML templates are built as the
+   member for member (the bank's bag numbers were invented once, and wrong), or one Blizzard's own code reads; the
+   modified clicks' keys are Forever's defaults (Bindings_Camelot.xml); the addon's XML templates are built as the
    game builds them (mixin, mouse, scripts), so the world map's own checks on a pin run offline; the French game
    strings the fake defines are the client's (BlizzardInterfaceResources' frFR.lua).
 10. Each sound the options offer (Core/Sounds.lua) is a kit of this build's SoundKit table, with a file, under the name
    Blizzard's SOUNDKIT gives it or playing the file the addon names; one stopped early stops within its shortest take;
    the bench's list (recipe/bench/js/sounds.js, recipe/tools/bench_sounds.py) is the same.
+11. No code of the shipped addon tests a value against itself, the usual test for nan, which the game's Lua doesn't
+   honour (ns.Finite does).
+12. The sessions after the smoke's start from the files it wrote, as the game reads them (restart_problems).
 
 Run with: python -I recipe/tools/run_tests.py
 --addons <dir> runs on a copy, for experiments: recipe/addon is linked into the game.
@@ -72,40 +78,9 @@ def to_lua(lua, value):
     return value
 
 
-def documented_enums():
-    """Every enumeration in this build's API docs: { name: { member: value } }."""
-    enums = {}
-    for path in API_DOCS.glob("*.lua"):
-        text = path.read_text(encoding="utf-8", errors="replace")
-        for m in re.finditer(r'Name = "(\w+)",\s*Type = "Enumeration",.*?Fields =\s*\{(.*?)\n\t\t\t\}', text, re.S):
-            enums[m.group(1)] = {n: int(v) for n, v in re.findall(r'Name = "(\w+)", Type = "\w+", EnumValue = (-?\d+)', m.group(2))}
-    return enums
-
-
-def addon_enums(sources):
-    """The Enum tables the addons name, with the members they name: { enum: { member } }."""
-    used = {}
-    for path in sources:
-        code = checks.strip_lua(path.read_text(encoding="utf-8"))
-        for enum, member in re.findall(r"\bEnum\.(\w+)(?:\.(\w+))?", code):
-            used.setdefault(enum, set())
-            if member:
-                used[enum].add(member)
-    return used
-
-
-ENUMS = documented_enums()
-USED_ENUMS = addon_enums(sorted(ADDONS.rglob("*.lua")))
-
-
-def enum_problems():
-    problems = []
-    for enum, members in sorted(USED_ENUMS.items()):
-        if enum not in ENUMS:
-            problems.append(f"enum not in this build's docs: Enum.{enum}")
-            continue
-        problems += [f"enum member not in this build's docs: Enum.{enum}.{m}" for m in sorted(members) if m not in ENUMS[enum]]
-    return problems
+# The family's enum check (tools/kali/checks.py); the fake gets the docs' own tables for those the addons name.
+ENUMS = checks.documented_enums()
+USED_ENUMS = checks.addon_enums(sorted(ADDONS.rglob("*.lua")))
 
 
 def xml_templates(path):
@@ -126,12 +101,13 @@ def runtime():
     docs before the recipe fake loads."""
     lua = lupa.LuaRuntime(unpack_returned_tuples=True)
     lua.execute(checks.FAKE.read_text(encoding="utf-8"))
+    checks.fake_from_build(lua)
     enum = lua.globals().Enum
     for name in USED_ENUMS:
         if name in ENUMS:
             enum[name] = to_lua(lua, ENUMS[name])
     lua.execute((RECIPE_LUA / "fakewow_recipe.lua").read_text(encoding="utf-8"))
-    loader = lua.execute(checks.LOADER.replace("KQ_LEAKS", "KR_LEAKS"))
+    loader = lua.execute(checks.LOADER)
     allowed = lua.table_from({name: True for name in ALLOWED_GLOBALS})
     templates = lua.globals().FakeWoW.xmlTemplates
 
@@ -175,7 +151,8 @@ def sound_problems(lua):
     """Core/Sounds.lua's choices against this build's sound tables, and the bench's copy."""
     names = {k: int(v) for k, v in re.findall(r"^\s*([A-Z0-9_]+)\s*=\s*(\d+)", SOUNDKIT_LUA.read_text(encoding="utf-8"), re.M)}
     with open(DB2 / "SoundKit.csv", encoding="utf-8", newline="") as f:
-        kits = {int(r["ID"]) for r in csv.DictReader(f)}
+        kits = {int(r["ID"]): float(r["VolumeFloat"]) for r in csv.DictReader(f)}
+    own = lua.eval("KaLiRecipeDev.ns.Sounds.KIT_VOLUME")
     files = {}
     with open(DB2 / "SoundKitEntry.csv", encoding="utf-8", newline="") as f:
         for r in csv.DictReader(f):
@@ -199,6 +176,9 @@ def sound_problems(lua):
                 problems.append(f"sounds: {key}: kit {kit} isn't in this build's SoundKit table")
             elif kit not in files:
                 problems.append(f"sounds: {key}: kit {kit} has no file in this build")
+            # « Volume des sons » asks a share of the kit's own volume: a wrong one and 95 % may be louder than 100 %.
+            if kit in kits and (own[kit] is None or abs(own[kit] - kits[kit]) > 1e-6):
+                problems.append(f"sounds: {key}: Sounds.KIT_VOLUME[{kit}] is {own[kit]}, the SoundKit table's {kits[kit]}")
             if stop is not None and not 0 < stop < 2:
                 problems.append(f"sounds: {key}: stopped after {stop} s, not within the quill's shortest take (2.2 s)")
     if not BENCH_SOUNDS.exists():
@@ -247,7 +227,8 @@ def restart_problems(lua, load_addon):
     1. Both files: the notebook opens as it was saved: nothing repaired, set aside or taken from the copy.
     2. The account's file gone: the character's copy brings the notebook back and says so once; written at logout,
        the notebook opens again from its own file with nothing more to take.
-    3. A copy from a newer version: the notebook opens from the account's file, and the copy isn't written over."""
+    3. A copy from a newer version: the notebook opens from the account's file, and the copy isn't written over.
+    4. An account file from a newer version: refused, both files left as they are, the API check still made at login."""
     if not lua.globals().KaLiRecipeTests:
         load_addon("KaLiRecipe_Tests")
     g = lua.globals()
@@ -320,7 +301,22 @@ def restart_problems(lua, load_addon):
         _, kept = logout(s, sv)
         if "[\"version\"] = 99" not in kept or sv("sightings", s.globals().KaLiRecipeCopyDB.data.sightings) != sightings:
             problems.append("restart, a newer copy: written over")
-    return problems, 4
+
+    # An account file from a newer version: refused, and both files are left as they are; the API check still runs at
+    # login, as KaLi Quest's does.
+    s, info, sv = start([account, copy], "KaLiRecipeDB.version = 99")
+    if info or not s.eval("KaLiRecipeDev.ns.disabled"):
+        problems.append("restart, a newer account file: not refused")
+    else:
+        login(s, "a newer account file")
+        if not s.eval("type(KaLiRecipeDevDB.apiChecks) == 'table' and #KaLiRecipeDevDB.apiChecks > 0"):
+            problems.append("restart, a newer account file: no API check at login")
+        kept_account, kept_copy = logout(s, sv)
+        if "[\"version\"] = 99" not in kept_account or sv("sightings", s.globals().KaLiRecipeDB.sightings) != sightings:
+            problems.append("restart, a newer account file: written over")
+        if kept_copy != copy:
+            problems.append("restart, a newer account file: the character's copy written over")
+    return problems, 5
 
 
 def main():
@@ -350,7 +346,7 @@ def main():
     found = checks.needs(shipped, checks.documented_functions(called_by_blizzard), defined_in, templates_in, fonts_in)
     expected = checks.needs_lua(found)
     if "--write-needs" in sys.argv:
-        needs_path.write_text(expected, encoding="utf-8")
+        needs_path.write_text(expected, encoding="utf-8", newline="\n")
     elif not needs_path.exists() or needs_path.read_text(encoding="utf-8") != expected:
         problems.append(f"needs: {rel(needs_path)} is out of date: run recipe/tools/run_tests.py --write-needs")
     print(f"needs: {len(found['globals'])} globals, {len(found['events'])} events, {len(found['atlases'])} atlases, "
@@ -358,9 +354,12 @@ def main():
     data, n_recipes, n_items = data_problems()
     print(f"data: {n_recipes} recipes, {n_items} recipe items, {len(data)} problems")
     problems += data
-    enums = enum_problems()
-    print(f"enums: {len(USED_ENUMS)} named, all from this build's docs, {len(enums)} problems")
+    enums = checks.enum_problems(USED_ENUMS, ENUMS)
+    print(f"enums: {len(USED_ENUMS)} named, {len(enums)} not in this build's docs nor Blizzard's code")
     problems += enums
+    nan = checks.self_compare_problems(shipped)
+    print(f"nan: {len(nan)} values compared with themselves in the shipped addon")
+    problems += nan
 
     lua, load_addon = runtime()
     load_addon("KaLiRecipe")
@@ -386,7 +385,7 @@ def main():
     shared_failures = checks.shared_smoke(lua, "KaLiRecipe")
     print(f"shared: {'PASS' if not shared_failures else 'FAIL'}")
     problems += shared_failures
-    leaks = sorted(set(lua.globals().KR_LEAKS.values()))
+    leaks = sorted(set(lua.globals().KALI_LEAKS.values()))
     problems += [f"global written: {leak}" for leak in leaks]
     restart, sessions = restart_problems(lua, load_addon)
     print(f"restart: {sessions} sessions from the files the smoke wrote, {len(restart)} problems")

@@ -62,7 +62,6 @@ W.ATLAS = {
     badge = "UI-HUD-Nameplates-LevelIndicator",
     banker = "Banker",
     friend = "groupfinder-icon-friend",
-    eye = "GM-icon-visible",
     follow = "Profession-button-arrow-right",
     followDown = "Profession-button-arrow-right-pressed",
     pin = "Waypoint-MapPin-Tracked",

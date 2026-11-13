@@ -112,7 +112,7 @@ def main():
             "kinds": kinds}
     JS.write_text("// Made by recipe/tools/bench_sounds.py from the addon's Core/Sounds.lua and this build's sound\n"
                   "// tables: the sounds the in-game options offer, to hear them on the bench.\n"
-                  "window.SOUNDS = " + json.dumps(data, ensure_ascii=False, indent=1) + ";\n", encoding="utf-8")
+                  "window.SOUNDS = " + json.dumps(data, ensure_ascii=False, indent=1) + ";\n", encoding="utf-8", newline="\n")
     print("written", JS.relative_to(ROOT))
 
 

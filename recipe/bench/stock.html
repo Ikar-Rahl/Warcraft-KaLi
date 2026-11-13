@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stock limité : les options</title>
+<link rel="stylesheet" href="css/game.css">
+<style>
+  /* The page around the mock-ups: plain and quiet, so the game's pieces carry the colour. */
+  :root { --page: #f6f4ef; --text: #1d1b18; --muted: #615b52; --card: #ffffff; --line: #ddd7cc; --accent: #8a6a34; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --page: #141210; --text: #ece7de; --muted: #a59d90; --card: #1d1a17; --line: #36302a; --accent: #d9b56a; }
+  }
+  :root[data-theme="dark"] { --page: #141210; --text: #ece7de; --muted: #a59d90; --card: #1d1a17; --line: #36302a; --accent: #d9b56a; }
+  html { background: var(--page); }
+  body { margin: 0; background: var(--page); color: var(--text); font: 15px/1.5 system-ui, "Segoe UI", sans-serif; }
+  main { max-width: 1180px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 26px; line-height: 1.2; margin: 0 0 6px; }
+  h2 { font-size: 19px; margin: 40px 0 10px; }
+  h3 { font-size: 16px; margin: 0 0 4px; }
+  p { margin: 6px 0; max-width: 78ch; }
+  .lede { color: var(--muted); }
+  code { font: 13px/1.4 ui-monospace, Consolas, monospace; background: rgba(138,106,52,.12); padding: 1px 4px; border-radius: 3px; }
+  table.facts { border-collapse: collapse; margin: 10px 0; }
+  table.facts td, table.facts th { border-bottom: 1px solid var(--line); padding: 6px 14px 6px 0; text-align: left; vertical-align: top; }
+  .cards { display: grid; gap: 18px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  .card.pick { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .card header { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .card .tag { font-size: 12px; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 0 8px; }
+  .card .why { color: var(--muted); font-size: 14px; margin: 2px 0 12px; }
+  .pros { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; font-size: 14px; margin-top: 10px; }
+  .pros div::before { content: "+ "; color: #3f8f3f; font-weight: 600; }
+  .pros div.con::before { content: "− "; color: #b5523b; }
+  .mocks { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; }
+  .mockcap { font-size: 12px; color: var(--muted); margin: 0 0 4px; }
+  @media (max-width: 640px) { .pros { grid-template-columns: 1fr; } }
+
+  /* The game's pieces, at the interface's own sizes (1 CSS px = 1 UI unit), as on the bench. */
+  .game { font-family: "Friz", "Friz Quadrata TT", serif; color: #fff; text-shadow: 1px 1px 0 #000; }
+  .game * { box-sizing: border-box; }
+  .shot { position: relative; background: #0d0b09 url(art/world/troll-camp.jpg) center / cover; border-radius: 6px; padding: 12px; overflow: hidden; max-width: 100%; }
+  .shot.plain { background: #0d0b09; }
+  .pane { position: relative; width: 470px; max-width: 100%; background: #14100c; border: 2px solid var(--bronze); border-radius: 4px; padding: 8px 8px 10px;
+    box-shadow: 0 0 0 1px #000, inset 0 0 0 1px #000, inset 0 0 0 3px #2a1f12; }
+  .pane .in { background: rgba(0,0,0,.45); border: 1px solid #3a2c1a; box-shadow: inset 0 0 8px #000; padding: 4px 6px 6px; }
+  .game .nbdet { max-height: none; border-top: none; padding: 2px 2px 0; }
+  .game .tip { position: relative; display: inline-block; max-width: none; }
+  .game .tip .row { white-space: nowrap; }
+  .game .addonl { color: var(--addon); }
+  .dim { color: var(--gray); }
+  .stockw { color: var(--gray); }
+  .stockw.lim { color: #ffd100; }
+  .clk { vertical-align: -2px; margin-left: 1px; }
+  .clk.off { filter: grayscale(1) brightness(.75); }
+  .coinv { display: inline-flex; align-items: center; gap: 2px; }
+  .coinv .coin { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+  .row1 { display: flex; align-items: center; gap: 8px; padding: 3px 4px 3px 2px; width: 420px; max-width: 100%; }
+  .row1 .icon { flex: none; box-shadow: 0 0 0 1px #000; }
+  .row1 .nm { font-size: 12px; } .row1 .sb { font-size: 10px; color: var(--gray); margin-top: 1px; }
+  .chatl { font-size: 13px; line-height: 16px; color: #ffff00; background: rgba(0,0,0,.82); padding: 6px 10px; max-width: 640px; }
+  .clocks { display: flex; gap: 22px; flex-wrap: wrap; align-items: flex-end; }
+  .clocks figure { margin: 0; text-align: center; font-size: 12px; color: var(--muted); }
+  .clocks .big { display: grid; place-items: center; width: 64px; height: 64px; background: #0d0b09; border-radius: 6px; margin: 0 auto 4px; }
+  .legend { font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Stock limité chez les marchands : les options</h1>
+  <p class="lede">KaLi Recipe, 13 novembre 2026. Ce qu'on peut savoir, cinq façons de le montrer, et où. Les noms sont ceux du jeu ; les stocks et les dates des exemples sont inventés, comme les vues du banc.</p>
+  <div class="card pick"><p><strong>Décidé par Ikar, le même jour :</strong> l'icône seule, une horloge grise, partout où le nom du marchand s'affiche, sans autre règle (pas de compte, pas d'« épuisé »). Le stock est enregistré en entier à chaque visite, le plus grand nombre vu gardé, au cas où on voudrait le montrer un jour. Horloge retenue : celle de l'hôtel des ventes, teintée de gris (la forme C ci-dessous).</p></div>
+
+  <h2>Ce que le jeu dit, et ce qu'il ne dit pas</h2>
+  <p>À chaque ouverture d'un marchand, le jeu donne pour chaque objet son stock (<code>C_MerchantFrame.GetItemInfo(i).numAvailable</code>), et la fenêtre du marchand l'affiche en haut à gauche de l'icône, au format du jeu <code>MERCHANT_STOCK</code>, « (1) ».</p>
+  <table class="facts">
+    <tr><th>Le jeu répond</th><th>Ça veut dire</th><th>Ce que l'addon montrerait</th></tr>
+    <tr><td><code>-1</code></td><td>stock illimité</td><td>rien, comme aujourd'hui</td></tr>
+    <tr><td><code>1</code>, <code>2</code>…</td><td>stock limité, tant qu'il en reste</td><td>l'indicateur</td></tr>
+    <tr><td><code>0</code></td><td>épuisé : le marchand l'a encore dans sa liste, grisé</td><td>l'indicateur, en « épuisé »</td></tr>
+  </table>
+  <p><strong>Le jeu ne dit jamais quand le stock revient.</strong> Aucune fonction, aucune table du client ne donne le délai de réassort ; seules des bases externes l'ont, et la règle est « no external data, as much as possible ». L'addon ne peut donc dire que ce qu'il a vu : limité ou non, combien il en restait, à quelle date. La date est déjà notée pour chaque endroit ; il faudrait y ajouter le stock vu, la dernière visite l'emportant.</p>
+
+  <h2>Les icônes possibles</h2>
+  <p>Le jeu n'a pas d'icône « stock limité ». Ses horloges sont ce qui s'en approche le plus. Celles de ce build :</p>
+  <div class="clocks game" id="clocks"></div>
+
+  <h2>Cinq formes</h2>
+  <p>Chacune dans le détail du carnet (style « Épuré ») et dans l'infobulle de la recette. Nessa Shadowsong en a un stock limité, Tansy Puddlefizz un stock illimité ; la dernière ligne montre la même vue quand le marchand était à court.</p>
+  <div class="cards" id="cards"></div>
+
+  <h2>Où le montrer</h2>
+  <p>Indépendamment de la forme, chaque endroit est un choix. Exemples avec la forme B.</p>
+  <div class="cards" id="places"></div>
+
+  <h2>Ma recommandation</h2>
+  <div class="card pick">
+    <p><strong>B, « stock limité » en gris après le lieu, dans le détail du carnet et dans l'infobulle de la recette ; « épuisé » quand la dernière visite l'a trouvé à zéro.</strong> Rien sur les lignes du carnet, les épingles ou la discussion.</p>
+    <p>Pourquoi : c'est un détail qui aide à décider (y aller maintenant ou pas), donc sa place est au survol et au clic, pas sur ce qui reste à l'écran. Un mot se lit sans légende et ne dépend pas de la couleur, là où une horloge seule fait penser au temps (une durée, une quête chronométrée) et demande un survol pour être comprise. « (1) », la forme du jeu, se comprend dans la fenêtre du marchand, sur l'icône, mais après « Vendue par Nessa Shadowsong, Teldrassil » il se lit comme un compte de vues.</p>
+    <p>Pas de compte affiché : il change dès que quelqu'un achète, et l'addon ne le revoit qu'à la visite suivante. La date de la vue, déjà dans le détail, dit quand il a été vu.</p>
+  </div>
+  <p class="legend">Fichier local du banc d'essai (<code>recipe/bench/stock.html</code>), avec l'art du jeu : il n'est pas publié.</p>
+</main>
+
+<script src="js/data.js"></script>
+<script src="js/model.js"></script>
+<script src="js/ui.js"></script>
+<script>
+(function () {
+  const h = U.h, atlas = U.atlas;
+  const SPELL = 7752, ITEM = 6326;
+  const recipe = M.recipe(SPELL), item = M.item(ITEM);
+  const nessa = M.npc(10118).name, tansy = M.npc(5162).name;
+  const teld = M.zone(141), forge = M.zone(1537);
+  const CLOCKS = [
+    ["auctionhouse-icon-clock", "Hôtel des ventes : la durée d'une enchère"],
+    ["questlog-questtypeicon-clockyellow", "Journal de quêtes : une quête chronométrée (KaLi Quest l'utilise déjà)"],
+    ["worldquest-icon-clock", "Expéditions : le temps qui reste"],
+    ["clock-icon", "Horloge générique"],
+  ];
+  const CLOCK = CLOCKS[0][0];
+
+  // The price on a tooltip's right, as GetMoneyString writes 40 copper.
+  const price = () => h("span.coinv", {}, "40", h("span.coin.c"));
+  const clock = (off) => { const a = atlas(CLOCK, 13, 13); a.classList.add("clk"); if (off) a.classList.add("off"); return a; };
+
+  // The five forms: what follows the vendor's place, limited (1 left) and sold out.
+  const FORMS = [
+    { id: "A", name: "Le compte du jeu", sub: "« (1) », le format de la fenêtre du marchand",
+      lim: () => [h("span.stockw", {}, "(1)")], out: () => [h("span.stockw", {}, "(0)")],
+      pros: ["La forme du jeu, la plus courte", "Le nombre restant"], cons: ["Hors de la fenêtre du marchand, se lit comme un compte (de vues, d'objets)", "« (0) » pour épuisé ne dit pas grand-chose"] },
+    { id: "B", name: "Le mot", sub: "« stock limité » en gris ; « épuisé »", pick: true,
+      lim: () => [h("span.stockw", {}, "stock limité")], out: () => [h("span.stockw", {}, "épuisé")],
+      pros: ["Se lit sans légende ni survol", "Pas de sens porté par la couleur ni par une icône"], cons: ["Plus long : sur une ligne étroite, le lieu peut passer à la ligne", "Pas le nombre restant"] },
+    { id: "C", name: "L'horloge seule", sub: "petite icône après le lieu ; le survol dit le reste",
+      lim: () => [clock(false)], out: () => [clock(true)],
+      pros: ["Le plus discret", "Survolée : « Stock limité, 1 restant le 3 nov. »"], cons: ["Une horloge dit « temps » : durée, quête chronométrée", "Il faut survoler pour comprendre ; grisée pour épuisé, la couleur porte le sens"] },
+    { id: "D", name: "L'horloge et le compte", sub: "l'icône, puis le nombre vu",
+      lim: () => [clock(false), h("span.stockw", {}, "1")], out: () => [clock(true), h("span.stockw", {}, "0")],
+      pros: ["Court, avec le nombre", "Se repère d'un coup d'œil dans une liste de lieux"], cons: ["Mêmes soucis que C pour l'horloge", "Un chiffre seul à expliquer"] },
+    { id: "E", name: "Tout ce qui a été vu", sub: "« stock limité : 1 le 3 nov. » ; « épuisé le 3 nov. »",
+      lim: () => [h("span.stockw", {}, "stock limité : 1 le 3 nov.")], out: () => [h("span.stockw", {}, "épuisé le 3 nov.")],
+      pros: ["Le plus complet, sans survol", "Dit que c'est une vue datée, pas l'état présent"], cons: ["Le plus long", "Dans le détail, la date est déjà sur la ligne : redite"] },
+  ];
+
+  // The notebook's detail, as in game: « Vue : » then one line per place, its date, its waypoint pin.
+  function detail(form, out) {
+    const pin = () => atlas("waypoint-mappin-tracked", 14, 14);
+    const line = (label, where, date, extra) => h("div.dl", {}, h("span.dk", {}, label),
+      h("div.dv", {}, h("span.dr", {}, h("span", {}, `${where} · ${date}`), ...(extra || []), pin())));
+    const det = h("div.nbdet", {},
+      h("div.dh", {}, U.itemIcon(787, 32), h("div.dt", {}, h("div", { class: "dn q1" }, M.item(787) ? M.item(787).name : recipe.name),
+        h("div.ds", {}, h("span", {}, M.category(SPELL).name)))),
+      h("div.dbody", {},
+        line("Composants :", "1/1 " + (M.item(6303) || {}).name, "", []),
+        line("Vue :", `Vendue par ${nessa}, ${teld}`, "3 nov.", out ? form.out() : form.lim()),
+        line("", `Vendue par ${tansy}, ${forge}`, "4 nov.", [])));
+    // The reagents line has no date: drop the stray separator the helper added.
+    const first = det.querySelector(".dbody .dr span"); first.textContent = first.textContent.replace(/ · $/, "");
+    det.querySelector(".dbody .dr").lastChild.remove();
+    return h("div.pane", {}, h("div.in", {}, det));
+  }
+
+  // The recipe's tooltip: the item, then the addon's blue lines, each place with its price on the right.
+  function tooltip(form, out) {
+    const row = (left, right, cls) => h("div.row", {}, h("span", { class: cls || "addonl" }, ...left), right ? h("span.r", {}, right) : null);
+    const lim = out ? form.out() : form.lim();
+    return h("div.tip", {},
+      h("div.row.h", {}, h("span.white", {}, item.name)),
+      row(["Requiert Cuisine (1)"], null, "white"),
+      h("div.sp"),
+      row(["Carnet"]), row(["Connue d'aucun de vos personnages"]),
+      row([`Vendue par ${nessa}, ${teld} `, ...lim], price()),
+      row([`Vendue par ${tansy}, ${forge}`], price()));
+  }
+
+  const cards = document.getElementById("cards");
+  for (const f of FORMS) {
+    const c = h("section.card" + (f.pick ? ".pick" : ""), {},
+      h("header", {}, h("h3", {}, `${f.id}. ${f.name}`), f.pick ? h("span.tag", {}, "recommandée") : null),
+      h("p.why", {}, f.sub),
+      h("div.mocks", {},
+        h("div", {}, h("p.mockcap", {}, "Détail du carnet"), h("div.shot.plain.game", {}, detail(f, false))),
+        h("div", {}, h("p.mockcap", {}, "Infobulle de la recette"), h("div.shot.game", {}, tooltip(f, false))),
+        h("div", {}, h("p.mockcap", {}, "Épuisé à la dernière visite"), h("div.shot.plain.game", {}, tooltip(f, true)))),
+      h("div.pros", {}, ...f.pros.map((t) => h("div", {}, t)), ...f.cons.map((t) => h("div.con", {}, t))));
+    cards.append(c);
+  }
+
+  // The clocks, each at the size it would have on a line and up close.
+  const clocks = document.getElementById("clocks");
+  for (const [name, what] of CLOCKS) {
+    clocks.append(h("figure", {}, h("div.big", {}, atlas(name, 40, 40)), h("div", {}, atlas(name, 13, 13)), h("figcaption", { style: { maxWidth: "150px" } }, name, h("br"), what)));
+  }
+
+  // Where it could show, with form B.
+  const B = FORMS[1];
+  const places = document.getElementById("places");
+  const place = (title, sub, mock, verdict) => places.append(h("section.card", {},
+    h("header", {}, h("h3", {}, title), h("span.tag", {}, verdict)), h("p.why", {}, sub), mock));
+  place("Détail du carnet", "Au clic sur une recette, à côté de chaque marchand.", h("div.shot.plain.game", {}, detail(B, false)), "oui");
+  place("Infobulle de la recette", "Au survol de la recette, partout : sacs, marchand, hôtel des ventes, lien.", h("div.shot.game", {}, tooltip(B, false)), "oui");
+  const row = h("div.row1", {}, U.itemIcon(ITEM, 28),
+    h("div", {}, h("div.nm", {}, recipe.name, " ", clock(false)), h("div.sb", {}, `Vendue par ${nessa}, ${teld} · stock limité`)));
+  place("Ligne du carnet", "Seulement quand tous les marchands vus l'ont en stock limité : une horloge après le nom, ou le mot sur la ligne du lieu. Toujours à l'écran tant que le carnet est ouvert.",
+    h("div.shot.plain.game", {}, h("div.pane", {}, h("div.in", {}, row))), "non, à mon avis");
+  place("Épingle de la carte", "Au survol de l'épingle d'un marchand sur la carte du monde.",
+    h("div.shot.game", {}, h("div.tip", {}, h("div.row.h", {}, h("span.white", {}, nessa)), h("div.row", {}, h("span.addonl", {}, recipe.name + " ", h("span.stockw", {}, "stock limité"))))), "à voir");
+  place("Ligne de discussion, à la visite", "Une fois par visite, comme aujourd'hui ; le mot en plus.",
+    h("div.shot.plain.game", {}, h("div.chatl", { style: { color: "#5555ff" } }, `[${item.name}] notée, chez ${nessa} (${teld}), stock limité.`)), "non, à mon avis");
+})();
+</script>
+</body>
+</html>

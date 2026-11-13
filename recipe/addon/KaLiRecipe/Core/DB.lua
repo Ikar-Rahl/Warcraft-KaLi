@@ -19,21 +19,22 @@ ns.DB = DB
 DB.VERSION = 2
 
 -- Ikar's picks of 2026-11-09, on the bench (its OPTIONS), as the in-game defaults. Read through, never saved: the
--- options table holds what the player changed.
+-- options table holds what the player changed. Gone on 2026-11-13 with the auction house's marks: mVendor and ah. A file
+-- that still holds them keeps them, unread, as for any option this version doesn't know.
 DB.DEFAULTS = {
     chat = true,
-    mKnown = true, mLearnable = true, mTooLow = true, mOwned = true, mAlt = true, mVendor = true, mCraft = true, mCraftSeen = true,
+    mKnown = true, mLearnable = true, mTooLow = true, mOwned = true, mAlt = true, mCraft = true, mCraftSeen = true,
     recipeTip = "detailed", usedIn = true, usedInSeen = true, usedInMax = 10,
     style = "clean", follow = false, width = 560, height = 820, nbOwned = true, nbAlt = true,
-    a1 = true, a2 = true, showZero = true, pins = true, ah = true, priceTrainer = true, minimap = true, minimapLock = false,
-    soundRecipe = ns.Sounds.DEFAULTS.recipe, soundPlace = ns.Sounds.DEFAULTS.place,
+    a1 = true, a2 = true, showZero = true, pins = true, priceTrainer = true, minimap = true, minimapLock = false,
+    soundRecipe = ns.Sounds.DEFAULTS.recipe, soundPlace = ns.Sounds.DEFAULTS.place, soundVolume = 200,
 }
 -- The game's own settings write a default into the table when its key is nil (Blizzard_Setting.lua): read through,
 -- the default is there, so they write nothing.
 local OPTIONS = { __index = DB.DEFAULTS }
 
 -- The options page's ranges, which loading also keeps saved numbers in.
-DB.RANGES = { width = { 460, 900 }, height = { 600, 1080 }, usedInMax = { 3, 20 } }
+DB.RANGES = { width = { 460, 900 }, height = { 600, 1080 }, usedInMax = { 3, 20 }, soundVolume = { 0, 300 } }
 DB.CHOICES = { recipeTip = { detailed = true, compact = true, off = true }, style = { clean = true, book = true },
     soundRecipe = ns.Sounds.Keys("recipe"), soundPlace = ns.Sounds.Keys("place") }
 
@@ -47,30 +48,10 @@ DB.SET_ASIDE_MAX = 500
 -- The notebook's own history: its last events.
 DB.HISTORY_MAX = 20
 
-local function deepCopy(v, seen)
-    if type(v) ~= "table" then
-        return v
-    end
-    seen = seen or {}
-    if seen[v] then
-        return seen[v]
-    end
-    local copy = {}
-    seen[v] = copy
-    for k, val in pairs(v) do
-        copy[deepCopy(k, seen)] = deepCopy(val, seen)
-    end
-    return copy
-end
-ns.DeepCopy = deepCopy
-
--- A number the file can hold, read from how it prints, not by comparing it: the game's Lua compares nan as equal to
--- itself and to everything (found by /kr test in game, 2026-11-10), so `v == v` and `v < math.huge` let it through.
--- A finite number prints with digits, a point, e and signs only; nan and inf print with letters or # ("nan",
--- "-nan(ind)", "inf", "1.#INF", "-1.#IND"), whatever the C library.
-local function finite(v)
-    return type(v) == "number" and not tostring(v):find("[^%d%.,eE%+%-]")
-end
+-- Shared/Core.lua's, which KaLi Quest's saved data uses too: a copy all the way down, how many keys a table holds, and
+-- a number the file can hold, read from how it prints, not by comparing it (the game's Lua compares nan as equal to
+-- itself and to everything: found by /kr test in game, 2026-11-10).
+local deepCopy, count, finite = ns.DeepCopy, ns.Count, ns.Finite
 DB.Finite = finite
 
 local function isID(v)
@@ -80,14 +61,6 @@ DB.IsID = isID
 
 local function tableOr(v)
     return type(v) == "table" and v or {}
-end
-
-local function count(t)
-    local n = 0
-    for _ in pairs(t or {}) do
-        n = n + 1
-    end
-    return n
 end
 
 -- ---------- Sightings: one per place ----------
@@ -111,6 +84,14 @@ local function firstDate(s)
     return finite(s.t0) and s.t0 or s.t
 end
 
+-- A vendor's stock from two readings: the highest, -1 (no limit) below any count; nil when neither read one.
+function DB.MaxStock(a, b)
+    if a == nil or b == nil then
+        return a == nil and b or a
+    end
+    return math.max(a, b)
+end
+
 -- Two sightings of one place as one, as Model's Note keeps a place seen again: the first date the earliest, the last the
 -- latest, and from the latest visit its fields, its position when it has one and its price when it read one. Neither
 -- is changed.
@@ -127,6 +108,7 @@ function DB.MergeSighting(a, b)
     out.map, out.x, out.y = place.map, place.x, place.y
     local priced = (new.cost ~= nil or new.costs ~= nil) and new or old
     out.cost, out.costs = priced.cost, deepCopy(priced.costs)
+    out.stock = DB.MaxStock(a.stock, b.stock)
     out.t0 = math.min(firstDate(a), firstDate(b))
     out.t = new.t
     return out
@@ -225,6 +207,10 @@ local function cleanSet(t, counts)
     return out, fixed
 end
 
+-- A frame's anchor points, the only names SetPoint takes.
+local POINTS = { TOPLEFT = true, TOP = true, TOPRIGHT = true, LEFT = true, CENTER = true, RIGHT = true, BOTTOMLEFT = true,
+    BOTTOM = true, BOTTOMRIGHT = true }
+
 -- The tables the code reads, there and of the right kind, and options and window state it can use. Not an upgrade:
 -- it fills gaps, and sets aside a value it can't use.
 function DB.Shape(db, aside, now)
@@ -276,7 +262,10 @@ function DB.Shape(db, aside, now)
     if ui.skill ~= nil and not isID(ui.skill) then
         ui.skill = nil
     end
-    if ui.pos ~= nil and not (type(ui.pos) == "table" and finite(ui.pos[1]) and finite(ui.pos[2])) then
+    -- The notebook's place: x, y, and the anchor points the window gave (SetPoint fails on any other name).
+    local pos = ui.pos
+    if pos ~= nil and not (type(pos) == "table" and finite(pos[1]) and finite(pos[2]) and (pos[3] == nil or POINTS[pos[3]])
+        and (pos[4] == nil or POINTS[pos[4]])) then
         ui.pos = nil
     end
     -- The minimap button's place: an angle in degrees around the minimap.
@@ -297,6 +286,11 @@ local function cleanSighting(s)
     if (s.x ~= nil or s.y ~= nil) and not (finite(s.x) and finite(s.y)) then
         s.x, s.y = nil, nil
         bad[#bad + 1] = "x, y"
+    end
+    -- A vendor's stock: -1 for no limit, else the count it had.
+    if s.stock ~= nil and not (finite(s.stock) and s.stock >= -1) then
+        s.stock = nil
+        bad[#bad + 1] = "stock"
     end
     -- A vendor's price: copper, and the tokens or items of an extended cost.
     if s.cost ~= nil and not (finite(s.cost) and s.cost >= 0) then
@@ -640,38 +634,21 @@ end
 
 -- ---------- Saving ----------
 
--- A number the game can't write back as one (nan, inf) would make the file unreadable: none is ever saved. Returns how
--- many were taken out.
-local function dropNonFinite(t, seen)
-    seen = seen or {}
-    if seen[t] then
-        return 0
-    end
-    seen[t] = true
-    local n = 0
-    for k, v in pairs(t) do
-        if (type(k) == "number" and not finite(k)) or (type(v) == "number" and not finite(v)) then
-            t[k] = nil
-            n = n + 1
-        elseif type(v) == "table" then
-            n = n + dropNonFinite(v, seen)
-        end
-    end
-    return n
-end
-
 -- At logout, the last event before the game writes the files: options back at their default go, no number the file
--- can't hold stays, and the file says who wrote it and when.
+-- can't hold stays (a nan or an inf would make the file unreadable: Shared/Core.lua's DropNonFinite), and the file says
+-- who wrote it and when.
 function DB.BeforeSave(db, now)
+    -- nan and inf first: the game's Lua finds a nan equal to every number, so the defaults below would take it for
+    -- one left at its default, and it would go uncounted (found by /kr test, 2026-11-11).
+    local n = ns.DropNonFinite(db)
+    if n > 0 then
+        db.meta.nonFinite = (finite(db.meta.nonFinite) and db.meta.nonFinite or 0) + n
+    end
     local o = db.options
     for key, default in pairs(DB.DEFAULTS) do
         if rawget(o, key) == default then
             o[key] = nil
         end
-    end
-    local n = dropNonFinite(db)
-    if n > 0 then
-        db.meta.nonFinite = (db.meta.nonFinite or 0) + n
     end
     db.meta.writer, db.meta.written = ns.VERSION, now
 end

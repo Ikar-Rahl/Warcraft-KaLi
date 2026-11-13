@@ -31,7 +31,7 @@ local function tooltip(self)
     local learn, seen = m:Counts(m.me, skill)
     local lines = {}
     if m:HasProf(m.me, skill) then
-        lines[1] = { string.format(learn == 1 and L.LEARN_TIP_ONE or L.LEARN_TIP_MANY, learn, ns.Game.ProfName(skill)) }
+        lines[1] = { string.format(ns.One(learn) and L.LEARN_TIP_ONE or L.LEARN_TIP_MANY, learn, ns.Game.ProfName(skill)) }
         lines[2] = { ns.Plural(seen, L.SEEN_TIP_ONE, L.SEEN_TIP_MANY) }
     else
         lines[1] = { ns.Plural(seen, L.SEEN_OTHER_TIP_ONE, L.SEEN_OTHER_TIP_MANY) }

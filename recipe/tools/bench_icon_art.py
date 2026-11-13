@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 
 BENCH = Path(__file__).resolve().parents[1] / "bench"
-# INV_Scroll_03, the addon's icon today, already in the bench's icons.
+# INV_Scroll_03, the addon's icon before F2 (2026-11-11), already in the bench's icons.
 ICONS = ["134939"]
 
 
@@ -22,7 +22,7 @@ def main():
         sources[ident] = "data:image/png;base64," + base64.b64encode(png.read_bytes()).decode("ascii")
     out = BENCH / "art" / "icon-sources.js"
     out.write_text("// Written by recipe/tools/bench_icon_art.py: Blizzard's icons, local only.\n"
-                   f"window.KR_ICON_SOURCES = {json.dumps(sources)};\n", encoding="utf-8")
+                   f"window.KR_ICON_SOURCES = {json.dumps(sources)};\n", encoding="utf-8", newline="\n")
     print(f"{len(sources)} icon(s) written to {out}")
 
 

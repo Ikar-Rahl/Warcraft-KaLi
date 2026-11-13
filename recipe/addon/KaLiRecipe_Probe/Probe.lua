@@ -6,6 +6,8 @@
 --   /krprobe tooltip <item>  a tooltip's data, every line and field (a recipe item: is its spell in there?)
 --   /krprobe trainer    at a trainer: each service, its tooltip's spell, its item, its rank
 --   /krprobe ah         at the auction house: one query on Recipes without a click, and what comes back
+--   /krprobe sounds     every sound the options offer, one after the other
+--   /krprobe volume     how the game takes a volume asked with a sound: three short quills, read back
 --   /krprobe show       the report so far
 local ADDON = ...
 
@@ -305,13 +307,76 @@ COMMANDS.sounds = function()
     end
 end
 
+-- How the game takes a volume asked with a sound (volumeOverride, which « Volume des sons » uses; its documentation
+-- doesn't say): the quill as the game plays it, then asked at its kit's own volume and at half of it, each read back
+-- with GetSoundScaledVolume and stopped early. The first two the same says the asked volume replaces the kit's own,
+-- what Core/Sounds.lua assumes; the second the first times the kit's own says it multiplies it.
+COMMANDS.volume = function()
+    local ns = KaLiRecipeDev and KaLiRecipeDev.ns
+    if not ns then
+        say("KaLi Recipe isn't loaded")
+        return
+    end
+    if not (C_Sound and C_Sound.PlaySoundWithOptions and C_Sound.GetSoundScaledVolume) then
+        note("volume", "api", "no C_Sound.PlaySoundWithOptions or GetSoundScaledVolume")
+        say("this game takes no volume with a sound")
+        return
+    end
+    local kit = 3093
+    local own = ns.Sounds.KIT_VOLUME[kit]
+    local tries = { { "1 as the game plays it" }, { "2 asked its own " .. own, own }, { "3 asked half of it", own / 2 } }
+    local got = {}
+    local function verdict()
+        local a, b, c = got[1], got[2], got[3]
+        local text
+        if not (a and b and c) or a <= 0 then
+            text = "no verdict: a sound wasn't read (the game's sound off?)"
+        elseif math.abs(b - a) <= a * 0.02 and math.abs(c - a / 2) <= a * 0.02 then
+            text = "replaces the kit's own: Core/Sounds.lua's assumption holds"
+        elseif math.abs(b - a * own) <= a * 0.02 then
+            text = "multiplies the kit's own: Core/Sounds.lua must ask the share alone"
+        else
+            text = "neither: see the numbers"
+        end
+        note("volume", "verdict", text)
+        say("volume: " .. text)
+    end
+    for i, t in ipairs(tries) do
+        C_Timer.After((i - 1) * 0.8, function()
+            local ok, success, handle
+            if t[2] then
+                ok, success, handle = pcall(C_Sound.PlaySoundWithOptions, { soundKitID = kit, uiSoundSubType = "SFX", volumeOverride = t[2] })
+            else
+                ok, success, handle = pcall(PlaySound, kit)
+            end
+            if not ok or not handle then
+                note("volume", t[1], ok and ("not played: " .. tostring(success)) or ("error " .. tostring(success)))
+                if i == #tries then
+                    verdict()
+                end
+                return
+            end
+            C_Timer.After(0.1, function()
+                local read, v = pcall(C_Sound.GetSoundScaledVolume, handle)
+                got[i] = read and type(v) == "number" and v or nil
+                note("volume", t[1], read and tostring(v) or ("error " .. tostring(v)))
+                say(t[1] .. ": " .. (read and tostring(v) or tostring(v)))
+                pcall(StopSound, handle, 100)
+                if i == #tries then
+                    verdict()
+                end
+            end)
+        end)
+    end
+end
+
 SLASH_KRPROBE1 = "/krprobe"
 SLASH_KRPROBE2 = "/kaliprobe"
 SlashCmdList.KRPROBE = function(input)
     local cmd, rest = (input or ""):match("^[ \t]*([^ \t]*)[ \t]*(.-)[ \t]*$")
     local fn = COMMANDS[cmd:lower()]
     if not fn then
-        say("/krprobe [window|spellbook|tooltip <item>|trainer|ah|bank|sounds|show]")
+        say("/krprobe [window|spellbook|tooltip <item>|trainer|ah|bank|sounds|volume|show]")
         return
     end
     if not report then

@@ -53,7 +53,8 @@
     <h1>KaLi Recipe's icon</h1>
     <p>KaLi Quest's « Noir et or », its tile, thin corners and gold K, with a sign of recipes where the quest mark is.
       Drawn 64 by 64; the game shrinks the file to 20 px in the AddOns list, 16 px in the compartment and on Titan Panel,
-      and 18 px inside the minimap button. Click a candidate to see it in those places, beside KaLi Quest's.</p>
+      and 18 px inside the minimap button. Click a candidate to see it in those places, beside KaLi Quest's. Make one the
+      addon's with <code>python -I recipe/tools/make_icon.py &lt;id&gt;</code>; the one it holds is marked « in the addon ».</p>
   </header>
   <section class="context">
     <div>
@@ -77,6 +78,7 @@
 
   <script src="../../quest/bench/js/icons.js"></script>
   <script src="../../quest/bench/js/icon-installed.js"></script>
+  <script src="js/icon-installed.js"></script>
   <script src="art/icon-sources.js"></script>
   <script src="js/icons-recipe.js"></script>
   <script>
@@ -87,7 +89,7 @@
     // The game's scroll, recoloured from its own pixels: read before anything is drawn.
     await KRIcons.ready().catch(() => {});
 
-    // tools/make_icon.py's way in: the candidate's 64 by 64 pixels, as base64.
+    // recipe/tools/make_icon.py's way in: the candidate's 64 by 64 pixels, as base64.
     if (params.has("export")) {
       const entry = KRIcons.byId(params.get("export"));
       const pre = document.createElement("pre");
@@ -105,8 +107,8 @@
       return;
     }
 
-    // The icon today: the game's INV_Scroll_03.
-    const CURRENT = { id: "current", name: "Today", note: "INV_Scroll_03, the game's own scroll: the TOC's icon until one of these." };
+    // The icon before Ikar's pick: the game's INV_Scroll_03.
+    const CURRENT = { id: "current", name: "Before", note: "INV_Scroll_03, the game's own scroll: the TOC's icon until F2, Plume fendue (2026-11-11)." };
     const INSTALLED = window.KR_ICON_INSTALLED;
     const files = new Map(KRIcons.LIST.map((e) => [e.id, KQIcons.render(e, 64)]));
     const kaliQuest = KQIcons.render(KQIcons.byId(window.KQ_ICON_INSTALLED || "kq-noir-or"), 64);

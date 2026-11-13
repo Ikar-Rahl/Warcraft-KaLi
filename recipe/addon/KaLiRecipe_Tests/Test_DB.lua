@@ -283,6 +283,24 @@ T.Add("DB", "two copies merge: one sighting per place, the earliest first date, 
     T.Eq(DB.Merge(a, b), 0, "merged twice: nothing more")
     local p = DB.MergeSighting({ k = "vendor", npc = 1, t0 = 1, t = 1, cost = 5 }, { k = "vendor", npc = 1, t0 = 2, t = 2 })
     T.Eq(p.cost .. "/" .. p.t, "5/2", "a later visit that read no price keeps the one known")
+    local q = DB.MergeSighting({ k = "vendor", npc = 1, t0 = 1, t = 1, stock = 3 }, { k = "vendor", npc = 1, t0 = 2, t = 2, stock = 0 })
+    T.Eq(q.stock, 3, "two copies' stocks: the highest, not the latest")
+    T.Eq(DB.MergeSighting({ k = "vendor", npc = 1, t0 = 1, t = 1 }, { k = "vendor", npc = 1, t0 = 2, t = 2, stock = -1 }).stock, -1,
+        "one copy read none: the other's")
+    T.Eq(DB.MaxStock(nil, nil), nil, "neither: none")
+end)
+
+T.Add("DB", "a vendor's stock a file can't hold is cleared, the sighting kept", function()
+    local data = { version = DB.VERSION, sightings = { [2795] = {
+        { k = "vendor", npc = 4223, t0 = 1, t = 1, item = 2889, stock = 0 / 0 },
+        { k = "vendor", npc = 4224, t0 = 1, t = 1, item = 2889, stock = -7 },
+        { k = "vendor", npc = 4225, t0 = 1, t = 1, item = 2889, stock = 4 },
+    } } }
+    local db = DB.Load(data, NOW)
+    local list = db.sightings[2795]
+    T.Eq(#list, 3, "every sighting kept")
+    T.Eq(tostring(list[1].stock) .. "/" .. tostring(list[2].stock) .. "/" .. tostring(list[3].stock), "nil/nil/4",
+        "nan and a count below -1 cleared, a count kept")
 end)
 
 T.Add("DB", "a recipe forgotten stays forgotten when a copy merges; seen again afterwards, it's back", function()
@@ -442,6 +460,9 @@ T.Add("DB", "the window's state: what doesn't fit goes back to its default", fun
     T.Eq(opened({ minimap = "top" }).minimap, nil, "not a number: the default place")
     T.Eq(opened({ minimap = 0 / 0 }).minimap, nil, "nan: the default place")
     T.Eq(opened({ pos = { "x", 3 } }).pos, nil, "a position that isn't one")
+    T.Eq(opened({ pos = { 10, -40, "TOPLEFT", "TOPLEFT" } }).pos[3], "TOPLEFT", "the window's own place kept")
+    T.Eq(opened({ pos = { 10, -40, "UPLEFT", "TOPLEFT" } }).pos, nil, "an anchor SetPoint doesn't take: the default place")
+    T.Eq(opened({ pos = { 10, -40, "TOPLEFT", 3 } }).pos, nil, "nor a number for the other one")
     T.Eq(opened({ skill = 1.5 }).skill, nil, "a tab that isn't a profession")
     local ui = opened({ open = { known = "yes" } })
     T.Eq(ui.open.known, false, "a section's state that isn't one")

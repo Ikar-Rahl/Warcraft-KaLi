@@ -102,6 +102,8 @@
   // out from then over SOUNDS.fade seconds, as the addon's StopSound(handle, fade) does.
   U.sound = (kind, key) => (window.SOUNDS && SOUNDS.kinds[kind] || []).find((c) => c.key === key) || null;
   let playing = null, timers = [];
+  // « Volume des sons », set by the bench from its options: a share of each kit's own volume, at most full.
+  U.soundVolume = 1;
   const hush = () => {
     timers.forEach(clearTimeout); timers = [];
     if (playing) { playing.pause(); playing = null; }
@@ -109,10 +111,10 @@
   U.playSound = (kind, key) => {
     const c = U.sound(kind, key);
     hush();
-    if (!c || !c.takes.length) return;
+    if (!c || !c.takes.length || !(U.soundVolume > 0)) return;
     const take = c.takes[Math.floor(Math.random() * c.takes.length)];
     const audio = new Audio(take.file);
-    const volume = Math.max(0, Math.min(1, c.volume));
+    const volume = Math.max(0, Math.min(1, c.volume * U.soundVolume));
     audio.volume = volume;
     playing = audio;
     audio.play().catch(() => { /* the browser wants a click first: the next click plays */ });

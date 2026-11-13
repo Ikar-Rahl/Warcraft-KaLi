@@ -663,7 +663,7 @@ window.KRIcons = (() => {
   ];
 
   // ---------- The game's scroll, recoloured (Ikar, 2026-11-11: "not an invented parchemin, a good copy") ----------
-  // INV_Scroll_03 itself, the addon's icon today: its own pixels, the dark ground taken out, each shade mapped onto the
+  // INV_Scroll_03 itself, the addon's icon before F2: its own pixels, the dark ground taken out, each shade mapped onto the
   // K's gold, so the drawing, its shading and its three-quarter view are the game's. Blizzard's art: the bench keeps it
   // local; shipping it in the addon's file is Ikar's call.
   const TONES = [[0, [64, 28, 0]], [0.3, [176, 98, 6]], [0.58, [240, 170, 30]], [0.8, [255, 218, 100]], [1, [255, 249, 218]]];

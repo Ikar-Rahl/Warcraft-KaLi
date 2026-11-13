@@ -41,6 +41,27 @@ T.Add("Model", "a sighting is noted once per place, with its first and last date
     T.Eq(#m:Sightings(R.ribs), 3, "three places")
 end)
 
+T.Add("Model", "a vendor's stock: the highest seen, so a limited one stays known as limited", function()
+    local m, db = T.NewBook()
+    local function visit(stock, t)
+        local s = T.Vendor()
+        s.stock = stock
+        m:Note(R.ribs, s, t)
+        return db.sightings[R.ribs][1].stock
+    end
+    T.Eq(visit(2, 100), 2, "two left at the first visit")
+    T.Eq(visit(0, 200), 2, "sold out later: still two")
+    T.Eq(visit(nil, 300), 2, "a visit that read none: still two")
+    T.Eq(visit(5, 400), 5, "more later: five")
+    local fresh = T.Vendor(9999)
+    fresh.stock = -1
+    m:Note(R.ribs, fresh, 500)
+    fresh = T.Vendor(9999)
+    fresh.stock = 1
+    m:Note(R.ribs, fresh, 600)
+    T.Eq(db.sightings[R.ribs][2].stock, 1, "no limit, then a limit: limited")
+end)
+
 T.Add("Model", "states: known, learnable, rank too low, another profession", function()
     local m, db = T.NewBook()
     T.Eq(m:State(R.ribs, "me"), "learnable", "cook 56, requires 25")
@@ -188,14 +209,6 @@ T.Add("Model", "a recipe noted by mistake can be forgotten", function()
     T.Eq(m:Total(), 0, "out of the notebook")
 end)
 
-T.Add("Model", "the auction house's eye: a vendor sells it too", function()
-    local m = T.NewBook()
-    m:Note(R.ribs, { k = "ah" }, 1)
-    T.Eq(m:AtVendor(R.ribs), false, "only the auction house")
-    m:Note(R.ribs, T.Vendor(), 2)
-    T.True(m:AtVendor(R.ribs), "a vendor too")
-end)
-
 T.Add("Model", "a vendor's price is kept, and follows the last visit", function()
     local m, db = T.NewBook()
     local s = T.Vendor()
@@ -216,4 +229,20 @@ T.Add("Model", "a trainer's price is kept too, and follows the last visit", func
     T.Eq(db.sightings[R.stew][1].cost, 400, "the price as last seen")
     m:Note(R.stew, { k = "trainer", npc = 5000, map = 1453 }, 300)
     T.Eq(db.sightings[R.stew][1].cost, 400, "a visit that read no price leaves it")
+end)
+
+T.Add("Model", "each language the addon speaks names every category and profession English names", function()
+    local missing = {}
+    for _, locale in ipairs({ "frFR", "deDE", "esES", "esMX" }) do
+        for _, kind in ipairs({ "CATEGORY_NAMES", "PROFESSION_NAMES" }) do
+            local names = ns[kind][locale] or {}
+            for id in pairs(ns[kind].enUS) do
+                if type(names[id]) ~= "string" or names[id] == "" then
+                    missing[#missing + 1] = string.format("%s %s %d", locale, kind, id)
+                end
+            end
+        end
+    end
+    table.sort(missing)
+    T.Eq(table.concat(missing, ", "), "", "names missing")
 end)

@@ -11,23 +11,29 @@ local SHOWN = 3
 
 -- The line for recipes noted in one place: "Carnet : 3 recettes notées chez Ellandrieth (Darnassus) : [A], [B],
 -- [C] et 2 autres." One looted recipe: "Carnet : [A] notée, butin de Kobold (Elwynn)." link(spell) gives each link.
-function Chat.Line(m, where, spells, link)
+-- seen[spell], the sighting noted: one at a vendor with a limited stock gets the grey clock after its link, the one
+-- name there standing for several recipes, each with its own stock.
+function Chat.Line(m, where, spells, link, seen)
+    local function linked(spell)
+        local s = seen and seen[spell]
+        return ns.Text.Limited(s) and link(spell) .. " " .. ns.Text.CLOCK_MARKUP or link(spell)
+    end
     local n = #spells
     if n == 0 then
         return nil
     end
     if n == 1 and where.k == "drop" then
-        return L.CARNET_PREFIX .. string.format(L.CHAT_SINGLE, link(spells[1]), ns.Text.At(m, where))
+        return L.CARNET_PREFIX .. string.format(L.CHAT_SINGLE, linked(spells[1]), ns.Text.At(m, where))
     end
     local links = {}
     for i = 1, math.min(n, SHOWN) do
-        links[i] = link(spells[i])
+        links[i] = linked(spells[i])
     end
     local list = table.concat(links, ", ")
     if n > SHOWN then
         list = list .. ns.Plural(n - SHOWN, L.MORE_ONE, L.MORE_MANY)
     end
-    return L.CARNET_PREFIX .. string.format(n == 1 and L.CHAT_ONE or L.CHAT_MANY, n, ns.Text.At(m, where), list)
+    return L.CARNET_PREFIX .. string.format(ns.One(n) and L.CHAT_ONE or L.CHAT_MANY, n, ns.Text.At(m, where), list)
 end
 
 function Chat.Print(text)
@@ -68,15 +74,16 @@ local Visit = {}
 Visit.__index = Visit
 
 function Chat.Visit(where)
-    return setmetatable({ where = where, spells = {}, set = {} }, Visit)
+    return setmetatable({ where = where, spells = {}, set = {}, seen = {} }, Visit)
 end
 
--- what: "recipe" or "place", from the model's Note.
-function Visit:Add(spell, what)
+-- what: "recipe" or "place", from the model's Note; s, the sighting noted.
+function Visit:Add(spell, what, s)
     if self.set[spell] then
         return
     end
     self.set[spell] = true
+    self.seen[spell] = s
     self.spells[#self.spells + 1] = spell
     if what == "recipe" or not self.found then
         self.found = what or "place"
@@ -103,5 +110,5 @@ function Visit:Flush()
         self.heard = sound
         ns.Sounds.Play(sound)
     end
-    Chat.Print(Chat.Line(ns.book, self.where, spells, ns.Widgets.RecipeLink))
+    Chat.Print(Chat.Line(ns.book, self.where, spells, ns.Widgets.RecipeLink, self.seen))
 end

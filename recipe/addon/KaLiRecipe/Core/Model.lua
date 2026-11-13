@@ -276,7 +276,8 @@ function M:Seen(spell)
 end
 
 -- One sighting per place (DB.PlaceKey): seen again, it keeps its first date and takes the new one.
--- s = { k, npc, map, x, y, q, item, and at a vendor cost (copper) and costs ({ n, item or currency, tex }) }. Returns
+-- s = { k, npc, map, x, y, q, item, and at a vendor cost (copper), costs ({ n, item or currency, tex }) and stock (how
+-- many it had left, -1 for no limit) }. Returns
 -- true when it's new, and what was new: "recipe" when the notebook didn't hold it at all (never seen, known by none of
 -- the characters), "place" when it did and this is a new place for it.
 function M:Note(spell, s, now)
@@ -301,6 +302,9 @@ function M:Note(spell, s, now)
             if s.cost or s.costs then
                 old.cost, old.costs = s.cost, s.costs
             end
+            -- A vendor's stock: the highest seen, so a limited one stays known as limited (Ikar, 2026-11-13: "store the
+            -- higher number in case of update ... the moment to moment has no value").
+            old.stock = ns.DB.MaxStock(old.stock, s.stock)
             return false
         end
     end
@@ -329,16 +333,6 @@ function M:Sources(spell)
         set[s.k] = true
     end
     return set
-end
-
--- A vendor sells it: the auction house's eye says it needn't be bought there.
-function M:AtVendor(spell)
-    for _, s in ipairs(self:Sightings(spell)) do
-        if s.k == "vendor" then
-            return true
-        end
-    end
-    return false
 end
 
 -- ---------- States and counts ----------

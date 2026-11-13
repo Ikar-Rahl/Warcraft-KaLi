@@ -50,6 +50,15 @@ CRAFT_IS_MAKEABLE = "Comp. disponibles"
 VIDEO_OPTIONS_ENABLED = "Activé"
 VIDEO_OPTIONS_DISABLED = "Désactivé"
 MINIMAP_LABEL = "Minicarte"
+PERCENTAGE_STRING = "%d%%"
+-- Blizzard_SharedXML/FormattingUtil.lua's.
+function FormatPercentage(percentage, roundToNearestInteger)
+    percentage = percentage * 100
+    if roundToNearestInteger then
+        percentage = math.floor(percentage + 0.5)
+    end
+    return PERCENTAGE_STRING:format(percentage)
+end
 ITEM_QUALITY_COLORS = { [0] = { r = 0.6, g = 0.6, b = 0.6 }, [1] = { r = 1, g = 1, b = 1 }, [2] = { r = 0.1, g = 1, b = 0 } }
 -- The Enum tables the addon names (ItemClass, TooltipDataType, BagIndex...) aren't written here: the runner puts in
 -- this build's own, from the API docs, before this file loads.
@@ -224,13 +233,16 @@ function GetMerchantItemID(i)
 end
 -- Prices: F.merchantPrices[item] in copper; F.merchantCosts[item] = { { texture, count, link } } for an extended cost.
 F.merchantPrices, F.merchantCosts = {}, {}
+-- Stock: F.merchantStock[item], how many are left; -1 (no limit) unless set.
+F.merchantStock = {}
 C_MerchantFrame = C_MerchantFrame or {}
 C_MerchantFrame.GetItemInfo = function(i)
     local item = F.merchant[i]
     if not item then
         return nil
     end
-    return { name = F.itemNames[item], texture = 0, price = F.merchantPrices[item] or 0, stackCount = 1, numAvailable = -1,
+    return { name = F.itemNames[item], texture = 0, price = F.merchantPrices[item] or 0, stackCount = 1,
+        numAvailable = F.merchantStock[item] or -1,
         isPurchasable = true, isUsable = true, hasExtendedCost = F.merchantCosts[item] ~= nil, isQuestStartItem = false }
 end
 function GetMerchantItemCostInfo(i)
@@ -352,11 +364,14 @@ end
 -- ---------- The professions window and book ----------
 
 F.windowRecipes, F.windowLearned, F.windowCats = {}, {}, {}
+-- With no profession open, the game answers profession 0 with no name, never nil (Blizzard_ProfessionsFrame.lua's
+-- Refresh and Professions.GetProfessionInfo test professionID == 0): an invented nil hid the API check's "skill line 0"
+-- false alarm, 2026-11-11. The child profession, here, is never available, as in some NPC crafting.
 C_TradeSkillUI.GetBaseProfessionInfo = function()
-    return F.openProfession and { professionID = F.openProfession, professionName = "Cuisine" } or nil
+    return F.openProfession and { professionID = F.openProfession, professionName = "Cuisine" } or { professionID = 0, professionName = "" }
 end
 C_TradeSkillUI.GetChildProfessionInfo = function()
-    return nil
+    return { professionID = 0, professionName = "" }
 end
 C_TradeSkillUI.IsTradeSkillReady = function()
     return F.openProfession ~= nil
@@ -583,12 +598,28 @@ function CreateFrame(kind, name, parent, template)
 end
 
 -- Sounds: PlaySound returns whether it will play and a handle, as in game; F.sounds lists the kits played with their
--- handles, F.stopped the handles StopSound was given, with the fade-out in milliseconds.
-F.sounds, F.stopped, F.soundHandle = {}, {}, 0
+-- handles and the volume asked (C_Sound.PlaySoundWithOptions's volumeOverride, else none), F.stopped the handles
+-- StopSound was given, with the fade-out in milliseconds.
+-- A sound's volume as GetSoundScaledVolume reads it back: the kit's own (SoundKit's VolumeFloat), or the one asked in
+-- its place, the player's volumes at full.
+F.sounds, F.stopped, F.soundHandle, F.scaled = {}, {}, 0, {}
+F.kitVolume = { [3093] = 0.3, [1209] = 0.5, [1192] = 0.6 }
 function PlaySound(kit)
     F.soundHandle = F.soundHandle + 1
     F.sounds[#F.sounds + 1] = { kit = kit, handle = F.soundHandle }
+    F.scaled[F.soundHandle] = F.kitVolume[kit] or 1
     return F.soundRefused ~= kit, F.soundHandle
+end
+C_Sound = C_Sound or {}
+function C_Sound.PlaySoundWithOptions(params)
+    F.soundHandle = F.soundHandle + 1
+    F.sounds[#F.sounds + 1] = { kit = params.soundKitID, handle = F.soundHandle, volume = params.volumeOverride,
+        channel = params.uiSoundSubType }
+    F.scaled[F.soundHandle] = params.volumeOverride or F.kitVolume[params.soundKitID] or 1
+    return F.soundRefused ~= params.soundKitID, F.soundHandle
+end
+function C_Sound.GetSoundScaledVolume(handle)
+    return F.scaled[handle] or 0
 end
 function StopSound(handle, fade)
     F.stopped[handle] = fade or 0
@@ -613,13 +644,12 @@ end
 
 -- What the API check looks for that the shared fake lacks: the font objects the addon names, and a few globals.
 for _, name in ipairs({ "GameFontNormal", "GameFontNormalSmall", "GameFontNormalLarge", "GameFontHighlight", "GameFontHighlightSmall",
-    "GameFontDisable", "GameFontDisableSmall" }) do
+    "GameFontDisable", "GameFontDisableSmall", "GameFontHighlightMedium", "GameFontHighlightLarge", "GameFontDisableMed2" }) do
     _G[name] = _G[name] or CreateFont(name)
 end
 NUM_BAG_SLOTS = 4
 ContainerFrameCombinedBags = CreateFrame("Frame", "ContainerFrameCombinedBags", UIParent)
 ContainerFrameCombinedBags:Hide()
-MinimalSliderWithSteppersMixin = { Label = { Right = 2 } }
 
 -- The minimap, round unless a test sets F.minimapShape (SexyMap and the like define GetMinimapShape), and the pointer.
 Minimap = CreateFrame("Frame", "Minimap", UIParent)

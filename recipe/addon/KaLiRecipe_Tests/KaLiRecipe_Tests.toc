@@ -8,6 +8,7 @@
 ## Dependencies: KaLiRecipe
 
 Shared\Harness.lua
+Shared\Locales.lua
 FakeGame.lua
 Fixtures.lua
 Test_DB.lua

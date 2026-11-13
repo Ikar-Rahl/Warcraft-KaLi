@@ -1,10 +1,11 @@
--- Marks on recipe items wherever the game shows an item slot: vendors, bags (Blizzard's and Baganator's, through its
--- own corner widgets), and the auction house's rows. The addon's own small frames ride on top of Blizzard's buttons;
--- it reads them through post-hooks and changes nothing of theirs. Each mark is an option.
+-- Marks on recipe items wherever the game shows an item slot: vendors and bags (Blizzard's and Baganator's, through its
+-- own corner widgets). The addon's own small frames ride on top of Blizzard's buttons; it reads them through post-hooks
+-- and changes nothing of theirs. Each mark is an option.
 --   top left: the state (known: the tracker's check; to learn: the required rank in its colour; too low: in red),
 --             or, on an item a recipe makes, the profession's small icon;
---   bottom left: this character holds it (the banker on a dark disc); bottom right: another character does (friend);
---   the auction house: a white eye on a recipe a vendor seen before also sells.
+--   bottom left: this character holds it (the banker on a dark disc); bottom right: another character does (friend).
+-- None on the auction house's rows, Blizzard's or Auctionator's (Ikar, 2026-11-13: they clashed with what those lists
+-- already do): there the recipe's tooltip says it all, and « Relever les recettes » notes them.
 local _, ns = ...
 local L = ns.L
 local W = ns.Widgets
@@ -25,7 +26,7 @@ local function disc(o, size)
     return t
 end
 
--- slot: icon marks inside a 37-unit item slot; inline: one row of small marks (the auction house's lines).
+-- slot: icon marks inside a 37-unit item slot; inline: one row of small marks (Baganator's corner widgets).
 local function overlay(button, inline)
     local o = overlays[button]
     if o then
@@ -46,9 +47,6 @@ local function overlay(button, inline)
     o.alt = o:CreateTexture(nil, "OVERLAY", nil, 2)
     o.alt:SetSize(15, 15)
     W.SetAtlas(o.alt, W.ATLAS.friend)
-    o.eye = o:CreateTexture(nil, "OVERLAY", nil, 2)
-    o.eye:SetSize(16, 16)
-    W.SetAtlas(o.eye, W.ATLAS.eye)
     if inline then
         o:SetSize(110, 18)
         o.inline = true
@@ -60,38 +58,31 @@ local function overlay(button, inline)
         o.discMine:SetPoint("BOTTOMLEFT", 0, 0)
         o.mine:SetPoint("CENTER", o.discMine, "CENTER", 0, 0)
         o.alt:SetPoint("BOTTOMRIGHT", 1, -1)
-        o.eye:SetPoint("TOPRIGHT", 2, 2)
     end
     overlays[button] = o
     return o
 end
 
 local function hideAll(o)
-    for _, part in ipairs({ o.check, o.badge, o.craft, o.discMine, o.mine, o.alt, o.eye }) do
+    for _, part in ipairs({ o.check, o.badge, o.craft, o.discMine, o.mine, o.alt }) do
         part:Hide()
     end
 end
 
--- In a row, the shown marks one after another. With room (the auction house): from the right instead, the most
--- telling mark at the right edge, the next ones to its left while they fit; the item's tooltip says it all anyway.
-local function lineUp(o, parts, room)
-    local x, kept = 0, 0
+-- In a row, the shown marks one after another.
+local function lineUp(o, parts)
+    local x = 0
     for _, part in ipairs(parts) do
-        local w = part:GetWidth()
         part:ClearAllPoints()
-        if room and x + w > room then
-            part:Hide()
-        else
-            part:SetPoint(room and "RIGHT" or "LEFT", o, room and "RIGHT" or "LEFT", room and -x or x, 0)
-            x, kept = x + w + 3, kept + 1
-        end
+        part:SetPoint("LEFT", o, "LEFT", x, 0)
+        x = x + part:GetWidth() + 3
     end
     o.discMine:SetShown(o.mine:IsShown())
     if o.discMine:IsShown() then
         o.discMine:ClearAllPoints()
         o.discMine:SetPoint("CENTER", o.mine, "CENTER", 0, 0)
     end
-    return kept
+    return #parts
 end
 
 -- The best of the recipes that make an item: one this character knows, then one another knows, then one seen.
@@ -106,8 +97,7 @@ local function crafter(m, item, withSeen)
     return best, bestRank
 end
 
--- ctx: { owned = false in the character's own bags, where "you hold it" says nothing; eye = true on the auction
--- house; room = the width the marks may take, from the right }. Returns whether anything shows.
+-- ctx: { owned = false in the character's own bags, where "you hold it" says nothing }. Returns whether anything shows.
 function Markers.Apply(o, item, ctx)
     hideAll(o)
     local m = ns.book
@@ -127,11 +117,6 @@ function Markers.Apply(o, item, ctx)
             W.SetBadge(o.badge, spell, m.me)
             o.badge:Show()
             shown[#shown + 1] = o.badge
-        end
-        -- Before buying, after the state: a vendor sells it too.
-        if ctx.eye and opt.mVendor and state ~= "known" and m:AtVendor(spell) then
-            o.eye:Show()
-            shown[#shown + 1] = o.eye
         end
         local pos = m:Possession(spell)
         if pos and pos.mine and opt.mOwned and ctx.owned ~= false then
@@ -153,7 +138,7 @@ function Markers.Apply(o, item, ctx)
         end
     end
     if o.inline then
-        return lineUp(o, shown, ctx.room) > 0
+        return lineUp(o, shown) > 0
     end
     return #shown > 0
 end
@@ -261,56 +246,15 @@ local function baganator()
     return true
 end
 
--- ---------- The auction house ----------
-
--- A browse row's cells (AuctionHouseTableBuilder.GetBrowseListLayout): the item's, its name after its icon, and the
--- last column of text after it, the quantity. Blizzard writes the quantity from the left, a few digits, so the right
--- end of that column stays empty: the marks go there. Everywhere else they covered something: after the first cell's
--- Text they sat over the price, and after the name, over the end of a long one (Ikar's screenshots, 2026-11-10).
-function Markers.AuctionCells(row)
-    local item, column
-    for _, cell in ipairs(row.cells or {}) do
-        if cell.Icon and cell.Text then
-            item = cell
-        elseif item and cell.Text and not cell.MoneyDisplay then
-            column = cell
-        end
-    end
-    return item, column
-end
-
--- Of the gap Blizzard leaves before the favourite's star, what the marks may take.
-local INTO_GAP = 8
-
-local function updateAuctions()
-    local list = AuctionHouseFrame and AuctionHouseFrame.BrowseResultsFrame and AuctionHouseFrame.BrowseResultsFrame.ItemList
-    local box = list and list.ScrollBox
-    if not (box and box.ForEachFrame and list:IsVisible()) then
-        return
-    end
-    box:ForEachFrame(function(row)
-        local data = row.rowData
-        local item = data and data.itemKey and data.itemKey.itemID
-        local o = overlay(row, true)
-        local _, column = Markers.AuctionCells(row)
-        o:ClearAllPoints()
-        if not (column and ns.db.options.ah) then
-            hideAll(o)
-            return
-        end
-        o:SetPoint("RIGHT", column, "RIGHT", INTO_GAP, 0)
-        local room = (column:GetWidth() or 0) + INTO_GAP - (column.Text:GetStringWidth() or 0) - 4
-        Markers.Apply(o, item, { eye = true, room = math.max(0, room) })
-    end)
-end
+-- ---------- The auction house: the button, no marks ----------
 
 local auctionButton
 -- Shown with the browse list only: other pages (an item's auctions, selling, Auctionator's tabs) have their own buttons
--- down there. The option « À l'hôtel des ventes » takes it away with the marks.
+-- down there.
 local function syncAuctionButton()
     local browse = AuctionHouseFrame and AuctionHouseFrame.BrowseResultsFrame
     if auctionButton then
-        auctionButton:SetShown(ns.db.options.ah and browse ~= nil and browse:IsVisible())
+        auctionButton:SetShown(browse ~= nil and browse:IsVisible())
     end
 end
 
@@ -341,11 +285,7 @@ end
 
 local function hookAuctions()
     local browse = AuctionHouseFrame and AuctionHouseFrame.BrowseResultsFrame
-    local list = browse and browse.ItemList
-    if list and list.CallRefreshCallback then
-        hooksecurefunc(list, "CallRefreshCallback", function()
-            ns.SafeCall(updateAuctions)
-        end)
+    if browse and browse.HookScript then
         makeAuctionButton(browse)
         return true
     end
@@ -379,8 +319,6 @@ function Markers.Start()
         for frame in pairs(containerFrames) do
             updateContainer(frame)
         end
-        updateAuctions()
-        syncAuctionButton()
         if Markers.baganator and Baganator.API.RequestItemButtonsRefresh then
             Baganator.API.RequestItemButtonsRefresh()
         end

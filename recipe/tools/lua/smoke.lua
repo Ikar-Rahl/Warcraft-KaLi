@@ -32,24 +32,56 @@ local function slash(text)
     run(SlashCmdList.KALIRECIPE, text)
     F.RunTimers()
 end
--- The addon's sounds since the last call, as "kit,kit", a stopped one as "kit/fade" (the collapse toggles' click left
--- out).
+-- The addon's sounds since the last call, as "kit,kit", a stopped one as "kit/fade", one at a volume asked of the game
+-- as "kit@volume", on another channel than the effects' "kit@volume!channel" (the collapse toggles' click left out).
 local function heard()
     local out = {}
     for _, s in ipairs(F.sounds) do
         if s.kit ~= SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON then
             local fade = F.stopped[s.handle]
-            out[#out + 1] = s.kit .. (fade and ("/" .. fade) or "")
+            out[#out + 1] = s.kit .. (s.volume and ("@" .. s.volume) or "") .. (s.volume and s.channel ~= "SFX" and ("!" .. tostring(s.channel)) or "")
+                .. (fade and ("/" .. fade) or "")
         end
     end
     F.sounds = {}
     return table.concat(out, ",")
 end
--- The quill to its end, the quill stopped early and fading out, a parchment laid down.
-local QUILL, STROKE, PARCHMENT = "3093", "3093/200", "1209"
+-- The quill to its end, the quill stopped early and fading out, a parchment laid down: at the default 200 %, twice
+-- each kit's own volume, the parchment's capped at full.
+local QUILL, STROKE, PARCHMENT = "3093@0.6", "3093@0.6/200", "1209@1"
 
 local ns = KaLiRecipeDev.ns
 local L = ns.L
+-- The options window (Ikar, 2026-11-13: "dans une fenêtre séparée"): a row of it, and a value set as its control sets
+-- it, the change made in the window.
+local options = ns.Options.handle
+local function optionRow(key)
+    for _, section in ipairs(options:Sections()) do
+        for _, row in ipairs(section.rows) do
+            if row.key == key then
+                return row
+            end
+        end
+    end
+end
+local function setOption(key, value)
+    local row = optionRow(key)
+    if not row then
+        error("the options window has no row " .. key)
+    end
+    options:Set(row, value)
+end
+local function defaultOption(key)
+    setOption(key, options:Default(optionRow(key)))
+end
+-- The frame showing a row, once the window is built.
+local function windowRow(key)
+    for _, f in ipairs(KaLiRecipeOptions and KaLiRecipeOptions.rows or {}) do
+        if f.row.key == key then
+            return f
+        end
+    end
+end
 
 -- Names the game would give.
 F.itemNames[2889] = "Recette : Côtes de sanglier à la bière"
@@ -104,6 +136,8 @@ F.merchant = { 159, 2889, 728, 2598 }
 -- What the vendor asks: money for the ribs, three tokens for the stew.
 F.merchantPrices[2889] = 1250
 F.merchantCosts[728] = { { 133784, 3, "|cffffffff|Hitem:20558::|h[Marque]|h|r" } }
+-- One left of the ribs; the stew without limit (Ikar, 2026-11-13: store it, show a grey clock when limited).
+F.merchantStock[2889] = 1
 F.chat = {}
 heard()
 F.Fire("MERCHANT_SHOW")
@@ -117,16 +151,24 @@ expect(ns.db.sightings[159] == nil, "water isn't a recipe")
 expect(ns.db.sightings[2795][1].cost == 1250, "the vendor's price kept with the sighting")
 local tokens = ns.db.sightings[2543] and ns.db.sightings[2543][1].costs
 expect(tokens and tokens[1].n == 3 and tokens[1].item == 20558 and tokens[1].tex == 133784, "and its tokens, by item")
+expect(ns.db.sightings[2795][1].stock == 1 and ns.db.sightings[2543][1].stock == -1,
+    "the vendor's stock as the game gives it: 1 left of the ribs, no limit on the stew")
+expect(F.chat[1] and F.chat[1].text:find("[Recette : Côtes de sanglier à la bière]|h|r " .. ns.Text.CLOCK_MARKUP, 1, true)
+    and select(2, F.chat[1].text:gsub(ns.Text.CLOCK_MARKUP:gsub("%p", "%%%0"), "")) == 1,
+    "the visit's line puts the grey clock after the limited recipe's link only: " .. tostring(F.chat[1] and F.chat[1].text))
 expect(#F.chat == 1, "one chat line for the visit, got " .. #F.chat)
 expect(chatHas(string.format(L.CHAT_MANY, 3, string.format(L.AT_NPC, "Ellandrieth", "Darnassus"), "")
     :sub(1, 20)), "the line counts three recipes: " .. tostring(F.chat[1] and F.chat[1].text))
 expect(F.chat[1] and F.chat[1].b == 1, "in the SKILL colour")
 F.chat = {}
 F.Advance(3)
+F.merchantStock[2889] = 0
 F.Fire("MERCHANT_SHOW")
 F.RunTimers()
 F.Fire("MERCHANT_CLOSED")
 expect(#F.chat == 0, "a second visit says nothing new")
+expect(ns.db.sightings[2795][1].stock == 1, "sold out at the second visit, the highest seen stays")
+F.merchantStock[2889] = nil
 expect(heard() == "", "and plays nothing")
 -- Its marks.
 MerchantFrame:Show()
@@ -205,27 +247,17 @@ F.RunTimers()
 expect(heard() == QUILL, "then a recipe new to the notebook: the whole quill")
 expect(ns.Scan.ah.answered ~= nil, "the search's answer noted")
 expect(ns.db.sightings[7752] and ns.db.sightings[7752][1].k == "ah", "a recipe listed at the auction house noted")
--- The marks: at the right end of the quantity's column, where nothing is written; the most telling at the edge.
+-- No marks on the list's rows, Blizzard's or Auctionator's (Ikar, 2026-11-13): the recipe's tooltip says it all.
 F.AuctionRow(2889, 3)
 F.AuctionRow(728, 3)
 F.AuctionRow(728, 139)
 AuctionHouseFrame.BrowseResultsFrame.ItemList:CallRefreshCallback()
-local function marks(row)
-    return row.fakeChildren and row.fakeChildren[#row.fakeChildren]
+local marked = 0
+for _, row in ipairs(F.ahRows) do
+    marked = marked + #(row.fakeChildren or {}) - #row.cells
 end
-local ro = marks(F.ahRows[2])
-expect(ro and ro.eye and ro.eye:IsShown(), "the eye on a recipe a vendor sells")
-local p, anchor, rp = ro:GetPoint()
-expect(p == "RIGHT" and anchor == F.ahRows[2].cells[3] and rp == "RIGHT", "the marks at the quantity's right end")
-local first = ro and (ro.badge:IsShown() and ro.badge or ro.check:IsShown() and ro.check)
-local fp, _, _, fx = (first or ro.eye):GetPoint()
-expect(first and fp == "RIGHT" and fx == 0, "its state at the very edge")
-local _, _, _, ex = ro.eye:GetPoint()
-expect(ex and ex < 0, "the eye left of it")
-local crowded = marks(F.ahRows[3])
-expect(crowded and (crowded.badge:IsShown() or crowded.check:IsShown()) and not crowded.eye:IsShown(),
-    "three digits leave room for the state only: the eye left to the tooltip")
--- « À l'hôtel des ventes » off: no marks, no button; what the house lists is noted all the same. On again: both back.
+expect(marked == 0, "nothing of the addon's on the auction house's rows: " .. marked)
+-- A recipe listed again is noted again, at its place's later date.
 local function ahSighting()
     for _, s in ipairs(ns.db.sightings[ns.RECIPE_ITEMS[728]] or {}) do
         if s.k == "ah" then
@@ -238,19 +270,11 @@ local before = ahSighting() and ahSighting().t - 60
 if before then
     ahSighting().t = before
 end
-ns.db.options.ah = false
-ns.Changed()
-F.RunTimers()
-expect(not ahButton:IsShown(), "the option off: no button")
-expect(not (ro.badge:IsShown() or ro.check:IsShown() or ro.eye:IsShown()), "and no marks")
 F.ahResults = { { itemKey = { itemID = 728 } } }
 F.Fire("AUCTION_HOUSE_BROWSE_RESULTS_UPDATED")
 F.RunTimers()
-expect(before and ahSighting().t > before, "and the recipes listed are still noted")
-ns.db.options.ah = true
-ns.Changed()
-F.RunTimers()
-expect(ahButton:IsShown() and ro.eye:IsShown(), "on again: the button and the marks back")
+expect(before and ahSighting().t > before, "the recipes listed again are noted again")
+expect(ahButton:IsShown(), "the button still there, with no option to take it away")
 F.Fire("AUCTION_HOUSE_CLOSED")
 AuctionHouseFrame:Hide()
 expect(#F.chat == 2 and chatHas(L.AT_AH), "a line for each of the auction house's pages that noted something: " .. #F.chat)
@@ -337,6 +361,28 @@ F.professions[2] = cooking
 F.Fire("SKILL_LINES_CHANGED")
 F.RunTimers()
 ns.Game.unknownSkillLines[99999] = nil -- made on purpose: not for the API check
+-- No profession listed at all while the character has some may be the game not ready: nothing is given up then, and
+-- the list is read again later. Back by then, nothing has changed; still empty, it's believed.
+local slots, knownBefore = F.profSlots, ns.DeepCopy(c.known)
+F.profSlots = {}
+F.Fire("SKILL_LINES_CHANGED")
+F.RunFrame()
+expect(c.profs[185] == 56 and c.known[2541] == true, "an empty list of professions forgets nothing at once")
+F.profSlots = slots
+F.RunTimers()
+expect(c.profs[185] == 56 and c.profs[333] == 18 and c.known[2541] == true, "read again with the list back, nothing has changed")
+F.profSlots = {}
+F.Fire("SKILL_LINES_CHANGED")
+F.RunTimers()
+expect(next(c.profs) == nil and c.known[2541] == nil, "still empty when read again, the professions are given up")
+F.profSlots = slots
+F.Fire("SKILL_LINES_CHANGED")
+F.RunTimers()
+expect(c.profs[185] == 56 and c.profs[333] == 18, "and taken up again, they're back")
+for spell, v in pairs(knownBefore) do
+    c.known[spell] = v
+end
+ns.book:Invalidate()
 local line = ProfessionsFrame.CraftingPage.RankBar
 local countLine
 for _, frame in ipairs(F.frames) do
@@ -382,6 +428,10 @@ F.RunTimers()
 expect(not ns.Notebook.IsShown(), "closes with the window")
 ns.Follow.Set(false)
 F.openProfession = nil
+-- The window shown before it knows its profession answers profession 0, the game's "none": nothing for the API check
+-- to note (the assumptions are tried further down).
+F.Fire("TRADE_SKILL_SHOW")
+F.RunTimers()
 
 -- ---------- The professions book ----------
 local content = ProfessionsBookFrame.ProfessionsContentFrame
@@ -446,6 +496,7 @@ do
             F.RunScript(nb, "OnSizeChanged", w, h)
             F.RunTimers()
         end
+        ns.Options.Open()
         F.RunScript(grip, "OnMouseDown")
         drag(700.4, 900.6)
         expect(ns.db.options.width == 700.4 and math.abs(nb.content:GetWidth() - (700.4 - 62)) < 0.01,
@@ -456,7 +507,9 @@ do
         F.RunScript(grip, "OnMouseUp")
         expect(ns.db.options.width == 700 and ns.db.options.height == 901, "let go: kept in whole units: "
             .. ns.db.options.width .. " by " .. ns.db.options.height)
-        expect(F.settingsCategory.settings.KALIRECIPE_WIDTH:GetValue() == 700, "and the options' slider says so")
+        expect(windowRow("width") and windowRow("width"):IsShown() and windowRow("width").Slider:GetValue() == 700,
+            "and the options window's slider, open beside it, says so")
+        ns.Options.Close()
         -- Docked, it goes back on the professions window.
         ProfessionsFrame:Show()
         ns.Notebook.Dock(ProfessionsFrame, 48)
@@ -551,6 +604,11 @@ if pinned then
     pinned.pin:GetScript("OnClick")(pinned.pin)
     expect(F.waypoint and F.waypoint.uiMapID == 1457, "the pin places the game's waypoint")
 end
+F.openedSkill, F.combat = nil, true
+local errorsBefore = #F.uiErrors
+nb.head.hammer:GetScript("OnClick")()
+F.combat = false
+expect(F.openedSkill == nil and #F.uiErrors == errorsBefore + 1, "in a fight the hammer opens nothing, and says why")
 nb.head.hammer:GetScript("OnClick")()
 expect(F.openedSkill == 185, "the hammer opens the professions window on the profession")
 -- The shared fake doesn't keep a texture's desaturation: this one records it.
@@ -580,11 +638,54 @@ end
 expect(hint, "no rank yet: the detail names the trainer filter's « Déjà connu »")
 ns.db.reqs[2541] = steakReq
 ns.book:Invalidate()
--- The gear, top right: the options, drawn over the window's border as its close button is.
+-- The gear, top right, drawn over the window's border as its close button is: straight to the options, no menu (Ikar,
+-- 2026-11-13: "Pas besoin de option et signaler un bug, ca peux directement ouvrir les option").
 expect(nb.gear:GetFrameLevel() > nb.NineSlice:GetFrameLevel(), "the gear above the window's border, not under it")
-F.settingsOpened = nil
-nb.gear:GetScript("OnClick")(nb.gear)
-expect(F.settingsOpened ~= nil, "the gear opens the options")
+do
+    local uiWidth, uiHeight, left, top = UIParent.width, UIParent.height, nb.left, nb.top
+    UIParent.width, UIParent.height = 1920, 1080
+    nb.left, nb.top = 100, 900
+    F.settingsOpened, F.lastMenu = nil, nil
+    nb.gear:GetScript("OnClick")(nb.gear)
+    expect(ns.Options.IsShown() and F.lastMenu == nil and ns.Notebook.IsShown() and F.settingsOpened == nil,
+        "the gear opens the options window, no menu, and the notebook stays open")
+    local point, rel, relPoint, x, y = KaLiRecipeOptions:GetPoint()
+    expect(point == "TOPLEFT" and rel == UIParent and relPoint == "BOTTOMLEFT" and x == 100 + nb:GetWidth() + 10 and y == 900,
+        "beside the notebook, on its right: " .. tostring(point) .. " " .. tostring(x) .. " " .. tostring(y))
+    nb.gear:GetScript("OnClick")(nb.gear)
+    expect(not ns.Options.IsShown(), "a second click closes it")
+    nb.left = 1920 - nb:GetWidth() - 5
+    nb.gear:GetScript("OnClick")(nb.gear)
+    point, rel, relPoint, x, y = KaLiRecipeOptions:GetPoint()
+    expect(point == "TOPRIGHT" and x == nb.left - 10 and y == 900, "or on its left when the screen runs out: " .. tostring(point))
+    ns.Options.Close()
+    UIParent.width, nb.left = 1200, 300
+    nb.gear:GetScript("OnClick")(nb.gear)
+    point, rel, relPoint = KaLiRecipeOptions:GetPoint()
+    expect(point == "CENTER" and rel == UIParent and relPoint == "CENTER", "and in the middle of the screen when neither side has room: "
+        .. tostring(point))
+    ns.Options.Close()
+    UIParent.width, UIParent.height, nb.left, nb.top = uiWidth, uiHeight, left, top
+end
+-- The bug report, from the options' last section.
+ns.Options.Open()
+local reportRow
+for _, f in ipairs(KaLiRecipeOptions.rows) do
+    if f.row.kind == "button" and f.row.name == L.REPORT_TITLE then
+        reportRow = f
+    end
+end
+if reportRow then
+    F.RunScript(reportRow.Button, "OnClick")
+end
+local reportWindow = ns.Report.Frame()
+expect(reportRow and reportWindow and reportWindow:IsShown()
+    and reportWindow.URL:GetText():find("^https://github.com/Ikar%-Rahl/Warcraft%-KaLi/issues/new%?title=KaLi%%20Recipe"),
+    "the options' « Signaler un bug » opens the report's window, with the link")
+ns.Options.Close()
+if reportWindow then
+    reportWindow:Hide()
+end
 F.tooltip = { lines = {} }
 nb.gear:GetScript("OnEnter")(nb.gear)
 expect(tooltipHas(L.OPEN_OPTIONS), "and says so")
@@ -595,6 +696,12 @@ expect(not ns.Notebook.IsShown(), "/kr closes it")
 GameTooltip:SetOwner(UIParent)
 GameTooltip:SetItemByID(728)
 expect(tooltipHas(L.UNKNOWN_TO_ALL), "a recipe's tooltip says who knows it")
+expect(tooltipHas(string.format(L.WHERE_VENDOR, "Ellandrieth", "Darnassus")) and not tooltipHas(ns.Text.CLOCK_MARKUP),
+    "and where, with no clock for a vendor without limit")
+GameTooltip:SetOwner(UIParent)
+GameTooltip:SetItemByID(2889)
+expect(tooltipHas(string.format(L.WHERE_VENDOR, "Ellandrieth " .. ns.Text.CLOCK_MARKUP, "Darnassus")),
+    "and the grey clock after the name of a vendor whose stock was limited")
 GameTooltip:SetOwner(UIParent)
 GameTooltip:SetItemByID(2886)
 expect(tooltipHas(L.USED_IN), "a reagent's « Utilisé dans »")
@@ -654,69 +761,210 @@ end
 WorldMapFrame:Hide()
 
 -- ---------- Options and the compartment ----------
-local settings = F.settingsCategory.settings
-expect(settings.KALIRECIPE_CHAT ~= nil and settings.KALIRECIPE_WIDTH ~= nil and settings.KALIRECIPE_STYLE ~= nil, "the options' settings")
-settings.KALIRECIPE_CHAT:SetValue(false)
-expect(ns.db.options.chat == false, "a checkbox writes the option")
-settings.KALIRECIPE_CHAT:SetValueToDefault()
-expect(ns.db.options.chat == true, "and back to its default")
-local w = settings.KALIRECIPE_WIDTH.sliderOptions
-expect(w and w.min == 460 and w.max == 900, "the width slider's range")
--- The sounds: picking one plays it; « Aucun » plays nothing and the visits stay quiet.
-expect(settings.KALIRECIPE_SOUNDRECIPE ~= nil and settings.KALIRECIPE_SOUNDPLACE ~= nil, "the two sound settings")
-heard()
-settings.KALIRECIPE_SOUNDRECIPE:SetValue("parchment")
-expect(heard() == PARCHMENT, "picking a sound plays it")
-settings.KALIRECIPE_SOUNDPLACE:SetValue("note")
+-- In a window of their own beside the notebook (Ikar, 2026-11-13), as KaLi Quest's dialog in Edit Mode.
+ns.Options.Open()
+local window = KaLiRecipeOptions
+-- What each row shows on opening, defaults read through.
+local held = {}
+for _, row in ipairs(options:Rows()) do
+    held[row.key] = ns.db.options[row.key]
+end
+local function shownKeys()
+    local list = {}
+    for _, f in ipairs(window.rows) do
+        if f:IsShown() then
+            list[#list + 1] = f.row.key or f.row.text
+        end
+    end
+    return table.concat(list, ",")
+end
+expect(window and window:IsShown() and window.Title:GetText() == ns.TITLE and #window.sections == 7
+    and window.sections[4].Text:GetText() == L.OPT_NOTEBOOK and shownKeys() == "style,follow,width,height,nbOwned,nbAlt",
+    "the options window: the addon's name, seven sections, the notebook's open first: " .. shownKeys())
+-- In the notebook's « Épuré » look, whatever the notebook's style (Ikar, 2026-11-13): a game window, the notebook's own
+-- section headers, a − on the open one.
+expect(window.template == "ButtonFrameTemplate" and window.sections[4].Sign:GetText() == "–" and window.sections[1].Sign:GetText() == "+"
+    and window.sections[4].Line ~= nil, "a game window, as the notebook « Épuré », with the notebook's section headers")
+F.RunScript(window.sections[4], "OnClick")
+expect(shownKeys() == "" and window.sections[4].Sign:GetText() == "+", "a click on the open header closes it")
+F.RunScript(window.sections[4], "OnClick")
+local special = false
+for _, name in ipairs(UISpecialFrames) do
+    special = special or name == "KaLiRecipeOptions"
+end
+expect(special, "Escape closes it, as it closes the game's windows")
+F.RunScript(window.sections[1], "OnClick")
+expect(windowRow("chat"):IsShown() and not windowRow("width"):IsShown(), "a section's bar opens it, and closes the one open")
+local chat = windowRow("chat")
+chat.Button:SetChecked(false)
+F.RunScript(chat.Button, "OnClick")
+expect(ns.db.options.chat == false and window.Revert:IsEnabled(), "a check box writes the option, and « Annuler les modifications » lights")
+F.RunScript(window.Revert, "OnClick")
+expect(ns.db.options.chat == held.chat and not window.Revert:IsEnabled(), "which puts it back as it was when the window opened")
+local w = options:Range(optionRow("width"))
+expect(w and w[1] == 460 and w[2] == 900, "the width slider's range")
+F.RunScript(window.sections[4], "OnClick")
+ns.Notebook.Show(185)
+windowRow("width").Slider:SetValue(600)
 F.RunTimers()
-expect(heard() == "3093/200", "picking a short one plays it short, stopped by its timer")
-settings.KALIRECIPE_SOUNDRECIPE:SetValue("none")
-expect(heard() == "" and not ns.Sounds.Play("recipe"), "« Aucun »: nothing")
--- The section's reset row puts them back without playing them.
-local announce
-for _, init in ipairs(F.settingsLayout.initializers) do
-    if init.buttonText == RESET and not announce then
-        announce = init
+expect(ns.db.options.width == 600 and nb:GetWidth() == 600, "the width slider sizes the notebook, open beside it")
+F.RunScript(window.Revert, "OnClick")
+F.RunTimers()
+expect(ns.db.options.width == held.width, "and back")
+ns.Notebook.Close()
+-- The sounds: picking one plays it; « Aucun » plays nothing and the visits stay quiet.
+F.RunScript(window.sections[1], "OnClick")
+expect(optionRow(ns.Sounds.OPTION.recipe) and optionRow(ns.Sounds.OPTION.place), "the two sound lists")
+heard()
+local radios = F.MenuRadios(windowRow(ns.Sounds.OPTION.recipe).Dropdown)
+for _, r in ipairs(radios) do
+    if r.text == L.SOUND_parchment then
+        r.pick()
     end
 end
-announce.buttonClick()
-expect(ns.db.options.soundRecipe == ns.Sounds.DEFAULTS.recipe, "the reset row restores the sound")
+expect(heard() == PARCHMENT, "picking a sound plays it")
+setOption(ns.Sounds.OPTION.place, "note")
+F.RunTimers()
+expect(heard() == STROKE, "picking a short one plays it short, stopped by its timer")
+setOption(ns.Sounds.OPTION.recipe, "none")
+expect(heard() == "" and not ns.Sounds.Play("recipe"), "« Aucun »: nothing")
+-- « Annuler les modifications » puts them back without playing them.
+F.RunScript(window.Revert, "OnClick")
+expect(ns.db.options[ns.Sounds.OPTION.recipe] == held[ns.Sounds.OPTION.recipe], "« Annuler les modifications » restores the sound")
 expect(heard() == "", "quietly")
 -- Under each sound list, « Écouter » plays the chosen sound again.
 local plays = {}
-for _, init in ipairs(F.settingsLayout.initializers) do
-    if init.buttonText == L.SOUND_PLAY then
-        plays[#plays + 1] = init
+for _, f in ipairs(window.rows) do
+    if f.row.kind == "button" and f.row.text == L.SOUND_PLAY then
+        plays[#plays + 1] = f
     end
 end
-expect(#plays == 2, "an « Écouter » row under each sound list: " .. #plays)
+local function play(i)
+    F.RunScript(plays[i].Button, "OnClick")
+    F.RunTimers()
+end
+expect(#plays == 2 and plays[1]:IsShown(), "an « Écouter » row under each sound list: " .. #plays)
 if #plays == 2 then
-    plays[1].buttonClick()
-    F.RunTimers()
+    play(1)
     expect(heard() == QUILL, "the first plays the new recipe's quill")
-    plays[2].buttonClick()
-    F.RunTimers()
+    play(2)
     expect(heard() == STROKE, "the second the new place's stroke, whatever the quiet gap")
 end
-local resets = 0
-for _, init in ipairs(F.settingsLayout.initializers) do
-    if init.buttonText == RESET then
-        resets = resets + 1
+-- « Volume des sons » (Ikar, 2026-11-12): a share of each kit's own volume, asked of the game; at 100 % nothing asked.
+-- 200 % by default (2026-11-13), so the visits above played at it.
+local volume = optionRow(ns.Sounds.VOLUME)
+local vo = volume and options:Range(volume)
+expect(vo and vo[1] == 0 and vo[2] == 300 and volume.step == 10, "the volume slider, 0 to 300 in steps of 10")
+expect(volume and volume.format and volume.format(35) == "35%", "shown as a percentage, as the game's own: "
+    .. tostring(volume and volume.format and volume.format(35)))
+if volume and #plays == 2 then
+    windowRow(ns.Sounds.VOLUME).Slider:SetValue(50)
+    expect(ns.db.options[ns.Sounds.VOLUME] == 50 and heard() == "", "dragging it plays nothing")
+    play(1)
+    expect(heard() == "3093@0.15", "at 50 %, half the quill's own 0.3, on the effects' channel")
+    play(2)
+    expect(heard() == "3093@0.15/200", "the stroke too, still stopped early")
+    setOption(ns.Sounds.VOLUME, 0)
+    play(1)
+    expect(heard() == "" and not ns.Sounds.Play("recipe", true), "at 0 %: nothing, not even asked")
+    setOption(ns.Sounds.VOLUME, 50)
+    local setVolume = C_Sound.PlaySoundWithOptions
+    C_Sound.PlaySoundWithOptions = nil
+    play(1)
+    expect(heard() == "3093", "a game without a volume per sound: the game's own level")
+    C_Sound.PlaySoundWithOptions = setVolume
+    setOption(ns.Sounds.VOLUME, 100)
+    play(1)
+    expect(heard() == "3093", "at 100 %: no volume asked, the game's own level")
+    setOption(ns.Sounds.VOLUME, 300)
+    play(1)
+    expect(heard() == "3093@0.9", "at 300 %: the quill at 0.9 of full")
+    setOption(ns.Sounds.OPTION.recipe, "parchment")
+    heard()
+    play(1)
+    expect(heard() == "1209@1", "the parchment, whose own is 0.5: no more than full")
+    F.RunScript(window.Revert, "OnClick")
+    expect(ns.db.options[ns.Sounds.VOLUME] == 200 and ns.db.options[ns.Sounds.OPTION.recipe] == ns.Sounds.DEFAULTS.recipe
+        and heard() == "", "« Annuler les modifications » puts it back to 200 %, quietly")
+    play(1)
+    expect(heard() == QUILL, "and the quill at twice its own")
+end
+-- « Par défaut »: every option back to its default, quietly, which « Annuler les modifications » gives back.
+setOption("chat", false)
+setOption("usedInMax", 3)
+heard()
+F.RunScript(window.Defaults, "OnClick")
+F.RunTimers()
+local off = {}
+for _, row in ipairs(options:Rows()) do
+    if ns.db.options[row.key] ~= ns.DB.DEFAULTS[row.key] then
+        off[#off + 1] = row.key
     end
 end
-expect(resets == 6, "a reset row per section: " .. resets)
+expect(#off == 0 and heard() == "", "« Par défaut » puts every option back to its default, quietly: " .. table.concat(off, ", "))
+F.RunScript(window.Revert, "OnClick")
+F.RunTimers()
+expect(ns.db.options.chat == held.chat and ns.db.options.usedInMax == held.usedInMax and ns.db.options.width == held.width,
+    "« Annuler les modifications » gives back what the window opened on")
+-- « Suivre » ticked there docks the notebook on the professions window, and unticked lets it go.
+do
+    ProfessionsFrame:Show()
+    ns.Notebook.Show(185)
+    local follow = windowRow("follow")
+    follow.Button:SetChecked(true)
+    F.RunScript(follow.Button, "OnClick")
+    expect(ns.db.options.follow == true and ns.Follow.IsDocked(), "« Suivre » ticked in the window docks the notebook")
+    follow.Button:SetChecked(false)
+    F.RunScript(follow.Button, "OnClick")
+    expect(ns.db.options.follow == false and not ns.Follow.IsDocked(), "and unticked lets it go")
+    ns.Notebook.Close()
+    ProfessionsFrame:Hide()
+end
+-- The notebook's own « Suivre » shows in the window.
+F.RunScript(window.sections[4], "OnClick")
+local followed = ns.db.options.follow
+nb.head.follow:GetScript("OnClick")(nb.head.follow)
+expect(ns.db.options.follow == not followed and windowRow("follow").Button:GetChecked() == not followed,
+    "the notebook's « Suivre » ticks the window's box")
+nb.head.follow:GetScript("OnClick")(nb.head.follow)
 -- The trainer's price has its own option; the vendor's stays.
-settings.KALIRECIPE_PRICETRAINER:SetValue(false)
+setOption("priceTrainer", false)
 expect(steak and ns.Text.Price(steak) == nil, "the trainer's price hidden by its option")
 expect(ns.Text.Price({ k = "vendor", cost = 1250 }) ~= nil, "the vendor's still shown")
-settings.KALIRECIPE_PRICETRAINER:SetValueToDefault()
+defaultOption("priceTrainer")
 expect(steak and ns.Text.Price(steak) ~= nil, "and back")
+-- The page under AddOns: no setting, a button to the window, as FlareUI's page is to its own, and the bug report's.
+local pageOpen
+for _, init in ipairs(F.settingsLayout.initializers) do
+    if init.name == L.OPTIONS and init.buttonText == L.OPTIONS_OPEN then
+        pageOpen = init
+    end
+end
+expect(pageOpen and pageOpen.tooltip == L.OPTIONS_OPEN_TIP and next(F.settingsCategory.settings) == nil,
+    "the page under AddOns holds no setting, and a button to the window")
+if pageOpen then
+    ns.Options.Close()
+    Settings.OpenToCategory(F.settingsCategory:GetID())
+    pageOpen.buttonClick()
+    expect(not SettingsPanel:IsShown() and SettingsPanel.skippedTransition and ns.Options.IsShown(),
+        "which closes the game's options, without their game menu, and opens it")
+    ns.Options.Close()
+    Settings.OpenToCategory(F.settingsCategory:GetID())
+    F.unapplied = true
+    pageOpen.buttonClick()
+    expect(SettingsPanel:IsShown() and F.popup and F.popup.which == "GAME_SETTINGS_CONFIRM_DISCARD" and not ns.Options.IsShown(),
+        "with a change waiting for « Appliquer », the game asks first and the window waits")
+    F.unapplied, F.popup = nil, nil
+    SettingsPanel:Hide()
+end
+ns.Options.Close()
 run(KaLiRecipe_OnAddonCompartmentEnter, "KaLiRecipe", UIParent)
 expect(tooltipHas(L.COMPARTMENT_CLICK), "the compartment's tooltip")
 run(KaLiRecipe_OnAddonCompartmentClick, "KaLiRecipe", "LeftButton")
 expect(ns.Notebook.IsShown(), "the compartment opens the notebook")
 run(KaLiRecipe_OnAddonCompartmentClick, "KaLiRecipe", "RightButton")
-expect(F.settingsOpened ~= nil, "a right click opens the options")
+expect(ns.Options.IsShown(), "a right click opens the options")
+ns.Options.Close()
 ns.Notebook.Close()
 
 -- ---------- The minimap button and the information bars ----------
@@ -729,9 +977,9 @@ if mb then
     expect(ns.Notebook.IsShown(), "the button opens the notebook")
     run(mb:GetScript("OnClick"), mb, "LeftButton")
     expect(not ns.Notebook.IsShown(), "and closes it")
-    F.settingsOpened = nil
     run(mb:GetScript("OnClick"), mb, "RightButton")
-    expect(F.settingsOpened ~= nil, "a right click: the options")
+    expect(ns.Options.IsShown(), "a right click: the options")
+    ns.Options.Close()
     run(mb:GetScript("OnEnter"), mb)
     expect(tooltipHas(L.COMPARTMENT_CLICK) and tooltipHas(L.DRAG_MOVE), "its tooltip, with the drag hint")
     run(mb:GetScript("OnLeave"), mb)
@@ -742,15 +990,15 @@ if mb then
     local _, rel, _, x, y = mb:GetPoint()
     expect(ns.db.ui.minimap == 90 and rel == Minimap and math.abs(x) < 0.001 and math.abs(y - 104) < 0.001,
         "dragged to the top, on the edge: " .. tostring(x) .. ", " .. tostring(y))
-    settings.KALIRECIPE_MINIMAPLOCK:SetValue(true)
+    setOption("minimapLock", true)
     run(mb:GetScript("OnDragStart"), mb)
     expect(not mb.dragging, "locked: a drag doesn't move it")
     run(mb:GetScript("OnEnter"), mb)
     expect(not tooltipHas(L.DRAG_MOVE), "and its tooltip doesn't offer it")
-    settings.KALIRECIPE_MINIMAPLOCK:SetValueToDefault()
-    settings.KALIRECIPE_MINIMAP:SetValue(false)
+    defaultOption("minimapLock")
+    setOption("minimap", false)
     expect(not mb:IsShown(), "the option hides it")
-    settings.KALIRECIPE_MINIMAP:SetValueToDefault()
+    defaultOption("minimap")
     expect(mb:IsShown(), "and shows it again, where it was")
 end
 if launcher then
@@ -800,11 +1048,14 @@ expect(next(KaLiRecipeDevDB.errors or {}) == nil, "with no model, the events do 
 
 -- ---------- The probe ----------
 if SlashCmdList.KRPROBE then
-    for _, command in ipairs({ "", "window", "spellbook", "tooltip 2889", "trainer", "ah", "bank", "sounds", "show" }) do
+    for _, command in ipairs({ "", "window", "spellbook", "tooltip 2889", "trainer", "ah", "bank", "sounds", "volume", "show" }) do
         run(SlashCmdList.KRPROBE, command)
         F.RunTimers()
     end
     expect(type(KaLiRecipeProbeDB) == "table", "the probe keeps its report")
+    local probed = KaLiRecipeProbeDB.report and KaLiRecipeProbeDB.report.volume
+    expect(probed and tostring(probed.verdict):find("replaces", 1, true),
+        "the probe's volume verdict, on the fake's game that replaces a kit's volume: " .. tostring(probed and probed.verdict))
 end
 
 -- ---------- Logout: the files as the game writes them ----------

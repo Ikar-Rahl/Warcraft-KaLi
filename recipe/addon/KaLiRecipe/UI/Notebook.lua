@@ -348,8 +348,10 @@ local function build()
         end)
     end)
 
-    -- Top right, beside the close button: the addon's options (Ikar, 2026-11-10), in the art and highlight of
-    -- Blizzard's own settings gear (UIPanelIconDropdownButtonTemplate).
+    -- Top right, beside the close button, the options (Ikar, 2026-11-10), in the art and highlight of Blizzard's own
+    -- settings gear (UIPanelIconDropdownButtonTemplate). Straight to them, no menu since the bug report is in them too
+    -- (Ikar, 2026-11-13: "Pas besoin de option et signaler un bug, ca peux directement ouvrir les option"); a second
+    -- click closes them.
     frame.gear = W.Frame("Button", frame)
     frame.gear:SetSize(15, 16)
     if frame.CloseButton then
@@ -368,8 +370,8 @@ local function build()
     W.SetAtlas(frame.gear.hl, W.ATLAS.gear)
     frame.gear.hl:SetBlendMode("ADD")
     frame.gear.hl:SetAlpha(0.4)
-    frame.gear:SetScript("OnClick", function()
-        ns.SafeCall(ns.Options.Open)
+    frame.gear:SetScript("OnClick", function(self)
+        ns.SafeCall(ns.Options.Toggle)
     end)
     frame.gear:SetScript("OnEnter", function(self)
         W.TextTooltip(self, L.OPEN_OPTIONS)
@@ -862,6 +864,7 @@ function Notebook.Resized()
         end
     end
     Notebook.Refresh()
+    ns.SafeCall(ns.Options.Changed)
 end
 
 function Notebook.Dock(anchor, side)
@@ -881,10 +884,11 @@ function Notebook.Dock(anchor, side)
     end
 end
 
--- The hammer: Blizzard's own professions window on this profession, through its own entry point.
+-- The hammer: Blizzard's own professions window on this profession, through its own entry point. In a fight the window
+-- can't open from an addon, and the click says so.
 function Notebook.OpenProfessions()
     local skill = currentSkill()
-    if not skill or InCombatLockdown() then
+    if not skill or ns.CombatRefused() then
         return
     end
     if not OpenProfessionUIToSkillLine and C_AddOns and C_AddOns.LoadAddOn then

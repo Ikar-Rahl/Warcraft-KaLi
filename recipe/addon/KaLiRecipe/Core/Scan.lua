@@ -43,7 +43,7 @@ local function note(visit, spell, s)
     local m = ns.book
     local isNew, what = m:Note(spell, s, time())
     if isNew and visit and not m:Knows(m.me, spell) then
-        visit:Add(spell, what)
+        visit:Add(spell, what, s)
     end
     return isNew
 end
@@ -80,6 +80,17 @@ function Scan.MerchantPrice(i)
     return (type(info.price) == "number" and info.price > 0) and info.price or nil, costs
 end
 
+-- How many the vendor has left of slot i, as the game gives it (numAvailable): -1 when there's no limit, else the
+-- count, 0 once sold out. Ikar, 2026-11-13: "we should store the full information when visiting"; the notebook keeps
+-- the highest seen at each vendor (Model's Note).
+function Scan.MerchantStock(i)
+    local info = ns.Call(C_MerchantFrame and C_MerchantFrame.GetItemInfo, i)
+    local n = type(info) == "table" and info.numAvailable
+    if ns.Finite(n) and n >= -1 then
+        return math.floor(n)
+    end
+end
+
 local merchant
 local function scanMerchant()
     if not merchant then
@@ -92,7 +103,7 @@ local function scanMerchant()
         if spell then
             local cost, costs = Scan.MerchantPrice(i)
             any = note(merchant.visit, spell, { k = "vendor", npc = merchant.npc, map = merchant.map, x = merchant.x, y = merchant.y,
-                item = item, cost = cost, costs = costs }) or any
+                item = item, cost = cost, costs = costs, stock = Scan.MerchantStock(i) }) or any
         elseif item then
             local _, _, _, _, _, classID = ns.Call(C_Item.GetItemInfoInstant, item)
             if classID == 9 then
@@ -417,9 +428,29 @@ on("NEW_RECIPE_LEARNED", function(_, spell)
         changed()
     end
 end)
+-- The professions as the game lists them. A list empty while the character had professions may be the game not ready:
+-- read once more a little later, and believed only if still empty then.
+local recheckPending = false
+local function readProfessions()
+    local any, unsure = Game.ReadProfessions(ns.db)
+    if unsure and not recheckPending then
+        recheckPending = true
+        C_Timer.After(Game.EMPTY_RECHECK, function()
+            recheckPending = false
+            ns.SafeCall(function()
+                if ns.book and Game.ReadProfessions(ns.db, true) then
+                    changed()
+                end
+            end)
+        end)
+    end
+    return any
+end
+Scan.ReadProfessions = readProfessions
+
 on("SKILL_LINES_CHANGED", function()
     later("professions", function()
-        if Game.ReadProfessions(ns.db) then
+        if readProfessions() then
             changed()
         end
     end)
@@ -434,11 +465,11 @@ end)
 
 -- At login: the character's professions and bags at once, the spellbook a moment later, once it has loaded.
 function Scan.AtLogin()
-    Game.ReadProfessions(ns.db)
+    readProfessions()
     readBags()
     C_Timer.After(3, function()
         ns.SafeCall(function()
-            Game.ReadProfessions(ns.db)
+            readProfessions()
             Game.ReadKnownSpells(ns.db)
             changed()
         end)

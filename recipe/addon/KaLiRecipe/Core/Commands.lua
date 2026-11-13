@@ -3,15 +3,7 @@
 local _, ns = ...
 local L = ns.L
 
-local say = ns.Say
-
-local function count(t)
-    local n = 0
-    for _ in pairs(t or {}) do
-        n = n + 1
-    end
-    return n
-end
+local say, count = ns.Say, ns.Count
 
 local function statusText()
     local version, build, _, interface = GetBuildInfo()

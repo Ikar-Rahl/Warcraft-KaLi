@@ -151,6 +151,7 @@ UI-HUD-Minimap-Arrow-QuestTracking Profession-button-arrow-right Profession-butt
 Waypoint-MapPin-ButtonToggle Lightlink Darklink Lightlink-active MiniMap-QuestArrow
 UI-SquareButtonBrown-Up common-button-square-gray-up common-button-tertiary-normal-small common-button-tertiary-hover-small
 128-RedButton-Left 128-RedButton-Right 128-GoldRedButton-Left questlog-icon-setting
+auctionhouse-icon-clock questlog-questtypeicon-clockyellow clock-icon worldquest-icon-clock
 """.split()
 
 
@@ -603,7 +604,7 @@ def main():
                    "// Real: names, reagents, ranks, vendors and their places, icons, map. Invented: what was seen\n"
                    "// where and when, auction prices, the second character (Elorah).\n"
                    "window.BENCH_DATA = " + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";\n",
-                   encoding="utf-8")
+                   encoding="utf-8", newline="\n")
     kinds = {}
     for s in sightings:
         kinds[s["kind"]] = kinds.get(s["kind"], 0) + 1

@@ -16,7 +16,8 @@ local Button = {}
 ns.MinimapButton = Button
 
 local NAME = "KaLiRecipeMinimapButton"
-local ICON = "Interface\\Icons\\INV_Scroll_03"
+-- The TOC's ## IconTexture: F2, « Plume fendue » (Ikar's pick, 2026-11-11), made by recipe/tools/make_icon.py.
+local ICON = "Interface\\AddOns\\KaLiRecipe\\Media\\Icon"
 local DEFAULT_ANGLE = 200
 -- Past the minimap's edge, as the other buttons sit.
 local OUTSIDE = 5

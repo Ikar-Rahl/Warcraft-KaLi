@@ -30,8 +30,11 @@ OUT = RECIPE / "addon/KaLiRecipe/Data/Recipes.lua"
 LEARNING_SPELLS = {"483", "402265"}
 # Every profession that has recipes on Forever, gathering ones included (smelting, « Campement »).
 SKILL_LINES = {"171", "164", "185", "333", "202", "129", "356", "182", "165", "186", "393", "197"}
-LOCALES = {"frFR": "TradeSkillCategory.frFR.csv", "enUS": "TradeSkillCategory.csv"}
-# Only the French SkillLine table is on disk: the English names, for other clients' fallback.
+# The client languages the addon speaks; every other falls back to enUS. The German and Spanish tables came from
+# wago.tools with &locale= on 2026-11-13, as the French ones before.
+LOCALES = {"frFR": "TradeSkillCategory.frFR.csv", "enUS": "TradeSkillCategory.csv", "deDE": "TradeSkillCategory.deDE.csv",
+           "esES": "TradeSkillCategory.esES.csv", "esMX": "TradeSkillCategory.esMX.csv"}
+# No English SkillLine table is on disk: the English names, for other clients' fallback.
 ENGLISH = {"171": "Alchemy", "164": "Blacksmithing", "185": "Cooking", "333": "Enchanting", "202": "Engineering",
            "129": "First Aid", "356": "Fishing", "182": "Herbalism", "165": "Leatherworking", "186": "Mining",
            "393": "Skinning", "197": "Tailoring"}
@@ -140,9 +143,16 @@ def main():
     lines += [f"        [{s}] = {lua_string(skill_lines[s]['DisplayName_lang'])}," for s in sorted(SKILL_LINES, key=int) if s in skill_lines]
     lines += ["    },", "    enUS = {"]
     lines += [f"        [{s}] = {lua_string(ENGLISH[s])}," for s in sorted(SKILL_LINES, key=int)]
-    lines += ["    },", "}", ""]
+    lines += ["    },"]
+    for locale in ("deDE", "esES", "esMX"):
+        named = {r["ID"]: r for r in read_csv(f"SkillLine.{locale}.csv")}
+        lines += [f"    {locale} = {{"]
+        lines += [f"        [{s}] = {lua_string(named[s]['DisplayName_lang'])}," for s in sorted(SKILL_LINES, key=int)
+                  if s in named]
+        lines += ["    },"]
+    lines += ["}", ""]
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text("\n".join(lines), encoding="utf-8")
+    OUT.write_text("\n".join(lines), encoding="utf-8", newline="\n")
     print(f"{OUT}: {len(recipes)} recipes, {len(teaches)} recipe items, {len(used)} categories, from {DB2.name}")
 
 

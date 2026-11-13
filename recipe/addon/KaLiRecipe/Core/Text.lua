@@ -19,6 +19,21 @@ local function npcName(m, id)
     return id and (ns.DB.Name(m.db, "npc", id) or m.game:NPCName(id)) or L.SOMEONE
 end
 
+-- A vendor seen with a limited stock of the recipe (Ikar, 2026-11-13: "we want to know if it is limited or not ...
+-- gray clock icon will suffice"): the auction house's clock, grey, after the vendor's name, wherever it's written.
+-- Only that: no count, no « épuisé ».
+Text.CLOCK = "auctionhouse-icon-clock"
+Text.CLOCK_MARKUP = "|A:" .. Text.CLOCK .. ":12:12:0:0:128:128:128|a"
+
+function Text.Limited(s)
+    return type(s) == "table" and s.k == "vendor" and type(s.stock) == "number" and s.stock >= 0
+end
+
+local function vendorName(m, s)
+    local name = npcName(m, s.npc)
+    return Text.Limited(s) and name .. " " .. Text.CLOCK_MARKUP or name
+end
+
 local function placeName(m, map)
     return map and m.game:MapName(map) or L.SOMEWHERE
 end
@@ -30,7 +45,7 @@ end
 -- Where a sighting was: "Vendue par Ellandrieth, Darnassus", "Hôtel des ventes, le 9 nov.".
 function Text.Where(m, s)
     if s.k == "vendor" then
-        return string.format(L.WHERE_VENDOR, npcName(m, s.npc), placeName(m, s.map))
+        return string.format(L.WHERE_VENDOR, vendorName(m, s), placeName(m, s.map))
     elseif s.k == "trainer" then
         return string.format(L.WHERE_TRAINER, npcName(m, s.npc), placeName(m, s.map))
     elseif s.k == "drop" then
@@ -62,7 +77,9 @@ end
 
 -- The chat's "chez Ellandrieth (Darnassus)" and the like, for one visit.
 function Text.At(m, s)
-    if s.k == "vendor" or s.k == "trainer" then
+    if s.k == "vendor" then
+        return string.format(L.AT_NPC, vendorName(m, s), placeName(m, s.map))
+    elseif s.k == "trainer" then
         return string.format(L.AT_NPC, npcName(m, s.npc), placeName(m, s.map))
     elseif s.k == "drop" then
         return string.format(L.AT_LOOT, npcName(m, s.npc), placeName(m, s.map))

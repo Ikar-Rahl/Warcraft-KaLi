@@ -2,13 +2,19 @@
 ## Title: KaLi Recipe
 ## Notes: A notebook of the recipes you come across, without spoiling the ones you haven't met.
 ## Notes-frFR: Un carnet des recettes que vous croisez, sans dévoiler celles que vous n'avez jamais vues.
+## Notes-deDE: Ein Buch der Rezepte, die Euch begegnen, ohne die zu verraten, die Ihr nie gesehen habt.
+## Notes-esES: Un cuaderno de las recetas con las que te cruzas, sin desvelar las que nunca has visto.
+## Notes-esMX: Un cuaderno de las recetas con las que te cruzas, sin revelar las que nunca has visto.
 ## Author: Ikar
 ## Version: 0.1.0-dev
 ## Category: Professions
 ## Category-frFR: Métiers
+## Category-deDE: Berufe
+## Category-esES: Profesiones
+## Category-esMX: Profesiones
 ## SavedVariables: KaLiRecipeDB, KaLiRecipeDevDB
 ## SavedVariablesPerCharacter: KaLiRecipeCopyDB
-## IconTexture: Interface\Icons\INV_Scroll_03
+## IconTexture: Interface\AddOns\KaLiRecipe\Media\Icon
 ## AddonCompartmentFunc: KaLiRecipe_OnAddonCompartmentClick
 ## AddonCompartmentFuncOnEnter: KaLiRecipe_OnAddonCompartmentEnter
 ## AddonCompartmentFuncOnLeave: KaLiRecipe_OnAddonCompartmentLeave
@@ -42,6 +48,7 @@ UI\Follow.lua
 UI\MinimapButton.lua
 UI\MapPins.xml
 UI\MapPins.lua
+Shared\Dialog.lua
 UI\Options.lua
 Shared\Report.lua
 UI\Report.lua

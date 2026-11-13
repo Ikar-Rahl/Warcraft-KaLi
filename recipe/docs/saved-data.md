@@ -26,16 +26,17 @@ Keys are numbers wherever the game has a number: recipe spells, items, NPCs, map
 | `reqs` | `{ [spell] = rank }`: required ranks read at trainers | Read again at the next trainer |
 | `cats` | `{ [spell] = category }`: categories read in the professions window | Read again there |
 | `chars` | `{ [GUID] = { name, class, seen, bankSeen, known, bags, bank, profs, maxRanks } }` | Each character's are read again at its next login (bank when it's opened) |
-| `ui` | The window's position, tab and open sections; `minimap`, the minimap button's place in degrees | The window and the button go back to their default place |
+| `ui` | The window's position (`pos`: x, y and the two anchor points the window gave, only names `SetPoint` takes), tab and open sections; `minimap`, the minimap button's place in degrees | The window and the button go back to their default place |
 | `meta` | `{ id, created, writer, written, history, setAsideDropped, nonFinite }` | — |
 | `setAside` | `{ { t, at, why, v }, ... }`: what loading couldn't read, as it was | — |
 
-**A sighting** is `{ k, t0, t, npc, map, x, y, q, item, cost, costs }`:
+**A sighting** is `{ k, t0, t, npc, map, x, y, q, item, cost, costs, stock }`:
 - `k`, the kind: `vendor`, `trainer`, `ah` (auction house), `drop` (loot), `quest` (a reward), `bags`.
 - `t0` and `t`: first and last seen, in seconds (`time()`).
 - `npc`, `map`, `x`, `y`, `q`: where. `x` and `y` run from 0 to 1 on `map`.
 - `item`: the recipe item that was seen. Trainers have none. The recipe is worked out from it (`RECIPE_ITEMS`), so keeping the item lets a later version link the sighting again if a patch changes that.
 - `cost` (copper) and `costs` (`{ { n, item or currency, tex } }`): a vendor's price at the last visit; a trainer's has `cost` only.
+- `stock` (since 2026-11-13, Ikar: "we should store the full information when visiting ... store the higher number in case of update"): a vendor's stock of the recipe as the game gives it (`numAvailable`), -1 for no limit, else how many it had; the highest of all visits, so -1 only while no visit found a limit. A sighting noted before has none: unknown, shown as no limit. Only whether it's limited shows (a grey clock); the number is kept in case it's ever wanted.
 
 **`meta`** names the notebook (`id`, made once, so an import can tell its own notebook from another's) and records when it was made, which version last wrote it and when, and its last 20 events: created, upgraded, set aside, restored, merged.
 
@@ -45,7 +46,7 @@ Keys are numbers wherever the game has a number: recipe spells, items, NPCs, map
 2. **What this version doesn't understand stays, and is ignored.** A sighting of a kind a later version added, a field, an option, a key. The model doesn't show them (`Model:Sightings`), and saving keeps them. So going back a version, or importing from a newer one, loses nothing.
 3. **What can't be read is set aside, never deleted.** `setAside` keeps the value as it was, where it was and why. Opening the notebook again doesn't set it aside twice. At most 500 entries are kept, the oldest going first, counted in `meta.setAsideDropped`. Caches the game fills again (`chars`' sets, `reqs`, `cats`, `names`) drop what is wrong in them.
 4. **Options hold only changes.** The defaults are read through a metatable, so Blizzard's settings panel, which writes a default into a missing key, writes nothing. At logout, an option back at its default is taken out. A default changed later then reaches every player who never touched that option.
-5. **One sighting per place**, by `DB.PlaceKey`: the same NPC for vendors, trainers and loot, the same quest for rewards, one for the auction house and one for the bags. A kind a later version added uses its NPC, quest and first date. Two sightings of one place merge (`DB.MergeSighting`): the earliest first date, the latest last date, and the latest visit's fields, position and price (a visit that read no price keeps the one known). This is part of the format: changing it needs a step.
+5. **One sighting per place**, by `DB.PlaceKey`: the same NPC for vendors, trainers and loot, the same quest for rewards, one for the auction house and one for the bags. A kind a later version added uses its NPC, quest and first date. Two sightings of one place merge (`DB.MergeSighting`): the earliest first date, the latest last date, and the latest visit's fields, position and price (a visit that read no price keeps the one known), and the highest `stock` of the two. This is part of the format: changing it needs a step. Adding `stock` needed none: no file before it holds one, and a field this version didn't know was already kept.
 6. **Every deletion leaves a mark.** `/kr forget` records the time in `forgotten`. A copy then can't bring back what was seen before it, but the recipe is noted again if it's seen afterwards. Anything that deletes later must do the same, or the copies will undo it.
 7. **No number the file can't hold.** At logout, nan and inf are taken out (counted in `meta.nonFinite`): written as `nan` or `inf`, they would make the whole file unreadable. A number is judged by how it prints, never by comparing it: the game's Lua compares nan as equal to everything (`/kr test` found it, 2026-11-10).
 8. **A released step never changes.** Step n turns format n − 1 into n. A step reads nothing that may change later (`DEFAULTS`, `KINDS`): what it needs is written inside it, as step 2 holds version 1's defaults. A new format adds a step, a fixture in [Fixtures.lua](../addon/KaLiRecipe_Tests/Fixtures.lua) that is never edited afterwards, and a line in this page's history.
@@ -59,7 +60,7 @@ At `ADDON_LOADED`, `DB.Open` takes the account's notebook and this character's c
 - **The copy unreadable** (from a newer version): the notebook opens from the account file, and the copy is left as it is, never written over.
 - **Neither there:** a first run.
 
-At `PLAYER_LOGOUT`, `DB.BeforeSave` takes out options at their default and any nan or inf, and stamps `meta.writer` and `meta.written`. Then `DB.Copy` gives this character's file a full copy, `{ owner, at, writer, data }`. It's a separate table: the game would write a shared one twice anyway.
+At `PLAYER_LOGOUT`, `DB.BeforeSave` takes out any nan or inf, then options at their default, and stamps `meta.writer` and `meta.written`. nan and inf go first: the defaults are found by comparing, which takes a nan for any default, so it went uncounted (`/kr test` found it, 2026-11-11). Then `DB.Copy` gives this character's file a full copy, `{ owner, at, writer, data }`. It's a separate table: the game would write a shared one twice anyway.
 
 ## What this protects against, and what it doesn't
 
@@ -90,7 +91,7 @@ Still to decide: what an import of another account's notebook brings, sightings 
   - writing and reading back as the game does (`T.Saved`, `T.ReadSaved`);
   - merging places, dates and prices, forgetting, characters, the copy, restore and refusal;
   - the cap on what is set aside.
-- **The smoke test** checks that the options page writes no default, then fires a logout: the copy is written, and no option at its default stays.
+- **The smoke test** checks that nothing writes a default at login (Blizzard's settings write one into a key left empty, which is why the options, then on their page, were watched; since 2026-11-13 they're in the addon's own window), then fires a logout: the copy is written, and no option at its default stays.
 - **The restart sessions** (`recipe/tools/run_tests.py`) start new Lua states from the files the smoke test wrote:
   - with both files, the notebook reads back exactly as it was;
   - without the account file, the copy brings it back and says so;

@@ -7,11 +7,13 @@
   const OPTIONS = {
     a1: true, a2: true, showZero: true,
     chat: true,
-    mKnown: true, mLearnable: true, mTooLow: true, mOwned: true, mAlt: true, mVendor: true, mCraft: true, mCraftSeen: true,
+    mKnown: true, mLearnable: true, mTooLow: true, mOwned: true, mAlt: true, mCraft: true, mCraftSeen: true,
     b4: "detailed", c1: true, c1Seen: true, c1Max: 10, d4: true,
     nbStyle: "clean", follow: false, nbW: 560, nbH: 820, nbOwned: true, nbAlt: true,
     // The two sounds (2026-11-10): the addon's own defaults, from js/sounds.js.
     soundRecipe: (window.SOUNDS && SOUNDS.defaults.recipe) || "none", soundPlace: (window.SOUNDS && SOUNDS.defaults.place) || "none",
+    // « Volume des sons » (2026-11-12): both sounds, in percent of their in-game volume, 200 by default (2026-11-13).
+    soundVolume: 200,
   };
   window.BENCH_DEFAULTS_OPTIONS = OPTIONS;
   const DEFAULTS = {
@@ -91,7 +93,7 @@
     // The sounds: every one the in-game options offer, to hear and pick.
     p.append(h("h2", {}, "Sounds"));
     if (!window.SOUNDS) {
-      p.append(h("div.note.warn", {}, "js/sounds.js is missing: run python -I recipe-notebook/tools/bench_sounds.py from C:\devel\WowAddons."));
+      p.append(h("div.note.warn", {}, "js/sounds.js is missing: run python -I recipe/tools/bench_sounds.py from the repository's root."));
     } else {
       p.append(h("div.hint", { style: { fontSize: "11px", color: "#8b919b" } }, `The game's own sounds, each at its in-game volume, so they compare as in game. The game has one writing sound, the quest log's quill: the shorter ones are that quill stopped early, fading out over ${SOUNDS.fade} s, as the addon does it in game. One per visit: the bigger when it notes a recipe that wasn't in the notebook, the smaller for a new place of one that was, at least ${SOUNDS.quiet} s after the last. ▶ plays; a click on a name picks it, as the in-game option does (Options › KaLi Recipe › « ${SOUNDS.options.fr.OPT_CHAT_SECTION} »).`));
       for (const [kind, title, optKey, word] of [["recipe", "New recipe", "soundRecipe", "OPT_SOUND_RECIPE"], ["place", "New place", "soundPlace", "OPT_SOUND_PLACE"]]) {
@@ -107,6 +109,9 @@
         }
         p.append(opt(`${title} (« ${SOUNDS.options.fr[word]} »)`, null, list));
       }
+      p.append(opt(`Volume (« Volume des sons »)`, "Both sounds, in percent of their in-game volume, as the in-game slider does it: 200% by default, each at most full. 0%: none.",
+        h("label.range", {}, h("input", { type: "range", min: 0, max: 300, step: 10, value: S.soundVolume, onchange: (e) => set({ soundVolume: Number(e.target.value) }) }),
+          h("span.val", {}, S.soundVolume + "%"))));
       p.append(h("div.opt", {}, h("div.seg", {},
         h("button", { onclick: () => { U.playSound("recipe", S.soundRecipe); setTimeout(() => U.playSound("place", S.soundPlace), 3200); } }, "Hear the chosen pair"))));
     }
@@ -117,7 +122,6 @@
     p.append(check("mLearnable", "To learn: required rank, in its difficulty colour"), check("mTooLow", "Rank too low: required rank in red"));
     p.append(check("mOwned", "You hold it, bags or bank alike (the banker, on a dark disc)"));
     p.append(check("mAlt", "Another character holds it (friend icon)"));
-    p.append(check("mVendor", "Auction house: seen at a vendor (white eye)", "Recipes this character doesn't know, also sold by a vendor seen before."));
     p.append(check("mCraft", "Crafted items: the profession's small icon, top left", "Bright: this character can make it. Dimmed: another character can. Hover for « Fabriqué par ». Shows in: the bags.", { scene: "bags" }));
     p.append(check("mCraftSeen", "Crafted items: also from recipes only seen", null, { scene: "bags" }));
 
@@ -162,6 +166,7 @@
 
   function render() {
     U.untip();
+    U.soundVolume = (S.soundVolume ?? 200) / 100;
     panel();
     const stage = document.getElementById("stage");
     const focused = document.activeElement && document.activeElement.classList.contains("search-in");

@@ -57,6 +57,8 @@ function Follow.Set(on)
     else
         detach(false)
     end
+    -- The options window's box says so, set from the notebook's own button too.
+    ns.SafeCall(ns.Options.Changed)
 end
 
 -- The notebook was closed: by hand while docked, it stays closed until the window closes.

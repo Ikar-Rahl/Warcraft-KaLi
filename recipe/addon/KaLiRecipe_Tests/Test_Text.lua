@@ -37,6 +37,13 @@ T.Add("Text", "where a recipe was seen, with the names the game gave", function(
     T.Eq(ns.Text.Where(m, { k = "trainer", map = 1438 }), string.format(L.WHERE_TRAINER, L.SOMEONE, "Teldrassil"), "a trainer never named")
     T.Eq(ns.Text.Where(m, { k = "drop", npc = 4223 }), string.format(L.WHERE_DROP, "Ellandrieth", L.SOMEWHERE), "no map")
     T.Eq(ns.Text.Where(m, { k = "quest", q = 1 }), string.format(L.WHERE_QUEST, L.A_QUEST), "a quest never named")
+    local limited, unlimited = T.Vendor(), T.Vendor()
+    limited.stock, unlimited.stock = 0, -1
+    T.Eq(ns.Text.Where(m, limited), string.format(L.WHERE_VENDOR, "Ellandrieth " .. ns.Text.CLOCK_MARKUP, "Darnassus"),
+        "a vendor whose stock was limited: the grey clock after the name, sold out or not")
+    T.Eq(ns.Text.Where(m, unlimited), string.format(L.WHERE_VENDOR, "Ellandrieth", "Darnassus"), "no limit: no clock")
+    T.Eq(ns.Text.Where(m, { k = "trainer", npc = 4223, map = 1457, stock = 1 }), string.format(L.WHERE_TRAINER, "Ellandrieth", "Darnassus"),
+        "only vendors have one")
     T.Eq(ns.Text.Held(1, 0) .. "|" .. ns.Text.Held(0, 2) .. "|" .. ns.Text.Held(1, 2), L.BAGS .. "|" .. L.BANK .. "|" .. L.BAGS .. L.AND .. L.BANK,
         "bags, bank, both")
     T.Eq(ns.Text.HeldIn(0, 1, false), L.HIS_BANK, "another character's bank")
@@ -54,6 +61,10 @@ T.Add("Chat", "one line per visit: the count, the place, three links and the res
         string.format(L.AT_NPC, "Ellandrieth", "Darnassus"), "[1]"), "one recipe")
     local five = ns.Chat.Line(m, where, { 1, 2, 3, 4, 5 }, link)
     T.True(five:find("[1], [2], [3]" .. string.format(L.MORE_MANY, 2), 1, true), "three links and « et 2 autres »: " .. five)
+    local seen = { [2] = { k = "vendor", npc = 4223, stock = 1 }, [3] = { k = "vendor", npc = 4223, stock = -1 } }
+    T.Eq(ns.Chat.Line(m, where, { 2, 3 }, link, seen), L.CARNET_PREFIX .. string.format(L.CHAT_MANY, 2,
+        string.format(L.AT_NPC, "Ellandrieth", "Darnassus"), "[2] " .. ns.Text.CLOCK_MARKUP .. ", [3]"),
+        "the grey clock after the link of a recipe the vendor had in limited stock")
     local loot = ns.Chat.Line(m, { k = "drop", npc = 4223, map = 1457 }, { 7 }, link)
     T.Eq(loot, L.CARNET_PREFIX .. string.format(L.CHAT_SINGLE, "[7]", string.format(L.AT_LOOT, "Ellandrieth", "Darnassus")),
         "one looted recipe: its own line")

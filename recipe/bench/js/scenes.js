@@ -404,10 +404,8 @@
     const rows = h("div.rows");
     for (const l of M.D.ah.listings) {
       const it = M.item(l.item) || {};
-      // The eye: a recipe this account saw at a vendor, so it needn't be bought here (unless this character knows it).
-      const atVendor = S.mVendor && !M.isKnown(l.recipe, c) && M.vendorSightings(l.recipe).length ? eye() : null;
       const ic = h("span", { style: { position: "relative", display: "inline-flex" } }, U.icon(it.icon, 24));
-      const row = h("div.arow", {}, h("span", { style: { width: "380px", display: "flex", gap: "8px", alignItems: "center" } }, ic, h("span", { class: "q" + (it.quality ?? 1) }, it.name), ...markers(l.recipe, c, S, "inline"), atVendor),
+      const row = h("div.arow", {}, h("span", { style: { width: "380px", display: "flex", gap: "8px", alignItems: "center" } }, ic, h("span", { class: "q" + (it.quality ?? 1) }, it.name)),
         h("span.white", { style: { width: "70px" } }, String(M.recipe(l.recipe).min)), h("span.white", { style: { width: "90px" } }, String(l.qty)),
         h("span", { style: { marginLeft: "auto" }, class: "white", html: M.money(l.price) }));
       hover(row, () => recipeTip(l.item, l.recipe, ctx), "right");
@@ -418,7 +416,7 @@
     const lines = chatForSightings(ctx, M.D.sightings.filter((s) => s.kind === "ah"), "à l’hôtel des ventes");
     chat(stage, ctx, lines);
     overlays(ctx, stage, X + W + 20);
-    return "Auction house (approximated): one query on the Recipes page when it opens notes what it lists. No prices are kept: Auctionator and the like add theirs to the recipe's item tooltip. The eye: also sold by a vendor seen before.";
+    return "Auction house (approximated): « Relever les recettes » notes what the Recipes category lists, on a click. No marks on the rows (Ikar, 2026-11-13): they clashed with the house's own and Auctionator's; hover a row for the recipe's tooltip. No prices are kept.";
   }
 
   function bags(ctx, stage) {
@@ -534,12 +532,12 @@
     const chk = (key, label, tip) => body.append(hover(h("div.setrow", { onclick: () => ctx.set({ [key]: !S[key] }) }, h("span.white.fs12", {}, label), h("span.setbox", {}, S[key] ? "✓" : "")), () => [{ l: label, cls: "white", h: true }, { l: tip, cls: "lgray", wrap: true }], "right"));
     const pick = (key, label, choices) => body.append(h("div.setrow", {}, h("span.white.fs12", {}, label), h("span.setdd", { onclick: () => { const i = choices.findIndex(([v]) => v === S[key]); ctx.set({ [key]: choices[(i + 1) % choices.length][0] }); } }, (choices.find(([v]) => v === S[key]) || choices[0])[1] + "  ▾")));
     // Blizzard's slider with steppers (MinimalSliderWithSteppersTemplate): ◀ track ▶ and the value.
-    const slider = (key, label, min, max, step = 1) => {
+    const slider = (key, label, min, max, step = 1, show = String) => {
       const v = S[key], pct = (v - min) / (max - min) * 100;
       const setv = (nv) => ctx.set({ [key]: Math.max(min, Math.min(max, Math.round(nv / step) * step)) });
       const track = h("span.settrack", { onclick: (e) => { const b = e.currentTarget.getBoundingClientRect(); setv(min + (e.clientX - b.left) / b.width * (max - min)); } },
         h("span.fill", { style: { width: pct + "%" } }), h("span.thumb", { style: { left: pct + "%" } }));
-      body.append(h("div.setrow", {}, h("span.white.fs12", {}, label), h("span.setslider", {}, h("span.step", { onclick: () => setv(v - step) }, "◀"), track, h("span.step", { onclick: () => setv(v + step) }, "▶"), h("span.white.fs12.val", {}, String(v)))));
+      body.append(h("div.setrow", {}, h("span.white.fs12", {}, label), h("span.setslider", {}, h("span.step", { onclick: () => setv(v - step) }, "◀"), track, h("span.step", { onclick: () => setv(v + step) }, "▶"), h("span.white.fs12.val", {}, show(v)))));
     };
     // A sound list, as Blizzard's dropdown: picking one plays it, as in game.
     const pickSound = (kind, key) => {
@@ -556,13 +554,13 @@
     chk("chat", "Annoncer les recettes notées", "Chez un marchand, un entraîneur, à l’hôtel des ventes ou sur un butin, une ligne dans la discussion, dans la couleur des métiers.");
     pickSound("recipe", "soundRecipe");
     pickSound("place", "soundPlace");
+    slider("soundVolume", "Volume des sons", 0, 300, 10, (v) => v + "%");
     sec("Marques sur les recettes");
     chk("mKnown", "Apprises", "La petite coche du suivi des objectifs, sur les recettes que ce personnage connaît.");
     chk("mLearnable", "À apprendre", "Le rang requis, dans la couleur de difficulté.");
     chk("mTooLow", "Rang insuffisant", "Le rang requis, en rouge.");
     chk("mOwned", "Sur ce personnage", "L’icône du banquier en bas à gauche, quand ce personnage l’a, dans ses sacs ou en banque.");
     chk("mAlt", "Sur un autre personnage", "L’icône d’ami en bas à droite, quand un autre de vos personnages l’a. Les deux peuvent se voir ensemble.");
-    chk("mVendor", "Vue chez un marchand", "À l’hôtel des ventes, un œil sur les recettes déjà vues chez un marchand : inutile de les payer plus cher.");
     chk("mCraft", "Objets fabriqués", "La petite icône du métier en haut à gauche des objets qu’une recette connue fabrique : vive si ce personnage sait le faire, atténuée sinon.");
     chk("mCraftSeen", "Y compris par les recettes vues", "Aussi les objets d’une recette vue mais pas apprise.");
     sec("Infobulles");

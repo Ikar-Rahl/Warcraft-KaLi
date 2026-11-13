@@ -126,10 +126,12 @@ function SelfCheck.NoteWindow()
     local skill = ns.Game.OpenSkill()
     windowRead.looked = windowRead.looked + 1
     if not skill then
+        -- Profession 0 is the game's "none", as the window answers while it fills: nothing to say about it.
         local info = ns.Call(C_TradeSkillUI.GetBaseProfessionInfo)
-        if #windowRead.wrong < 5 then
+        local id = info and info.professionID
+        if id and id ~= 0 and #windowRead.wrong < 5 then
             windowRead.wrong[#windowRead.wrong + 1] = string.format("the professions window shows profession %s, not one of the addon's",
-                tostring(info and info.professionID))
+                tostring(id))
         end
         return
     end

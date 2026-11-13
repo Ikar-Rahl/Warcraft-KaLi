@@ -1,7 +1,8 @@
 -- Two sounds (Ikar, 2026-11-10): one when a visit notes a recipe that wasn't in the notebook yet, a smaller one when
 -- it notes a new place for a recipe already there. The game's own sound kits, by number: they follow the player's
--- effects volume and mute, and the addon ships no sound file. Each can be heard on the bench (bench/index.html, panel
--- « Sounds ») and chosen in the options, or turned off.
+-- master and effects volumes and mute, and the addon ships no sound file. Each can be heard on the bench
+-- (bench/index.html, panel « Sounds ») and chosen in the options, or turned off; the options also set both's volume
+-- (« Volume des sons », Ikar, 2026-11-12), 200 % by default (Ikar, 2026-11-13: "we barely hear it" at 100 %).
 local _, ns = ...
 
 local Sounds = {}
@@ -26,6 +27,14 @@ Sounds.CHOICES = { recipe = WRITING, place = WRITING }
 Sounds.DEFAULTS = { recipe = "quill", place = "stroke" }
 -- The option behind each kind.
 Sounds.OPTION = { recipe = "soundRecipe", place = "soundPlace" }
+-- Both sounds' volume, in percent of the game's own for them.
+Sounds.VOLUME = "soundVolume"
+
+-- Each kit's own volume, its VolumeFloat in this build's SoundKit table (tools/run_tests.py holds it against it): the
+-- game plays the quill at 0.3 of full, before the player's volumes. Asked for a volume (volumeOverride), the game takes
+-- it in place of the kit's (an assumption: the API's documentation doesn't say, and /krprobe volume measures it), so the
+-- addon asks a share of the kit's: half of it at 50 %, twice at 200 %, never more than full (1).
+Sounds.KIT_VOLUME = { [3093] = 0.3, [1209] = 0.5, [1192] = 0.6 }
 
 -- Between two of the addon's sounds, at least this many seconds: an auction house's pages of results or a run of loot
 -- make one sound, not one each, and the quill finishes before another starts.
@@ -62,8 +71,28 @@ local function soundOn()
     return not ok or all ~= "0" and sfx ~= "0"
 end
 
-local function play(kit, stop)
-    local ok, willPlay, handle = pcall(PlaySound, kit)
+-- Whether the game takes a volume with a sound: the options show « Volume des sons » only then.
+function Sounds.CanSetVolume()
+    return type(C_Sound) == "table" and type(C_Sound.PlaySoundWithOptions) == "function"
+end
+
+-- What to ask of the game for a kit at a volume in percent: nil at 100 % (or none), so the sound plays as the game
+-- plays it, the game asked nothing; else the kit's own volume times it, at most full. Pure, for the tests.
+function Sounds.Override(kit, percent)
+    if type(percent) ~= "number" or percent == 100 or not Sounds.KIT_VOLUME[kit] then
+        return nil
+    end
+    return math.min(1, Sounds.KIT_VOLUME[kit] * math.max(0, percent) / 100)
+end
+
+local function play(kit, stop, override)
+    local ok, willPlay, handle
+    if override and Sounds.CanSetVolume() then
+        -- The effects' channel, PlaySound's own.
+        ok, willPlay, handle = pcall(C_Sound.PlaySoundWithOptions, { soundKitID = kit, uiSoundSubType = "SFX", volumeOverride = override })
+    else
+        ok, willPlay, handle = pcall(PlaySound, kit)
+    end
     if ok and willPlay ~= false then
         Sounds.stats.played = Sounds.stats.played + 1
         if stop and handle then
@@ -76,29 +105,30 @@ local function play(kit, stop)
     end
 end
 
--- The kit to play for a kind, "recipe" or "place", and when it stops: the options' choice, or nil when it's "none" or
--- another sound played less than QUIET seconds before (lastTime). preview: the options' own, whatever the time. Pure,
--- for the tests.
+-- The kit to play for a kind, "recipe" or "place", when it stops, and the volume to ask (Override): the options'
+-- choice, or nil when it's "none", the volume is 0 %, or another sound played less than QUIET seconds before
+-- (lastTime). preview: the options' own, whatever the time. Pure, for the tests.
 function Sounds.Pick(options, kind, now, lastTime, preview)
-    local kit, stop = nil, nil
+    local kit, stop, percent = nil, nil, nil
     if options then
         kit, stop = Sounds.Kit(kind, options[Sounds.OPTION[kind] or ""])
+        percent = options[Sounds.VOLUME]
     end
-    if not kit or not preview and lastTime and now - lastTime < Sounds.QUIET then
+    if not kit or percent == 0 or not preview and lastTime and now - lastTime < Sounds.QUIET then
         return nil
     end
-    return kit, stop
+    return kit, stop, Sounds.Override(kit, percent)
 end
 
 local last
 -- Plays the chosen sound of a kind. Returns whether a sound went out.
 function Sounds.Play(kind, preview)
     local now = GetTime()
-    local kit, stop = Sounds.Pick(ns.db and ns.db.options, kind, now, last, preview)
+    local kit, stop, override = Sounds.Pick(ns.db and ns.db.options, kind, now, last, preview)
     if not kit then
         return false
     end
     last = now
-    play(kit, stop)
+    play(kit, stop, override)
     return true
 end

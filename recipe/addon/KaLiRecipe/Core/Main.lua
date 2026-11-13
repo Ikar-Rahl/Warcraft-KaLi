@@ -70,7 +70,6 @@ ns.On("PLAYER_LOGIN", function()
     end
     local ok, on = ns.SafeCall(ns.Tooltips.Start)
     ns.tooltipsOn = ok and on
-    ns.SafeCall(ns.SelfCheck.AtLogin)
     -- The one time startup speaks: the saved data needed a copy, or held something unreadable. Once chat is there.
     local info, L = ns.dbInfo, ns.L
     if info.restored then
@@ -83,3 +82,7 @@ ns.On("PLAYER_LOGIN", function()
         ns.Say(string.format(L.DB_SET_ASIDE, info.setAside))
     end
 end)
+
+-- The API check, last, once the notebook and its pieces are there to be tried; with the saved data refused too, as
+-- KaLi Quest's, since what the game answers doesn't depend on it.
+ns.On("PLAYER_LOGIN", ns.SelfCheck.AtLogin)
