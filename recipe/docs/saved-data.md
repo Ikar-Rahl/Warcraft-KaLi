@@ -33,7 +33,7 @@ Keys are numbers wherever the game has a number: recipe spells, items, NPCs, map
 **A sighting** is `{ k, t0, t, npc, map, x, y, q, item, cost, costs, stock }`:
 - `k`, the kind: `vendor`, `trainer`, `ah` (auction house), `drop` (loot), `quest` (a reward), `bags`.
 - `t0` and `t`: first and last seen, in seconds (`time()`).
-- `npc`, `map`, `x`, `y`, `q`: where. `x` and `y` run from 0 to 1 on `map`.
+- `npc`, `map`, `x`, `y`, `q`: where. `x` and `y` run from 0 to 1 on `map`. A quest reward's `npc` and place are its giver's, from its offer (since 2026-11-15; before, a zone alone): a turn-in or the quest log names none, so the offer's stay. An object's offer, as a wanted poster, has a place and no `npc`, since an object's number isn't an NPC's. Adding them needed no step, as `stock` didn't.
 - `item`: the recipe item that was seen. Trainers have none. The recipe is worked out from it (`RECIPE_ITEMS`), so keeping the item lets a later version link the sighting again if a patch changes that.
 - `cost` (copper) and `costs` (`{ { n, item or currency, tex } }`): a vendor's price at the last visit; a trainer's has `cost` only.
 - `stock` (since 2026-11-13, Ikar: "we should store the full information when visiting ... store the higher number in case of update"): a vendor's stock of the recipe as the game gives it (`numAvailable`), -1 for no limit, else how many it had; the highest of all visits, so -1 only while no visit found a limit. A sighting noted before has none: unknown, shown as no limit. Only whether it's limited shows (a grey clock); the number is kept in case it's ever wanted.

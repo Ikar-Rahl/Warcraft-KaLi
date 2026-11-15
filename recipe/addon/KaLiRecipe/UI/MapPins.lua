@@ -47,9 +47,11 @@ local function defineMixins()
     function KaLiRecipeMapPinMixin:OnLoad()
         self:SetScalingLimits(1, 1.0, 1.2)
     end
+    -- A quest's giver gets the "!" the map puts on a quest offered; every other place, the template's pin.
     function KaLiRecipeMapPinMixin:OnAcquired(spot)
         self.spot = spot
         self:SetPosition(spot.x, spot.y)
+        self.Icon:SetAtlas(spot.s.k == "quest" and ns.Text.QUEST or "Waypoint-MapPin-Untracked")
     end
     function KaLiRecipeMapPinMixin:OnMouseEnter()
         ns.SafeCall(function()

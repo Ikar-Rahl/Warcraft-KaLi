@@ -1,5 +1,5 @@
 -- Where recipes are met, each read when the game opens it: vendors, trainers, the auction house, loot, quest rewards
--- and the bags; and what the character knows, from the professions window and the spellbook. Every read writes only
+-- (the quest window's and the log's) and the bags; and what the character knows, from the professions window and the spellbook. Every read writes only
 -- the addon's own table, through the model, and one visit makes at most one chat line.
 local _, ns = ...
 
@@ -341,21 +341,106 @@ end)
 
 -- ---------- Quest rewards ----------
 
-local function scanQuest()
+-- Each recipe among a quest's rewards, as the vendors' are: noted from place (k, q and where its giver stands), its
+-- line and sound through the visit (Ikar, 2026-11-15: "same behaviour as the rest, sound, log line"). q: a quest of the
+-- log, else the quest window's. Returns whether something was new, and whether every reward named its item: the game
+-- may send a reward's data a moment later.
+local function readRewards(place, visit, q)
+    local any, whole = false, true
+    for _, kind in ipairs({ "reward", "choice" }) do
+        for i = 1, Game.QuestRewardCount(kind, q) do
+            local item = Game.QuestItem(kind, i, q)
+            whole = whole and item ~= nil
+            local spell = item and ns.RECIPE_ITEMS[item]
+            if spell then
+                any = note(visit, spell, { k = "quest", q = place.q, npc = place.npc, map = place.map, x = place.x, y = place.y,
+                    item = item }) or any
+            end
+        end
+    end
+    return any, whole
+end
+
+-- Who offers the quest in its window: a creature, by its NPC number, whose place is the quest's; an object, as a
+-- wanted poster, whose place is too, with no number (an object's isn't an NPC's); or nobody to place: an item, a
+-- party member's share.
+local function giver()
+    local unit = UnitGUID("questnpc") and "questnpc" or "npc"
+    local kind = tostring(UnitGUID(unit) or ""):match("^(%a+)%-")
+    if kind == "Creature" or kind == "Vehicle" then
+        return npcOf(unit), true
+    end
+    return nil, kind == "GameObject"
+end
+
+-- The quest window's quest, from its offer (QUEST_DETAIL) or its turn-in (QUEST_COMPLETE) until it closes.
+local offer
+
+local function readOffer()
+    if offer and readRewards(offer.place, offer.visit) then
+        changed()
+    end
+end
+
+local function closeOffer()
+    if offer then
+        offer.visit:Flush()
+    end
+    offer = nil
+end
+
+local function openOffer(turnIn)
+    closeOffer()
     local q = ns.Call(GetQuestID)
-    if not q or q == 0 then
+    if not ns.DB.IsID(q) then
         return
     end
     ns.DB.SetName(ns.db, "quest", q, ns.Call(GetTitleText))
-    local map = Game.Spot()
+    local place = { q = q }
+    -- The offer's place is its giver's. Not a turn-in's: the one who ends a quest is often another, so the giver and
+    -- place noted at its offer stay.
+    if not turnIn then
+        local npc, placed = giver()
+        if placed then
+            place.npc = npc
+            place.map, place.x, place.y = Game.Spot()
+        end
+    end
+    offer = { place = place, visit = ns.Chat.Visit({ k = "quest", q = q, npc = place.npc, map = place.map }) }
+    readOffer()
+end
+
+on("QUEST_DETAIL", function()
+    openOffer(false)
+end)
+on("QUEST_COMPLETE", function()
+    openOffer(true)
+end)
+-- A reward's data come after the window opened: Blizzard's quest window shows its rewards again then.
+on("QUEST_ITEM_UPDATE", function()
+    later("questoffer", readOffer)
+end)
+on("QUEST_FINISHED", closeOffer)
+
+-- The quests of the log show their rewards there, offers never seen included: accepted before the addon, shared by a
+-- party member, or taken without the quest window. Each is read until every reward named its item, at login and as
+-- the log changes. Silently, but for a quest accepted this session: nothing said at login.
+local logRead = {} -- questID -> true: every reward read
+local accepted = {} -- questID -> true: accepted this session
+
+local function readLog()
     local any = false
-    for _, kind in ipairs({ "reward", "choice" }) do
-        local n = kind == "reward" and GetNumQuestRewards() or GetNumQuestChoices()
-        for i = 1, n or 0 do
-            local item = Game.ItemFromLink(GetQuestItemLink(kind, i))
-            local spell = item and ns.RECIPE_ITEMS[item]
-            if spell then
-                any = note(nil, spell, { k = "quest", q = q, map = map, item = item }) or any
+    for i = 1, ns.Call(C_QuestLog.GetNumQuestLogEntries) or 0 do
+        local info = ns.Call(C_QuestLog.GetInfo, i)
+        local q = type(info) == "table" and not info.isHeader and info.questID
+        if ns.DB.IsID(q) and not logRead[q] then
+            ns.DB.SetName(ns.db, "quest", q, info.title)
+            local visit = accepted[q] and ns.Chat.Visit({ k = "quest", q = q }) or nil
+            local new, whole = readRewards({ q = q }, visit, q)
+            any = new or any
+            logRead[q] = whole or nil
+            if visit then
+                visit:Flush()
             end
         end
     end
@@ -363,8 +448,17 @@ local function scanQuest()
         changed()
     end
 end
-on("QUEST_DETAIL", scanQuest)
-on("QUEST_COMPLETE", scanQuest)
+Scan.ReadLog = readLog
+
+on("QUEST_ACCEPTED", function(_, q)
+    if ns.DB.IsID(q) then
+        accepted[q] = true
+    end
+    later("questlog", readLog)
+end)
+on("QUEST_LOG_UPDATE", function()
+    later("questlog", readLog)
+end)
 
 -- ---------- Bags and bank ----------
 
@@ -467,6 +561,7 @@ end)
 function Scan.AtLogin()
     readProfessions()
     readBags()
+    readLog()
     C_Timer.After(3, function()
         ns.SafeCall(function()
             readProfessions()

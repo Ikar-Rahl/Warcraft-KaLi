@@ -301,12 +301,107 @@ expect(drop and drop.k == "drop" and drop.npc == 1234, "the looted recipe noted 
 expect(ns.DB.Name(ns.db, "npc", 1234) == "Kobold", "the mob's name kept")
 expect(#F.chat == 1 and chatHas(string.format(L.AT_LOOT, "Kobold", "Darnassus")), "one line, the mob and the place")
 
--- ---------- A quest reward ----------
+-- ---------- Quest rewards ----------
+-- Ikar, 2026-11-15: "same behaviour as the rest, sound, log line, harden the logic ... an icon ... with quest giver,
+-- and zone".
+F.chat = {}
+F.Advance(3)
+heard()
+-- The sound a visit noting spell should make: the quill for a recipe new to the notebook, else a stroke.
+local function soundFor(spell)
+    return (ns.book:Seen(spell) or #ns.book:Knowers(spell) > 0) and STROKE or QUILL
+end
+-- An offer, its reward named by its item's number before the game made its link.
+local expected = soundFor(25704)
+F.npc, F.npcName = "Creature-0-1-0-1-6000-0001", "Alanndarian Nightsong"
 F.questID, F.questTitle = 99, "Une quête"
-F.questRewards = { "|Hitem:21099::|h" }
+F.questRewards = { { id = 21099 } }
 F.Fire("QUEST_DETAIL")
 F.RunTimers()
-expect(ns.db.sightings[25704] and ns.db.sightings[25704][1].q == 99, "the quest's recipe noted")
+local reward = ns.db.sightings[25704] and ns.db.sightings[25704][1]
+expect(reward and reward.k == "quest" and reward.q == 99 and reward.item == 21099,
+    "an offer's recipe noted by its item's number, the link not made yet")
+expect(reward and reward.npc == 6000 and reward.map == 1457 and reward.x == 0.5 and reward.y == 0.4,
+    "with its giver and where the giver stands")
+expect(ns.DB.Name(ns.db, "npc", 6000) == "Alanndarian Nightsong", "the giver's name kept")
+expect(heard() == expected, "its sound, as at a vendor")
+local questAt = ns.Text.QUEST_MARKUP .. " " .. string.format(L.AT_QUEST_NPC, "Une quête", "Alanndarian Nightsong", "Darnassus")
+expect(#F.chat == 1 and chatHas(questAt), "one line, the quest's mark first, then the quest, its giver and zone")
+F.Fire("QUEST_FINISHED")
+-- Another offer, its reward's data not sent yet: read again when the game sends it, as Blizzard's quest window does.
+F.chat = {}
+F.Advance(3)
+F.questID, F.questTitle = 98, "Le brouet"
+F.questRewards = { {} }
+expected = soundFor(6416)
+F.Fire("QUEST_DETAIL")
+F.RunTimers()
+expect(not ns.db.sightings[6416] and #F.chat == 0, "a reward whose data hasn't come: nothing yet")
+F.questRewards = { { link = "|Hitem:5486::|h[Recette : Brouet de trotteur]|h" } }
+F.Fire("QUEST_ITEM_UPDATE")
+F.RunTimers()
+local stew = ns.db.sightings[6416] and ns.db.sightings[6416][1]
+expect(stew and stew.q == 98 and stew.npc == 6000, "read when the game sends it, by its link this time")
+expect(#F.chat == 1 and heard() == expected, "its line and its sound")
+F.Fire("QUEST_FINISHED")
+-- Its turn-in, to another NPC elsewhere: the giver and place of its offer stay, and nothing new to say.
+F.chat = {}
+F.npc, F.npcName = "Creature-0-1-0-1-6001-0001", "Le cuisinier"
+F.playerPos = { 0.9, 0.9 }
+F.Fire("QUEST_COMPLETE")
+F.RunTimers()
+expect(stew and stew.npc == 6000 and stew.x == 0.5 and stew.y == 0.4 and #ns.db.sightings[6416] == 1,
+    "turned in to another NPC elsewhere: the giver and place of the offer stay")
+expect(#F.chat == 0, "and nothing said: the reward was seen")
+F.Fire("QUEST_FINISHED")
+F.playerPos = { 0.5, 0.4 }
+-- A wanted poster: its place, no NPC. A party member's share: neither.
+F.npc = "GameObject-0-1-0-1-7000-0001"
+F.questID, F.questTitle = 97, "Avis de recherche"
+F.questRewards = { { id = 6368 } }
+F.Fire("QUEST_DETAIL")
+F.RunTimers()
+F.Fire("QUEST_FINISHED")
+local poster = ns.db.sightings[7827] and ns.db.sightings[7827][1]
+expect(poster and poster.npc == nil and poster.map == 1457 and poster.x == 0.5, "an object's offer: its place, no NPC")
+expect(poster and ns.Text.Where(ns.book, poster) == ns.Text.QUEST_MARKUP .. " " .. string.format(L.WHERE_QUEST_AT,
+    "Avis de recherche", "Darnassus"), "written with its zone")
+F.npc = "Player-1234-0ABCDEF1"
+F.questID, F.questTitle = 96, "Partagée"
+F.questRewards = { { id = 6369 } }
+F.Fire("QUEST_DETAIL")
+F.RunTimers()
+F.Fire("QUEST_FINISHED")
+local shared = ns.db.sightings[7828] and ns.db.sightings[7828][1]
+expect(shared and shared.npc == nil and shared.map == nil and shared.x == nil, "a party member's share: no place")
+expect(shared and ns.Text.Where(ns.book, shared) == ns.Text.QUEST_MARKUP .. " " .. string.format(L.WHERE_QUEST, "Partagée"),
+    "written with the quest alone")
+F.npc, F.questRewards = nil, {}
+-- The log: a quest there at login, its offer never seen, is read silently; one accepted now says its line, once the
+-- game has sent its reward's data.
+local log = F.entries
+F.chat = {}
+F.Advance(3)
+heard()
+F.SetLog({ { title = "Sombrivage", isHeader = true }, { questID = 95, title = "Déjà là" }, { questID = 94, title = "Acceptée" } })
+F.logRewards[95] = { { id = 5484 } }
+F.logChoices[94] = { {} }
+F.Fire("QUEST_LOG_UPDATE")
+F.RunTimers()
+local before = ns.db.sightings[6414] and ns.db.sightings[6414][1]
+expect(before and before.q == 95 and before.map == nil, "a quest of the log: its recipe noted, with no place")
+expect(#F.chat == 0 and heard() == "", "silently, as it was there before")
+expect(not ns.db.sightings[6501], "a log reward whose data hasn't come: nothing yet")
+F.Fire("QUEST_ACCEPTED", 94)
+expected = soundFor(6501)
+F.logChoices[94] = { { link = "|Hitem:5528::|h[Recette]|h" } }
+F.Fire("QUEST_LOG_UPDATE")
+F.RunTimers()
+expect(ns.db.sightings[6501] and ns.db.sightings[6501][1].q == 94, "accepted now, read once the game sends the reward")
+expect(#F.chat == 1 and chatHas(ns.Text.QUEST_MARKUP .. " " .. string.format(L.AT_QUEST, "Acceptée")) and heard() == expected,
+    "with its line and sound")
+F.SetLog(log)
+F.logRewards, F.logChoices = {}, {}
 
 -- ---------- Bags ----------
 F.bags[0] = { 2889, 2406, false, 2697 }
@@ -703,6 +798,10 @@ GameTooltip:SetItemByID(2889)
 expect(tooltipHas(string.format(L.WHERE_VENDOR, "Ellandrieth " .. ns.Text.CLOCK_MARKUP, "Darnassus")),
     "and the grey clock after the name of a vendor whose stock was limited")
 GameTooltip:SetOwner(UIParent)
+GameTooltip:SetItemByID(21099)
+expect(tooltipHas(ns.Text.QUEST_MARKUP .. " " .. string.format(L.WHERE_QUEST_NPC, "Une quête", "Alanndarian Nightsong", "Darnassus")),
+    "a quest reward's tooltip: the quest's mark first, then the quest, its giver and zone")
+GameTooltip:SetOwner(UIParent)
 GameTooltip:SetItemByID(2886)
 expect(tooltipHas(L.USED_IN), "a reagent's « Utilisé dans »")
 GameTooltip:SetOwner(UIParent)
@@ -723,6 +822,16 @@ expect(KaLiRecipeDevDB.reagentColor ~= nil, "the game's « Composant d'artisanat
 WorldMapFrame:Show()
 run(ns.MapPins.Refresh)
 expect(#F.pins >= 1, "pins where unknown recipes were seen: " .. #F.pins)
+local questPin, otherPin
+for _, p in ipairs(F.pins) do
+    if p.spot.s.k == "quest" then
+        questPin = p
+    else
+        otherPin = p
+    end
+end
+expect(questPin and questPin.Icon.atlas == ns.Text.QUEST and otherPin and otherPin.Icon.atlas == "Waypoint-MapPin-Untracked",
+    "a quest giver's pin is the map's own « ! » for a quest offered, the others the template's pin")
 local pin = F.pins[1]
 if pin then
     expect(pin.startScale == 1 and pin.endScale == 1.2, "the pin keeps its size at any zoom")

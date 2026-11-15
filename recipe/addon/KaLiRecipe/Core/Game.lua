@@ -66,6 +66,45 @@ function Game.ItemFromLink(link)
     return tonumber(tostring(link or ""):match("|Hitem:(%d+)"))
 end
 
+-- The sixth thing fn gives, which ns.Call doesn't reach.
+local function sixth(fn, ...)
+    if type(fn) ~= "function" then
+        return nil
+    end
+    local ok, _, _, _, _, _, v = pcall(fn, ...)
+    return ok and v or nil
+end
+
+-- A quest reward's item, kind "reward" or "choice": its number as Blizzard's quest window reads it (the sixth thing
+-- GetQuestItemInfo gives), else its link's, which the game may not have made yet. With q, a quest of the log, read
+-- with the log's own pair, as Blizzard's QuestUtils does; without, the quest window's.
+function Game.QuestItem(kind, i, q)
+    local item
+    if q then
+        item = sixth(kind == "reward" and GetQuestLogRewardInfo or GetQuestLogChoiceInfo, i, q)
+    else
+        item = sixth(GetQuestItemInfo, kind, i)
+    end
+    if ns.DB.IsID(item) then
+        return item
+    end
+    if q then
+        return Game.ItemFromLink(ns.Call(GetQuestLogItemLink, kind, i, q))
+    end
+    return Game.ItemFromLink(ns.Call(GetQuestItemLink, kind, i))
+end
+
+-- How many rewards of a kind the quest has: the log's quest q, or the quest window's.
+function Game.QuestRewardCount(kind, q)
+    local n
+    if q then
+        n = ns.Call(kind == "reward" and GetNumQuestLogRewards or GetNumQuestLogChoices, q)
+    else
+        n = ns.Call(kind == "reward" and GetNumQuestRewards or GetNumQuestChoices)
+    end
+    return ns.Finite(n) and n > 0 and math.floor(n) or 0
+end
+
 -- Where the player stands: the map's number and the position on it, from 0 to 1, rounded.
 function Game.Spot()
     local map = ns.Call(C_Map.GetBestMapForUnit, "player")

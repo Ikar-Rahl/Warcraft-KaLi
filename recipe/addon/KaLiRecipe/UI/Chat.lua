@@ -10,7 +10,8 @@ ns.Chat = Chat
 local SHOWN = 3
 
 -- The line for recipes noted in one place: "Carnet : 3 recettes notées chez Ellandrieth (Darnassus) : [A], [B],
--- [C] et 2 autres." One looted recipe: "Carnet : [A] notée, butin de Kobold (Elwynn)." link(spell) gives each link.
+-- [C] et 2 autres." One looted recipe, or one quest's: "Carnet : [A] notée, butin de Kobold (Elwynn)." link(spell)
+-- gives each link.
 -- seen[spell], the sighting noted: one at a vendor with a limited stock gets the grey clock after its link, the one
 -- name there standing for several recipes, each with its own stock.
 function Chat.Line(m, where, spells, link, seen)
@@ -22,7 +23,7 @@ function Chat.Line(m, where, spells, link, seen)
     if n == 0 then
         return nil
     end
-    if n == 1 and where.k == "drop" then
+    if n == 1 and (where.k == "drop" or where.k == "quest") then
         return L.CARNET_PREFIX .. string.format(L.CHAT_SINGLE, linked(spells[1]), ns.Text.At(m, where))
     end
     local links = {}

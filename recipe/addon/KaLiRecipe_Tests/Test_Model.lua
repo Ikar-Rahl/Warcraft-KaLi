@@ -62,6 +62,19 @@ T.Add("Model", "a vendor's stock: the highest seen, so a limited one stays known
     T.Eq(db.sightings[R.ribs][2].stock, 1, "no limit, then a limit: limited")
 end)
 
+T.Add("Model", "a quest's reward: its giver and place come with its offer, a turn-in keeps them", function()
+    local m, db = T.NewBook()
+    -- As an older version noted it: the quest and a zone, no giver.
+    m:Note(R.ribs, { k = "quest", q = 2178, map = 1438 }, 100)
+    local s = db.sightings[R.ribs][1]
+    T.Eq(m:Note(R.ribs, { k = "quest", q = 2178, npc = 4223, map = 1457, x = 0.5, y = 0.4 }, 200), false,
+        "its offer seen again isn't a new place")
+    T.True(s.npc == 4223 and s.map == 1457 and s.x == 0.5 and s.y == 0.4, "but brings its giver and the giver's place")
+    m:Note(R.ribs, { k = "quest", q = 2178 }, 300)
+    T.True(s.npc == 4223 and s.map == 1457 and s.x == 0.5 and s.t == 300, "a turn-in names no place: the offer's stays")
+    T.Eq(#db.sightings[R.ribs], 1, "one sighting all along")
+end)
+
 T.Add("Model", "states: known, learnable, rank too low, another profession", function()
     local m, db = T.NewBook()
     T.Eq(m:State(R.ribs, "me"), "learnable", "cook 56, requires 25")

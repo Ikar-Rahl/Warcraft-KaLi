@@ -14,7 +14,7 @@ function UnitGUID(unit)
     return F.unitGUIDs[unit]
 end
 function UnitName(unit)
-    if unit == "npc" then
+    if unit == "npc" or unit == "questnpc" then
         return F.npcName
     end
     return F.unitNames[unit]
@@ -296,15 +296,49 @@ function GetLootSourceInfo(slot)
     return F.loot[slot] and F.loot[slot][2], 1
 end
 
-F.questRewards, F.questChoices = {}, {}
+-- The quest window's rewards: F.questRewards[i] and F.questChoices[i] are { id, link }, either missing as when the
+-- game hasn't sent the item's data yet, or a link alone. The log's, by quest: F.logRewards[questID] and
+-- F.logChoices[questID], the same.
+F.questRewards, F.questChoices, F.logRewards, F.logChoices = {}, {}, {}, {}
+local function reward(r)
+    if type(r) == "string" then
+        return nil, r
+    end
+    return r and r.id, r and r.link
+end
+local function info(r)
+    local id = reward(r)
+    return "", 0, 1, 1, true, id
+end
 function GetNumQuestRewards()
     return #F.questRewards
 end
 function GetNumQuestChoices()
     return #F.questChoices
 end
+function GetQuestItemInfo(kind, i)
+    return info((kind == "reward" and F.questRewards or F.questChoices)[i])
+end
 function GetQuestItemLink(kind, i)
-    return (kind == "reward" and F.questRewards or F.questChoices)[i]
+    return select(2, reward((kind == "reward" and F.questRewards or F.questChoices)[i]))
+end
+local function logList(kind, q)
+    return (kind == "reward" and F.logRewards or F.logChoices)[q] or {}
+end
+function GetNumQuestLogRewards(q)
+    return #logList("reward", q)
+end
+function GetNumQuestLogChoices(q)
+    return #logList("choice", q)
+end
+function GetQuestLogRewardInfo(i, q)
+    return info(logList("reward", q)[i])
+end
+function GetQuestLogChoiceInfo(i, q)
+    return info(logList("choice", q)[i])
+end
+function GetQuestLogItemLink(kind, i, q)
+    return select(2, reward(logList(kind, q)[i]))
 end
 function GetTitleText()
     return F.questTitle
@@ -532,8 +566,9 @@ function WorldMapFrame:RemoveAllPinsByTemplate()
 end
 
 -- Mask textures, which the shared fake doesn't make: frames made from here on can. And the addon's own XML templates,
--- which the runner reads from its XML files into F.xmlTemplates[name] = { kind, mixin, mouse, scripts }: the frame
--- gets the mixin (missing, the game fails to make the frame), the mouse, and each script as the method it names.
+-- which the runner reads from its XML files into F.xmlTemplates[name] = { kind, mixin, mouse, scripts, textures }: the
+-- frame gets each texture with a parentKey, its atlas set, the mixin (missing, the game fails to make the frame), the
+-- mouse, and each script as the method it names.
 F.xmlTemplates = F.xmlTemplates or {}
 local baseCreateFrame = CreateFrame
 function CreateFrame(kind, name, parent, template)
@@ -543,6 +578,12 @@ function CreateFrame(kind, name, parent, template)
     end
     local t = template and F.xmlTemplates[template]
     if t then
+        for key, atlas in pairs(t.textures or {}) do
+            f[key] = f:CreateTexture()
+            if atlas ~= "" then
+                f[key]:SetAtlas(atlas)
+            end
+        end
         if t.mixin ~= "" then
             local mixin = _G[t.mixin]
             assert(type(mixin) == "table", template .. ": its mixin " .. t.mixin .. " doesn't exist yet")

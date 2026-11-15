@@ -36,7 +36,16 @@ T.Add("Text", "where a recipe was seen, with the names the game gave", function(
     T.Eq(ns.Text.Where(m, T.Vendor()), string.format(L.WHERE_VENDOR, "Ellandrieth", "Darnassus"), "a vendor")
     T.Eq(ns.Text.Where(m, { k = "trainer", map = 1438 }), string.format(L.WHERE_TRAINER, L.SOMEONE, "Teldrassil"), "a trainer never named")
     T.Eq(ns.Text.Where(m, { k = "drop", npc = 4223 }), string.format(L.WHERE_DROP, "Ellandrieth", L.SOMEWHERE), "no map")
-    T.Eq(ns.Text.Where(m, { k = "quest", q = 1 }), string.format(L.WHERE_QUEST, L.A_QUEST), "a quest never named")
+    local bang = ns.Text.QUEST_MARKUP .. " "
+    T.Eq(ns.Text.Where(m, { k = "quest", q = 1 }), bang .. string.format(L.WHERE_QUEST, L.A_QUEST), "a quest never named, the quest's mark first")
+    ns.DB.SetName(db, "quest", 2178, "Brouet de trotteur")
+    T.Eq(ns.Text.Where(m, { k = "quest", q = 2178, npc = 4223, map = 1457 }),
+        bang .. string.format(L.WHERE_QUEST_NPC, "Brouet de trotteur", "Ellandrieth", "Darnassus"), "a quest with its giver and zone")
+    T.Eq(ns.Text.Where(m, { k = "quest", q = 2178, map = 1457 }), bang .. string.format(L.WHERE_QUEST_AT, "Brouet de trotteur", "Darnassus"),
+        "an object's quest: its zone alone")
+    T.Eq(ns.Text.At(m, { k = "quest", q = 2178, npc = 4223, map = 1457 }),
+        bang .. string.format(L.AT_QUEST_NPC, "Brouet de trotteur", "Ellandrieth", "Darnassus"), "and in the chat's words")
+    T.Eq(ns.Text.At(m, { k = "quest", q = 2178 }), bang .. string.format(L.AT_QUEST, "Brouet de trotteur"), "a quest of the log, no place")
     local limited, unlimited = T.Vendor(), T.Vendor()
     limited.stock, unlimited.stock = 0, -1
     T.Eq(ns.Text.Where(m, limited), string.format(L.WHERE_VENDOR, "Ellandrieth " .. ns.Text.CLOCK_MARKUP, "Darnassus"),
@@ -68,6 +77,9 @@ T.Add("Chat", "one line per visit: the count, the place, three links and the res
     local loot = ns.Chat.Line(m, { k = "drop", npc = 4223, map = 1457 }, { 7 }, link)
     T.Eq(loot, L.CARNET_PREFIX .. string.format(L.CHAT_SINGLE, "[7]", string.format(L.AT_LOOT, "Ellandrieth", "Darnassus")),
         "one looted recipe: its own line")
+    local quest = ns.Chat.Line(m, { k = "quest", q = 1, npc = 4223, map = 1457 }, { 8 }, link)
+    T.Eq(quest, L.CARNET_PREFIX .. string.format(L.CHAT_SINGLE, "[8]", ns.Text.QUEST_MARKUP .. " "
+        .. string.format(L.AT_QUEST_NPC, L.A_QUEST, "Ellandrieth", "Darnassus")), "one quest's recipe: its own line too")
 end)
 
 T.Add("Tooltips", "a recipe's lines: unknown, known by another character, held, seen", function()

@@ -277,7 +277,7 @@ end
 
 -- One sighting per place (DB.PlaceKey): seen again, it keeps its first date and takes the new one.
 -- s = { k, npc, map, x, y, q, item, and at a vendor cost (copper), costs ({ n, item or currency, tex }) and stock (how
--- many it had left, -1 for no limit) }. Returns
+-- many it had left, -1 for no limit) }; a quest reward's npc and place are its giver's, when its offer was seen. Returns
 -- true when it's new, and what was new: "recipe" when the notebook didn't hold it at all (never seen, known by none of
 -- the characters), "place" when it did and this is a new place for it.
 function M:Note(spell, s, now)
@@ -294,8 +294,11 @@ function M:Note(spell, s, now)
     for _, old in ipairs(list) do
         if ns.DB.PlaceKey(old) == key then
             old.t = now
+            -- The place, and with it a quest's giver, which an older version didn't note. A quest's turn-in names no
+            -- place: its offer's stays.
             if s.map then
                 old.map, old.x, old.y = s.map, s.x, s.y
+                old.npc = s.npc or old.npc
             end
             -- A vendor's or trainer's price as last seen: a reputation's discount changes it. None read: the old one
             -- stays.

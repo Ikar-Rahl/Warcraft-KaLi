@@ -84,14 +84,18 @@ USED_ENUMS = checks.addon_enums(sorted(ADDONS.rglob("*.lua")))
 
 
 def xml_templates(path):
-    """The virtual templates an XML file defines, as the fake builds them: { name: { kind, mixin, mouse, scripts } }."""
+    """The virtual templates an XML file defines, as the fake builds them: { name: { kind, mixin, mouse, scripts,
+    textures } }, textures being { parentKey: atlas } for each texture of its layers with a parentKey, as the game
+    makes them."""
     out = {}
     for el in ET.parse(path).getroot():
         if el.get("virtual") == "true" and el.get("name"):
             scripts = {s.tag.replace(UI_NS, ""): s.get("method") or s.get("function") or "(inline)"
                        for s in el.findall(f"{UI_NS}Scripts/*")}
+            textures = {t.get("parentKey"): t.get("atlas") or "" for t in el.findall(f"{UI_NS}Layers/{UI_NS}Layer/{UI_NS}Texture")
+                        if t.get("parentKey")}
             out[el.get("name")] = {"kind": el.tag.replace(UI_NS, ""), "mixin": el.get("mixin") or "",
-                                   "mouse": el.get("enableMouse") == "true", "scripts": scripts}
+                                   "mouse": el.get("enableMouse") == "true", "scripts": scripts, "textures": textures}
     return out
 
 

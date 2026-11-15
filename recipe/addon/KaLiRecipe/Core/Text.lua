@@ -42,7 +42,27 @@ local function questName(m, id)
     return id and (m.game:QuestName(id) or ns.DB.Name(m.db, "quest", id)) or L.A_QUEST
 end
 
--- Where a sighting was: "Vendue par Ellandrieth, Darnassus", "Hôtel des ventes, le 9 nov.".
+-- A quest's reward (Ikar, 2026-11-15: "an icon to show that these are special recipes, like the exclamation quest
+-- icon"): the "!" the world map puts on a quest offered (QuestOfferDataProvider's QuestNormal), first in each line
+-- that names the quest, and the map pin's own art.
+Text.QUEST = "QuestNormal"
+Text.QUEST_MARKUP = "|A:" .. Text.QUEST .. ":14:14|a"
+
+-- A quest's words, with its giver and place when its offer was seen: by an NPC, by an object (its place alone), or not.
+local function questWords(m, s, withNPC, withPlace, alone)
+    local text
+    if s.npc then
+        text = string.format(withNPC, questName(m, s.q), npcName(m, s.npc), placeName(m, s.map))
+    elseif s.map then
+        text = string.format(withPlace, questName(m, s.q), placeName(m, s.map))
+    else
+        text = string.format(alone, questName(m, s.q))
+    end
+    return Text.QUEST_MARKUP .. " " .. text
+end
+
+-- Where a sighting was: "Vendue par Ellandrieth, Darnassus", "Hôtel des ventes, le 9 nov.", "! Récompense de « Brouet
+-- de trotteur », quête donnée par Alanndarian Nightsong, Sombrivage".
 function Text.Where(m, s)
     if s.k == "vendor" then
         return string.format(L.WHERE_VENDOR, vendorName(m, s), placeName(m, s.map))
@@ -53,7 +73,7 @@ function Text.Where(m, s)
     elseif s.k == "ah" then
         return string.format(L.WHERE_AH, Text.Date(s.t))
     elseif s.k == "quest" then
-        return string.format(L.WHERE_QUEST, questName(m, s.q))
+        return questWords(m, s, L.WHERE_QUEST_NPC, L.WHERE_QUEST_AT, L.WHERE_QUEST)
     end
     return string.format(L.WHERE_BAGS, placeName(m, s.map))
 end
@@ -86,7 +106,7 @@ function Text.At(m, s)
     elseif s.k == "ah" then
         return L.AT_AH
     elseif s.k == "quest" then
-        return string.format(L.AT_QUEST, questName(m, s.q))
+        return questWords(m, s, L.AT_QUEST_NPC, L.AT_QUEST_AT, L.AT_QUEST)
     end
     return L.AT_BAGS
 end
