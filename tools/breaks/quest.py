@@ -2,10 +2,10 @@
 Run with: python -I tools/breaks.py tools/breaks/quest.py [word]
 The first ones undo the review of 2026-11-11, whose false alarms came from Ikar's game, not from the tests.
 """
-CHECK, DB, MAIN, ROWS, LAYOUT, PANEL, FRAME, TRACKER, HOST, FONTS, OPTIONS, MENUS, LOCALE, SORTS = (
+CHECK, DB, MAIN, ROWS, LAYOUT, PANEL, FRAME, TRACKER, HOST, FONTS, OPTIONS, MENUS, LOCALE, SORTS, MOTION, AREA = (
     f"quest/addon/KaLiQuest/{name}.lua" for name in (
         "Core/SelfCheck", "Core/DB", "Core/Main", "UI/Rows", "Core/Layout", "UI/EditPanel", "UI/EditFrame", "UI/Tracker",
-        "UI/Host", "UI/Fonts", "UI/Options", "UI/Menus", "Core/Locale", "Data/Sorts"))
+        "UI/Host", "UI/Fonts", "UI/Options", "UI/Menus", "Core/Locale", "Data/Sorts", "UI/Motion", "UI/Area"))
 
 BREAKS = [
     # The API check, against what Forever has
@@ -98,4 +98,10 @@ BREAKS = [
     ("languages: a language without strings gets none, not English's", LOCALE,
      "    return OWN[locale] or OWN.enUS\n", "    return OWN[locale]\n"),
     ("languages: the German quest headers' names left out", SORTS, '        [81] = "Krieger",\n', ""),
+    # The area mark's learnt places (Ikar, 2026-11-15: « Un maître perdu », of Darkshore, marked at Ironforge's inn)
+    ("area: objectives coming after a loading screen taken for progress", MOTION,
+     "        if prev and #prev.objectives == 0 and #list > 0 then\n            prev = nil\n        end\n", ""),
+    ("area: a place learnt on a continent's map", AREA, "    if not x or not zoneKnown(mapID) then", "    if not x then"),
+    ("area: a place an earlier version learnt on a continent's map kept", AREA,
+     "            forgetUnzoned()\n", ""),
 ]

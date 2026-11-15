@@ -244,6 +244,12 @@ function Motion.Scan(quests, inCombat)
     for id, q in pairs(quests) do
         local list = readObjectives(q)
         local prev = not rescan and seen[id]
+        -- Read with no objectives at all, a quest wasn't loaded yet, as just after a loading screen: its lines coming
+        -- are a first sight, not progress. Ikar's « Un maître perdu », of Darkshore, was learnt at Ironforge's inn that
+        -- way (2026-11-13). The price: a quest that truly gains its first objective doesn't glow for it.
+        if prev and #prev.objectives == 0 and #list > 0 then
+            prev = nil
+        end
         if prev then
             local anims = lineAnim[id] or {}
             for i, o in ipairs(list) do

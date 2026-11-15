@@ -34,6 +34,7 @@ ns.NEEDS = {
         ["C_LFGList.CanCreateQuestGroup"] = "",
         ["C_Map.GetAreaInfo"] = "",
         ["C_Map.GetBestMapForUnit"] = "",
+        ["C_Map.GetMapInfo"] = "",
         ["C_Map.GetPlayerMapPosition"] = "",
         ["C_Map.GetWorldPosFromMapPos"] = "",
         ["C_Minimap.IsInsideQuestBlob"] = "",

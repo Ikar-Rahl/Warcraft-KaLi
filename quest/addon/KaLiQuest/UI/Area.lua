@@ -42,6 +42,22 @@ local function near(a, b)
     return dx * dx + dy * dy <= RANGE_SQ
 end
 
+-- A zone's map or a finer one. The game gives a continent's, or the world's, where it doesn't know the zone, as just
+-- after a loading screen: Ironforge's inn read as the Eastern Kingdoms then, its area being Ironforge's (2026-11-13).
+local function zoneKnown(mapID)
+    local info = mapID and C_Map.GetMapInfo(mapID)
+    return info ~= nil and info.mapType ~= nil and info.mapType >= Enum.UIMapType.Zone
+end
+
+-- An earlier version learnt places on a continent's map too: they go, as none is learnt there now.
+local function forgetUnzoned()
+    for id, spot in pairs(ns.db.spots) do
+        if not zoneKnown(spot[1]) then
+            ns.db.spots[id] = nil
+        end
+    end
+end
+
 -- The player's map and place on it, or only the map, or nothing.
 local function playerOnMap()
     local mapID = C_Map.GetBestMapForUnit("player")
@@ -120,6 +136,7 @@ function Area.Apply()
     end
     if wanted() then
         if not ticker then
+            forgetUnzoned()
             primed = false
             ticker = C_Timer.NewTicker(1, function()
                 ns.SafeCall(Area.Check)
@@ -152,7 +169,7 @@ function Area.Note(log, progressed)
         return
     end
     local mapID, x, y = playerOnMap()
-    if not x then
+    if not x or not zoneKnown(mapID) then
         return
     end
     x, y = math.floor(x * 10000 + 0.5) / 10000, math.floor(y * 10000 + 0.5) / 10000

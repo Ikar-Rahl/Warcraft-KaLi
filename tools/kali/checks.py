@@ -96,9 +96,17 @@ def modified_click_defaults():
     return dict(re.findall(r'<ModifiedClick action="(\w+)" default="([^"]*)"', BINDINGS.read_text(encoding="utf-8", errors="replace")))
 
 
+def map_types():
+    """Each map's type in this build, as C_Map.GetMapInfo gives it: { uiMapID: type }."""
+    with open(max(DB2.iterdir()) / "UiMap.csv", encoding="utf-8", newline="") as f:
+        return {int(r["ID"]): int(r["Type"]) for r in csv.DictReader(f)}
+
+
 def fake_from_build(lua):
     """Gives the fake, once loaded, this build's own answers where its files hold them."""
-    lua.globals().FakeWoW.MODIFIED_CLICKS = lua.table_from(modified_click_defaults())
+    fake = lua.globals().FakeWoW
+    fake.MODIFIED_CLICKS = lua.table_from(modified_click_defaults())
+    fake.MAP_TYPES = lua.table_from(map_types())
 
 
 def runtime():

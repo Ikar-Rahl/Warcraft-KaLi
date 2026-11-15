@@ -1146,7 +1146,7 @@ end
 -- The key each modified click takes: F.modifiedClicks for a test's own, else this build's default, which the runner
 -- reads from Forever's Bindings_Camelot.xml into F.MODIFIED_CLICKS ("SHIFT-BUTTON1" for CHATLINK, "SHIFT" for
 -- QUESTWATCHTOGGLE: an invented "SHIFT" for every one hid the API check's false alarm on CHATLINK, 2026-11-11).
-F.modifiedClicks, F.MODIFIED_CLICKS = {}, {}
+F.modifiedClicks, F.MODIFIED_CLICKS, F.MAP_TYPES = {}, {}, {}
 function GetModifiedClick(action)
     return F.modifiedClicks[action] or F.MODIFIED_CLICKS[action]
 end
@@ -1177,6 +1177,7 @@ Enum.QuestFrequency = { Default = 0, Daily = 1, Weekly = 2, ResetByScheduler = 3
 Enum.QuestClassification = { Important = 0, Legendary = 1, Campaign = 2, Calling = 3, Meta = 4, Recurring = 5, Questline = 6,
     Normal = 7, BonusObjective = 8, Threat = 9, WorldQuest = 10 }
 Enum.RelativeContentDifficulty = { Trivial = 0, Easy = 1, Fair = 2, Difficult = 3, Impossible = 4 }
+Enum.UIMapType = { Cosmic = 0, World = 1, Continent = 2, Zone = 3, Dungeon = 4, Micro = 5, Orphan = 6 }
 Constants = {
     QuestConsts = { QUEST_INFO_ELITE_ID = 1, QUEST_INFO_DUNGEON_ID = 81, QUEST_INFO_PVP_ID = 41, QUEST_INFO_RAID_ID = 62 },
     QuestWatchConsts = { MAX_QUEST_WATCHES = 25 },
@@ -1404,8 +1405,10 @@ C_Map = {
     GetBestMapForUnit = function()
         return F.mapID or 1436
     end,
+    -- Its type is this build's, which the runner reads from UiMap.csv into F.MAP_TYPES (1415, the Eastern Kingdoms, a
+    -- continent: 2; 1436, Westfall, a zone: 3).
     GetMapInfo = function(mapID)
-        return { mapID = mapID, name = "Marche de l'Ouest" }
+        return { mapID = mapID, name = "Marche de l'Ouest", mapType = F.MAP_TYPES[mapID] }
     end,
     -- F.playerPos = { x, y } on map 1436, or nil as in an instance. Every map is 1000 yards across, on continent 0.
     GetPlayerMapPosition = function()

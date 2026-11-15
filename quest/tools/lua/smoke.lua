@@ -1446,6 +1446,37 @@ do
 
     F.pins = {}
     local e1579 = F.entries[C_QuestLog.GetLogIndexForQuestID(1579)]
+    local function glows()
+        local n = 0
+        for pool, key in pairs({ row = "ProgressGlow", group = "Flash", bar = "Flash" }) do
+            for _, f in ipairs(tracker.pools[pool].frames) do
+                n = n + (f[key] and f[key].plays or 0)
+                for _, l in ipairs(f.lines or {}) do
+                    n = n + (l.Add and l.Add.plays or 0)
+                end
+            end
+        end
+        return n
+    end
+    -- Just after a loading screen, the game may give a quest no objectives yet (Ikar's « Un maître perdu », learnt at
+    -- Ironforge's inn, 2026-11-13).
+    db.spots[1579] = nil
+    e1579.objectives = {}
+    ns.RequestRefresh()
+    F.RunTimers()
+    local glowsBefore = glows()
+    e1579.objectives = { { text = "Rouage : 1/3", count = 1 } }
+    ns.RequestRefresh()
+    F.RunTimers()
+    expect(db.spots[1579] == nil and glows() == glowsBefore,
+        "objectives coming to a quest read without any, as after a loading screen, aren't progress: nothing glows, no place is learnt")
+    F.mapID = 1415
+    e1579.objectives[1].count = 2
+    ns.RequestRefresh()
+    F.RunTimers()
+    expect(db.spots[1579] == nil and glows() > glowsBefore,
+        "on a continent's map, as before the game knows the zone, progress glows but learns no place")
+    F.mapID = nil
     e1579.objectives = { { text = "Rouage : 0/3", count = 0 } }
     ns.RequestRefresh()
     F.RunTimers()
@@ -1486,10 +1517,14 @@ do
     F.RunTimers()
     expect(db.spots[1579] == nil, "off, progress learns nothing")
     local plays = rowOf(214).AreaFlash.plays or 0
+    db.spots[998], db.spots[997] = { 1415, 0.48, 0.52 }, { 1436, 0.5, 0.5 }
     setLook("areaHighlight", true)
     F.RunTimers()
     expect(rowOf(214).area and (rowOf(214).AreaFlash.plays or 0) == plays,
         "switched on from Edit Mode's dialog, a quest already here shows without a glow")
+    expect(db.spots[998] == nil and db.spots[997] ~= nil,
+        "starting, a place an earlier version learnt on a continent's map goes, one on a zone's stays")
+    db.spots[997] = nil
     F.blobs, F.playerPos, F.pins, e1579.objectives = nil, nil, nil, nil
     check()
 end
