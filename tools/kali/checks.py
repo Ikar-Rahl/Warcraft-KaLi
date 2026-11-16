@@ -63,6 +63,8 @@ PACKAGE_EXTRAS = {"Bindings.xml", "LICENSE", "README.md", "CHANGELOG.md"}
 LOADER = r"""
 KALI_LEAKS = {}
 return function(path, source, addonName, ns, allowed)
+    -- The addon the game blames for what it blocks (the fake's F.Blocked): the first loaded, the one under test.
+    FakeWoW.blame = FakeWoW.blame or addonName
     local chunk, err = loadstring(source, "@" .. path)
     if not chunk then error(err, 0) end
     local env = setmetatable({}, {
@@ -338,6 +340,62 @@ def self_compare_problems(sources):
             problems.append(f"nan: {rel(path)}:{line}: {m.group(0)} compares a value with itself, which the game's Lua "
                             "doesn't do for nan: use ns.Finite")
     return problems
+
+
+# A function's entry in the API docs, and the annotations on it that say its results may come as secret values: ones
+# an addon can keep and pass on, but not compare, join to text or look inside (an error each time).
+DOC_FUNCTION = re.compile(r'\n\t\t\{\n\t\t\tName = "(\w+)",\n\t\t\tType = "Function",(.*?)\n\t\t\},', re.S)
+SECRET_RESULT = re.compile(r"^\t\t\t(Secret(?:When|In|On)\w+|SecretReturns) = true,", re.M)
+# Secrecy that never touches the player's own unit: "when the unit isn't player-controlled or in the party/raid"
+# (SecretPredicatesDocumentation.lua).
+NOT_THE_PLAYER = {"SecretWhenUnitIdentityRestricted", "SecretWhenUnitNameIdentityRestricted"}
+# What may stand just before such a call: the shared code's guard, around the call or around ns.Call's.
+GUARDED = re.compile(r"\bns\.Plain\(\s*(?:ns\.Call\(\s*)?$")
+
+
+def secret_functions():
+    """The game's functions whose results it may hide from addons, by this build's API docs: { name: { annotation } }.
+    Widgets' methods aren't in it: theirs are hidden only on Blizzard's own objects."""
+    out = {}
+    for path in API_DOCS.glob("*.lua"):
+        text = path.read_text(encoding="utf-8", errors="replace")
+        if not re.search(r'^\tType = "System",', text, re.M):
+            continue
+        namespace = re.search(r'^\tNamespace = "(\w+)"', text, re.M)
+        prefix = namespace.group(1) + "." if namespace else ""
+        for name, body in DOC_FUNCTION.findall(text):
+            kinds = set(SECRET_RESULT.findall(body + "\n"))
+            if kinds:
+                out[prefix + name] = kinds
+    return out
+
+
+def secret_problems(sources):
+    """Every call of a function whose result the game may hide reads it through ns.Plain, which gives nil for a hidden
+    value: ns.Plain(UnitGUID(unit)), or ns.Plain(ns.Call(UnitGUID, unit)). A unit's identity asked of "player", by
+    that very word, needs none: UnitName("player"), ns.Call(UnitSex, "player"). Returns the problems and how many such
+    calls it looked at."""
+    functions = secret_functions()
+    problems, looked = [], 0
+    for path in sources:
+        strings = []
+        code = strip_lua(path.read_text(encoding="utf-8"), strings)
+        for m in re.finditer(r"(?<![\w.:])((?:C_\w+\.)?[A-Za-z_]\w*)\b(?!\s*=(?!=))", code):
+            kinds = functions.get(m.group(1))
+            if not kinds:
+                continue
+            looked += 1
+            before, after = code[:m.start()], code[m.end():]
+            # The unit asked: the call's first argument, or ns.Call's second.
+            through_call = re.search(r"\bns\.Call\(\s*$", before)
+            first = re.match(r'\s*,\s*"(\d+)"\s*[,)]' if through_call else r'\s*\(\s*"(\d+)"\s*[,)]', after)
+            of_player = first is not None and strings[int(first.group(1))] == "player"
+            if (of_player and kinds <= NOT_THE_PLAYER) or GUARDED.search(before):
+                continue
+            line = code.count("\n", 0, m.start()) + 1
+            problems.append(f"secret: {rel(path)}:{line}: {m.group(1)} may answer with a secret value "
+                            f"({', '.join(sorted(kinds))}): read it through ns.Plain")
+    return problems, looked
 
 
 def atlas_names():

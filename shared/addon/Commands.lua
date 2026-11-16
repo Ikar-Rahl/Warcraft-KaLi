@@ -30,7 +30,9 @@ local function runTests()
         return
     end
     local report = tests.Run()
-    ns.DevDB().lastTests = { when = date("%Y-%m-%d %H:%M:%S"), version = ns.VERSION, summary = report.summary, text = report.text }
+    -- With the game's build: a run is the game's own word on that build, and a later patch may answer otherwise.
+    ns.DevDB().lastTests = { when = date("%Y-%m-%d %H:%M:%S"), version = ns.VERSION, build = select(2, GetBuildInfo()),
+        summary = report.summary, text = report.text }
     say(report.summary)
     ns.Debug.ShowText("tests", report.text)
 end

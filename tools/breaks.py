@@ -8,6 +8,9 @@ into each addon's copy, and each addon's tests must catch it; a fifth item, ("qu
 the addons where it changes anything (a hook only one addon sets). With a word, only the breaks whose name holds it run.
 Each run works on a copy in a temporary folder: the repository, linked into the game, is never touched.
 Exits 1 when a break goes unnoticed.
+
+A break whose old text the code no longer holds proves nothing, and only running it, which takes minutes, said so:
+tools/run_tests.py asks stale() each time, which reads every breaks file and runs none.
 """
 import runpy
 import shutil
@@ -26,7 +29,7 @@ RUNNERS = {"quest": ROOT / "quest/tools/run_tests.py", "recipe": ROOT / "recipe/
 def targets(path, only=None):
     """(addon key, the file's path inside the addon's folder of folders) for each place the break goes."""
     parts = Path(path).parts
-    if parts[0] in ("quest", "recipe") and parts[1] == "addon":
+    if parts[0] in RUNNERS and parts[1] == "addon":
         return [(parts[0], Path(*parts[2:]))]
     if parts[0] == "shared":
         source = ROOT / path
@@ -35,12 +38,41 @@ def targets(path, only=None):
     raise SystemExit(f"{path}: not under quest/addon/, recipe/addon/ or shared/")
 
 
+def stale():
+    """(what's wrong, how many breaks) over every file of tools/breaks: a break whose old text isn't found exactly once
+    in each place it goes, one that changes nothing, two under one name. Reads only."""
+    problems, count = [], 0
+    for file in sorted((ROOT / "tools/breaks").glob("*.py")):
+        names = set()
+        for name, path, old, new, *only in runpy.run_path(str(file))["BREAKS"]:
+            count += 1
+            where = f"tools/breaks/{file.name}: {name}"
+            if name in names:
+                problems.append(f"{where}: a second break under that name")
+            names.add(name)
+            if old == new:
+                problems.append(f"{where}: changes nothing")
+            for key, inside in targets(path, only[0] if only else None):
+                found = (shared.ADDONS[key][0] / inside).read_text(encoding="utf-8").count(old)
+                if found != 1:
+                    problems.append(f"{where}: its text is found {found} times in {key}'s {inside.as_posix()}")
+    return problems, count
+
+
 def first_problem(output):
-    """What the runner listed first after its blank line, before its FAIL count; else its last line."""
+    """What the runner listed first: its problems come after a blank line and end at the blank line before its FAIL
+    count. The needs list out of date is passed over when something else is listed too: any break that changes which
+    of the game's names the code uses trips it, and it says nothing of the test meant for the break. A runner stopped
+    by a Lua error has no list: the error's own line then, else its last line."""
     lines = output.splitlines()
-    end = next((i for i, line in enumerate(lines) if line.startswith("FAIL:")), len(lines))
-    blank = max((i for i, line in enumerate(lines[:end]) if line == ""), default=end - 1)
-    return lines[blank + 1] if blank + 1 < end else (lines[-1] if lines else "")
+    end = next((i for i, line in enumerate(lines) if line.startswith("FAIL:")), None)
+    if end is None:
+        return next((line.strip() for line in lines if "LuaError:" in line), lines[-1] if lines else "")
+    while end > 0 and lines[end - 1] == "":
+        end -= 1
+    blank = max((i for i, line in enumerate(lines[:end]) if line == ""), default=-1)
+    listed = lines[blank + 1:end]
+    return next((line for line in listed if not line.startswith("needs:")), listed[0] if listed else lines[-1])
 
 
 def run(name, key, inside, old, new):

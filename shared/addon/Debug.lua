@@ -70,7 +70,11 @@ function Debug.Log(category, fmt, ...)
     end
 end
 
+-- An event's value for the log. One the game hides (a chat line's text in a dungeon) can't be read, only named.
 local function describe(v)
+    if issecretvalue and issecretvalue(v) then
+        return "(secret)"
+    end
     if type(v) == "string" then
         return string.format("%q", v)
     end
@@ -221,6 +225,25 @@ function ns.CloseButton(window, x, y)
     return close
 end
 
+-- A window dragged by its body, kept on the screen. The game would keep where each named window was let go in its own
+-- layout file (layout-local.txt), and put it back there itself at its next making: a KaLi window's place is the
+-- addon's to keep, or nobody's, so nothing of it is left there. A window that keeps its place does it in onStop.
+function ns.Movable(frame, onStop)
+    frame:SetMovable(true)
+    frame:EnableMouse(true)
+    frame:RegisterForDrag("LeftButton")
+    frame:SetClampedToScreen(true)
+    pcall(frame.SetDontSavePosition, frame, true)
+    frame:SetScript("OnDragStart", frame.StartMoving)
+    frame:SetScript("OnDragStop", function(f)
+        f:StopMovingOrSizing()
+        pcall(f.SetUserPlaced, f, false)
+        if onStop then
+            ns.SafeCall(onStop, f)
+        end
+    end)
+end
+
 -- A window to read and copy text: Ctrl+A, then Ctrl+C. Built on first use.
 local window
 local function buildWindow()
@@ -231,12 +254,7 @@ local function buildWindow()
     f:SetSize(720, 520)
     f:SetPoint("CENTER")
     f:SetBackdrop(BACKDROP_DARK_DIALOG_32_32)
-    f:SetMovable(true)
-    f:EnableMouse(true)
-    f:RegisterForDrag("LeftButton")
-    f:SetScript("OnDragStart", f.StartMoving)
-    f:SetScript("OnDragStop", f.StopMovingOrSizing)
-    f:SetClampedToScreen(true)
+    ns.Movable(f)
     tinsert(UISpecialFrames, name)
 
     f.Title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")

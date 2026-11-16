@@ -115,6 +115,18 @@ function SelfCheck.Run()
     for _, name in ipairs(needs.strings or {}) do
         check("string", name, type(_G[name]) == "string")
     end
+    -- An event the game refused as the addon registered it (ns.On), whatever it says of the event now: its handlers
+    -- never run. One already named above isn't named twice.
+    local named = {}
+    for _, m in ipairs(result.missing) do
+        named[m] = true
+    end
+    for _, name in ipairs(ns.MissingEvents()) do
+        if not named["event " .. name] then
+            named["event " .. name] = true
+            check("event", name .. " (registration refused)", false)
+        end
+    end
     table.sort(result.missing)
     result.assumed, result.failing = SelfCheck.Assumptions()
     last = result

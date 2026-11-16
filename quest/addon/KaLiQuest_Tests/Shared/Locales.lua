@@ -68,7 +68,16 @@ end)
 
 T.Add("Locale", "a client language picks its strings, Mexican Spanish Castilian's but for its own words, others English's", function()
     T.Eq(ns.StringsFor("deDE"), ns.STRINGS.deDE, "German")
-    T.Eq(ns.StringsFor("esMX").OPTIONS, ns.STRINGS.esES.OPTIONS, "Mexican Spanish: Castilian's where it has no word of its own")
+    -- One of Castilian's strings Mexican Spanish has no word of its own for, whichever the addon has.
+    local common
+    for key, value in pairs(ns.STRINGS.esES) do
+        if type(value) == "string" and rawget(ns.STRINGS.esMX, key) == nil then
+            common = key
+            break
+        end
+    end
+    T.Eq(common ~= nil and ns.StringsFor("esMX")[common], common ~= nil and ns.STRINGS.esES[common],
+        "Mexican Spanish: Castilian's where it has no word of its own")
     T.Eq(ns.StringsFor("ptBR"), ns.STRINGS.enUS, "a language without strings: English")
     T.Eq(ns.StringsFor("enGB"), ns.STRINGS.enUS, "British English: English")
     local same = {}

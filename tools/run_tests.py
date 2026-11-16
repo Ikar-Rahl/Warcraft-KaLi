@@ -1,6 +1,7 @@
 """Every offline check of the KaLi family, before every commit: the shared code's copies match their source and the
-addons' locales hold every string it uses, then each addon's own runner (quest/tools/run_tests.py,
-recipe/tools/run_tests.py), whose checks are listed at their top.
+addons' locales hold every string it uses, every deliberate break still applies to the code as it is (tools/breaks.py
+runs them), then each addon's own runner (quest/tools/run_tests.py, recipe/tools/run_tests.py), whose checks are
+listed at their top.
 
 Run with: python -I tools/run_tests.py [quest|recipe] [--write-needs]
 Ends with ALL PASS, or FAIL and what failed (exit 1).
@@ -10,6 +11,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import breaks  # noqa: E402
 from kali import shared  # noqa: E402
 from kali.paths import QUEST, RECIPE  # noqa: E402
 
@@ -26,6 +28,11 @@ def main():
     print("\n".join(found) if found else "every copy matches its source, and each addon's locale has every string it uses")
     if found:
         failed.append("shared code")
+    print("\n== deliberate breaks ==")
+    stale, count = breaks.stale()
+    print("\n".join(stale) if stale else f"each of the {count} still applies: its text is found once where it goes")
+    if stale:
+        failed.append("deliberate breaks")
     for key in chosen:
         title, runner = RUNNERS[key]
         print(f"\n== {title} ==", flush=True)

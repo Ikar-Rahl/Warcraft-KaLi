@@ -30,7 +30,9 @@
 -- A row: { kind, key, name, tip, ... }
 --   kind "slider": step, format(value), current() (what shows while no value is kept)
 --   kind "check"
---   kind "choice": values = { { value, label }, ... }
+--   kind "choice": values = { { value, label }, ... }, or a function giving them, asked each time the list opens
+--                  (a list that can grow while the window is open: a colour just picked); a { title = text } in it
+--                  heads the values after it, a rule above it, as the game's own menus group theirs
 --   kind "button": text, click(), width; it holds no value
 --   any row: tbl() (where its value is kept), default, onChange(value, how), redraw = false (no apply)
 --   how is nil for a change made in the window, "revert" or "defaults" for the window's buttons.
@@ -220,6 +222,12 @@ local function withTooltip(frame, title, text)
     end
 end
 
+-- A label may break by hand a word too long for its 100, as Blizzard's German does ("Symbol-\nabstand"). Where the
+-- name stands on one line, as a tooltip's title, the word is whole again.
+local function oneLine(text)
+    return text and (text:gsub("%-\n", ""))
+end
+
 -- A label of Blizzard's: 100 wide, two lines at most.
 local function label(f, text)
     f.Label = f:CreateFontString(nil, "ARTWORK", "GameFontHighlightMedium")
@@ -236,7 +244,7 @@ local function newRow(self, row)
     -- The label's side of the row says what the row does, as the options page's rows do.
     if row.tip then
         f:EnableMouse(true)
-        withTooltip(f, (row.name and row.name ~= "") and row.name or row.text, row.tip)
+        withTooltip(f, oneLine((row.name and row.name ~= "") and row.name or row.text), row.tip)
     end
     return f
 end
@@ -283,7 +291,7 @@ local function makeCheck(self, row)
         PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
         ns.SafeCall(self.Set, self, row, button:GetChecked() and true or false)
     end)
-    withTooltip(b, row.name, row.tip)
+    withTooltip(b, oneLine(row.name), row.tip)
     f.Button = b
     f.Label = f:CreateFontString(nil, "ARTWORK", "GameFontHighlightMedium")
     f.Label:SetPoint("LEFT", b, "RIGHT", 5, 0)
@@ -307,12 +315,23 @@ local function makeChoice(self, row)
     f.Dropdown:SetWidth(DROPDOWN_WIDTH)
     f.Dropdown:SetPoint("LEFT", f.Label, "RIGHT", 5, 0)
     f.Dropdown:SetupMenu(function(_, root)
-        for _, v in ipairs(row.values) do
-            root:CreateRadio(v[2], function()
-                return self:Value(row) == v[1]
-            end, function()
-                ns.SafeCall(self.Set, self, row, v[1])
-            end, v[1])
+        local values = row.values
+        if type(values) == "function" then
+            values = values()
+        end
+        for i, v in ipairs(values) do
+            if v.title then
+                if i > 1 then
+                    root:CreateDivider()
+                end
+                root:CreateTitle(v.title)
+            else
+                root:CreateRadio(v[2], function()
+                    return self:Value(row) == v[1]
+                end, function()
+                    ns.SafeCall(self.Set, self, row, v[1])
+                end, v[1])
+            end
         end
     end)
     function f:Update(enabled)
@@ -471,16 +490,7 @@ local function build(self)
         frame:SetFrameLevel(200)
     end
     frame:SetSize(window and Dialog.WINDOW_WIDTH or Dialog.WIDTH, 1)
-    frame:SetClampedToScreen(true)
-    frame:SetMovable(true)
-    frame:EnableMouse(true)
-    frame:RegisterForDrag("LeftButton")
-    pcall(frame.SetDontSavePosition, frame, true)
-    frame:SetScript("OnDragStart", frame.StartMoving)
-    frame:SetScript("OnDragStop", function(f)
-        f:StopMovingOrSizing()
-        pcall(f.SetUserPlaced, f, false)
-    end)
+    ns.Movable(frame)
     if spec.onKeyDown then
         frame:EnableKeyboard(true)
         frame:SetScript("OnKeyDown", function(f, key)
@@ -557,7 +567,8 @@ function Handle:Layout()
     if not frame then
         return
     end
-    local enabled = not (self.spec.combatLock and InCombatLockdown())
+    -- ns.InCombat, not the game's lockdown: this runs as a fight starts, a moment before the lockdown does.
+    local enabled = not (self.spec.combatLock and ns.InCombat())
     local window = self.spec.look == "window"
     local y = window and WINDOW_TOP + INSET_PAD / 2 or TITLE_TOP + frame.Title:GetStringHeight() + GAP
     local index = 1
@@ -639,7 +650,7 @@ function Handle:UpdateButtons()
     if not frame then
         return
     end
-    local enabled = not (self.spec.combatLock and InCombatLockdown())
+    local enabled = not (self.spec.combatLock and ns.InCombat())
     for _, b in ipairs(self.spec.buttons or {}) do
         if not b.divider then
             frame[b.key]:SetEnabled(enabled and (not b.enabled or b.enabled(self)) and true or false)

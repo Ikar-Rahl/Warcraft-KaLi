@@ -24,6 +24,108 @@ local function printedSince(mark, text)
 end
 
 -- ---------- Core ----------
+-- An event the client no longer has (a patch took it): registering it is an error in game. The handler is kept, the
+-- function that asked goes on, and the event is listed.
+F.invalidEvents.KALI_SMOKE_GONE = true
+local went = false
+local okGone = pcall(function()
+    ns.On("KALI_SMOKE_GONE", function() end)
+    went = true
+end)
+F.invalidEvents.KALI_SMOKE_GONE = nil
+local listed = false
+for _, event in ipairs(ns.MissingEvents()) do
+    listed = listed or event == "KALI_SMOKE_GONE"
+end
+expect(okGone and went and listed, "an event the client no longer has stops the function that registers it, or isn't listed")
+-- One the game refuses without an error answers false (the API docs give RegisterEvent a result): listed the same.
+-- One it takes isn't.
+F.refusedEvents.KALI_SMOKE_REFUSED = true
+ns.On("KALI_SMOKE_REFUSED", function() end)
+F.refusedEvents.KALI_SMOKE_REFUSED = nil
+ns.On("KALI_SMOKE_TAKEN", function() end)
+local refused, taken = false, false
+for _, event in ipairs(ns.MissingEvents()) do
+    refused = refused or event == "KALI_SMOKE_REFUSED"
+    taken = taken or event == "KALI_SMOKE_TAKEN"
+end
+expect(refused, "an event the game refuses without an error isn't listed")
+expect(not taken, "an event the game takes is listed as refused")
+
+-- A fight, from its first moment: the game's lockdown starts just after PLAYER_REGEN_DISABLED, so while that event is
+-- handled InCombatLockdown() still says no, and ns.InCombat says yes; after the fight both say no.
+do
+    local atStart, atEnd
+    local function onStart()
+        atStart = { lockdown = InCombatLockdown(), fight = ns.InCombat() }
+    end
+    local function onEnd()
+        atEnd = { lockdown = InCombatLockdown(), fight = ns.InCombat() }
+    end
+    ns.On("PLAYER_REGEN_DISABLED", onStart)
+    ns.On("PLAYER_REGEN_ENABLED", onEnd)
+    local was = F.combat
+    F.combat = true
+    F.Fire("PLAYER_REGEN_DISABLED")
+    local during = ns.InCombat()
+    F.combat = false
+    F.Fire("PLAYER_REGEN_ENABLED")
+    F.combat = was
+    ns.Off("PLAYER_REGEN_DISABLED", onStart)
+    ns.Off("PLAYER_REGEN_ENABLED", onEnd)
+    expect(atStart and atStart.lockdown == false and atStart.fight == true and during == true,
+        "as a fight starts, before the game's lockdown, ns.InCombat doesn't say it has")
+    expect(atEnd and atEnd.fight == false and not ns.InCombat(), "once the fight is over ns.InCombat still says it's on")
+    F.RunTimers()
+end
+
+-- Values the game hides (secret values): ns.Plain gives nil in place of each, every other as it is, however many.
+do
+    local a, b, c = ns.Plain(1, F.SECRET, "three")
+    expect(issecretvalue(F.SECRET) and a == 1 and b == nil and c == "three" and select("#", ns.Plain(1, F.SECRET, "three")) == 3
+        and ns.Plain(F.SECRET) == nil and ns.Plain(false) == false and select("#", ns.Plain()) == 0,
+        "ns.Plain doesn't give nil for a hidden value and every other as it is")
+end
+
+-- A handler run every frame: its first error is kept and takes it off its frame, with what should follow; set again,
+-- it runs again.
+do
+    local frame = CreateFrame("Frame")
+    local runs, after = 0, 0
+    local function fail()
+        runs = runs + 1
+        error("smoke_shared: a failing frame handler")
+    end
+    ns.EveryFrame(frame, fail, function()
+        after = after + 1
+    end)
+    for _ = 1, 4 do
+        F.RunScript(frame, "OnUpdate", 0.016)
+    end
+    local kept
+    for msg, e in pairs(dev.errors) do
+        if tostring(msg):find("smoke_shared: a failing frame handler", 1, true) then
+            kept = e
+            dev.errors[msg] = nil
+        end
+    end
+    expect(runs == 1 and after == 1 and frame:GetScript("OnUpdate") == nil and kept and kept.count == 1,
+        "a failing every-frame handler comes back every frame: " .. runs .. " runs")
+    local seen
+    ns.EveryFrame(frame, function(self, elapsed)
+        seen = self == frame and elapsed
+    end)
+    F.RunScript(frame, "OnUpdate", 0.25)
+    expect(seen == 0.25, "an every-frame handler isn't given its frame and the time since the last")
+    ns.EveryFrame(frame, nil)
+    expect(frame:GetScript("OnUpdate") == nil, "an every-frame handler can't be taken off")
+    for i = #F.errors, 1, -1 do
+        if tostring(F.errors[i]):find("smoke_shared: a failing frame handler", 1, true) then
+            table.remove(F.errors, i)
+        end
+    end
+end
+
 -- Events: a handler that fails doesn't stop the ones after it, and goes to the debug log's errors.
 local heard = {}
 local function failing()
@@ -117,6 +219,45 @@ expect(next(dev.errors) == nil and #dev.log == 0, ns.SLASH .. " clear keeps some
 dev.kaliSmokeNumber = 0 / 0
 ns.Fire("PLAYER_LOGOUT")
 expect(dev.kaliSmokeNumber == nil and type(dev.log) == "table", "at logout, a nan left in the debug table")
+-- An event's values go to the log while events are traced: one the game hides (a secret value: a chat line's text in
+-- a dungeon) is named there, never read, which would be an error for every handler of that event.
+do
+    local debugWas, eventsWas, errorsWas = dev.debug, dev.events, ns.Count(dev.errors)
+    dev.debug, dev.events = true, true
+    local heardSecret = false
+    local function hear(_, _, value)
+        heardSecret = issecretvalue(value)
+    end
+    ns.On("KALI_SMOKE_SECRET", hear)
+    local traced = pcall(F.Fire, "KALI_SMOKE_SECRET", "seen", F.SECRET, 3)
+    ns.Off("KALI_SMOKE_SECRET", hear)
+    local line = dev.log[#dev.log] or ""
+    dev.debug, dev.events = debugWas, eventsWas
+    expect(traced and heardSecret and ns.Count(dev.errors) == errorsWas
+        and line:find('KALI_SMOKE_SECRET "seen", (secret), 3', 1, true),
+        "an event carrying a hidden value can't be traced, or doesn't reach its handlers: " .. line)
+end
+-- A window dragged by its body leaves nothing for the game's own layout file: its place isn't the game's to save, and
+-- once let go the game doesn't take it for placed by the player. What follows the drag is told.
+do
+    local stopped
+    local window = CreateFrame("Frame", "KaLiSmokeWindow")
+    ns.Movable(window, function(f)
+        stopped = f
+    end)
+    F.RunScript(window, "OnDragStart", "LeftButton")
+    local moving = window.moving
+    F.RunScript(window, "OnDragStop")
+    expect(moving and not window.moving and stopped == window and window.dontSavePosition == true and window.userPlaced == false,
+        "a window dragged by its body is left for the game to keep in its layout file, or its drag isn't told")
+    _G.KaLiSmokeWindow = nil
+    -- The debug log's own window, dragged.
+    ns.Debug.ShowText("smoke", "smoke_shared")
+    local textWindow = _G[ADDON .. "TextWindow"]
+    F.RunScript(textWindow, "OnDragStart", "LeftButton")
+    F.RunScript(textWindow, "OnDragStop")
+    textWindow:Hide()
+end
 
 -- ---------- SelfCheck ----------
 -- An assumption that fails to run is reported, and the others still run.
@@ -156,6 +297,23 @@ for _, m in ipairs(result.missing) do
     missing = missing or m == "cvar KaLiSmokeNoSuchCVar"
 end
 expect(missing, "a CVar the game lacks isn't seen missing")
+-- An event the game refused as the addon registered it is named by the API check, whatever the game says of the event
+-- now; one the check finds gone as well is named once.
+local refusals, goneTwice = 0, 0
+for _, m in ipairs(result.missing) do
+    refusals = refusals + ((m == "event KALI_SMOKE_GONE (registration refused)" or m == "event KALI_SMOKE_REFUSED (registration refused)") and 1 or 0)
+end
+expect(refusals == 2, "an event the game refused to register isn't named by the API check, once: " .. refusals)
+local needed = ns.NEEDS.events
+ns.NEEDS.events = { "KALI_SMOKE_GONE" }
+F.invalidEvents.KALI_SMOKE_GONE = true
+result = ns.SelfCheck.Run()
+F.invalidEvents.KALI_SMOKE_GONE = nil
+ns.NEEDS.events = needed
+for _, m in ipairs(result.missing) do
+    goneTwice = goneTwice + (m:find("KALI_SMOKE_GONE", 1, true) and 1 or 0)
+end
+expect(goneTwice == 1, "an event gone from the game and refused at registration is named " .. goneTwice .. " times, not once")
 -- At login, a few builds are kept.
 local checks = dev.apiChecks
 dev.apiChecks = {}
@@ -235,6 +393,8 @@ expect(link and not link:find("[^A-Za-z0-9%-%._~%%:/?&=]"), "the link holds a ch
 -- Its window shows the link, then the whole report, each to copy, or says there's no address yet.
 ns.Report.Open()
 local frame = ns.Report.Frame()
+F.RunScript(frame, "OnDragStart", "LeftButton")
+F.RunScript(frame, "OnDragStop")
 expect(frame.URL:IsShown() and frame.LinkCopy:IsShown() and not frame.NoURL:IsShown() and frame.URL:GetText() == link
     and frame.Copy:IsShown() and frame.Box:GetText():find("== status ==", 1, true),
     "the report's window doesn't show the link, then the report")
@@ -279,7 +439,76 @@ end }
 slash("test")
 _G[ADDON .. "Tests"] = tests
 expect(dev.lastTests and dev.lastTests.summary == "PASS 1/1 kali smoke", "the in-game tests' result isn't kept")
+expect(dev.lastTests and dev.lastTests.build == select(2, GetBuildInfo())
+    and ns.Report.Text():find("build " .. select(2, GetBuildInfo()) .. ": PASS 1/1 kali smoke", 1, true),
+    "the in-game tests' result isn't kept with the game's build, or the report doesn't say it")
 dev.lastTests = last
 F.RunTimers()
+
+-- ---------- Dialog ----------
+-- A label broken by hand, as Blizzard's German breaks a word too long for the label's 100 ("Symbol-\nabstand"): the
+-- label keeps its break, the tooltip's title has the word whole.
+do
+    local values = { size = 3 }
+    local handle = ns.Dialog.New({
+        title = "kali smoke",
+        open = "one",
+        sections = function()
+            return { { id = "one", name = "One", rows = {
+                { kind = "slider", key = "size", name = "Fortschritts-\nleisten", step = 1, tip = "kali smoke: why" },
+            } } }
+        end,
+        options = function()
+            return values
+        end,
+        defaults = { size = 3 },
+        ranges = { size = { 0, 10 } },
+    })
+    handle:Open()
+    local row = handle.frame.rows[1]
+    expect(row.Label:GetText() == "Fortschritts-\nleisten", "dialog: a label's own line break is lost")
+    F.RunScript(row, "OnEnter")
+    expect(F.tooltip.lines[1] == "Fortschrittsleisten" and F.tooltip.lines[2] == "kali smoke: why",
+        "dialog: a label broken by hand is broken in its tooltip's title too: " .. tostring(F.tooltip.lines[1]))
+    F.RunScript(row, "OnLeave")
+    handle:Close()
+end
+
+-- ---------- Page ----------
+-- A button's click may change what a box of the page shows without telling the page: it draws its boxes again by
+-- itself. (Each addon's own buttons tell it as well, which hid a break of this in their sessions.)
+do
+    local page = ns.Options and ns.Options.page
+    local box, button
+    if page and page.category then
+        F.PickSettingsPage(page.category)
+        for _, f in ipairs(page.frame.rows or {}) do
+            box = box or (f.Check and f)
+            button = button or (f.Button and f)
+        end
+    end
+    if box and button then
+        local get, click, on = box.row.get, button.row.click, false
+        box.row.get = function()
+            return on
+        end
+        button.row.click = function()
+            on = true
+        end
+        page:Refresh()
+        local before = box.Check:GetChecked()
+        F.RunScript(button.Button, "OnClick")
+        expect(before == false and box.Check:GetChecked() == true,
+            "page: a button's click changed what a box shows, and the box isn't drawn again")
+        box.row.get, button.row.click = get, click
+        page:Refresh()
+    end
+end
+
+-- ---------- The whole session ----------
+-- Of every window the addon let the player drag or size, in its own session and here, none is left for the game to
+-- keep in its layout file; and the game blocked nothing the addon did.
+expect(#F.Placed() == 0, "a window's place is left for the game to keep in its layout file: " .. table.concat(F.Placed(), ", "))
+expect(#F.blocked == 0, "the game blocked an action of the addon's: " .. table.concat(F.blocked, ", "))
 
 return failures

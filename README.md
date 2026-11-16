@@ -19,7 +19,7 @@ question about what happened. Then copy the report from the same window and past
 | Path | What it is |
 | --- | --- |
 | `quest/`, `recipe/` | One addon each: `addon/` (the addon, its in-game tests, its probe), `docs/` (its design record), `bench/` (a page to try its look without the game), `tools/` (its test runner, generators, saved-file reader) |
-| `shared/` | The code both addons share: the event core, the debug log, the API check, the bug report, the slash command dispatcher, and the in-game test harness. See [shared/README.md](shared/README.md) |
+| `shared/` | The code the addons share: the event core, the debug log, the API check, the bug report, the slash command dispatcher, the settings window, the options page, and the in-game test harness. See [shared/README.md](shared/README.md) |
 | `tools/` | What the family's development shares: one command for every check, the fake game the Lua runs on, the offline checks, the shared code's copier, the deliberate-break harness, and the links into the game |
 
 ## Developing
@@ -29,15 +29,21 @@ Needs Python 3.13, and Lua 5.1 through lupa, installed locally:
 
 - **Every check:** `python -I tools/run_tests.py` must end in `ALL PASS` before a commit. It checks the shared code's
   copies, then runs each addon's runner: compile, API names against this build's documentation, globals, the package,
-  the in-game tests on Lua 5.1, a smoke test that plays a whole session on the fake game, and the shared code's own
-  checks on each addon's copy. `quest` or `recipe` runs one addon; `--write-needs` updates the lists of what each
-  addon takes from the game.
+  values the game may hide read through `ns.Plain`, the in-game tests on Lua 5.1, a smoke test that plays a whole
+  session on the fake game, the shared code's own checks on each addon's copy, and every text of the dialogs and the
+  options pages measured against the room it has, in each language (with the game's font from a bench's art folder;
+  without it that check says so and passes). `quest` or `recipe` runs one addon; `--write-needs` updates the lists
+  of what each addon takes from the game.
 - **The shared code:** edit `shared/`, never an addon's `Shared/` copy, then `python -I tools/sync_shared.py`.
 - **Deliberate breaks:** `python -I tools/breaks.py <file>` plants one fault at a time in a copy of the code and checks
-  the tests fail; `tools/breaks/shared.py` holds the shared code's, `quest.py` and `recipe.py` each addon's own.
+  the tests fail; `tools/breaks/shared.py` holds the shared code's, `quest.py` and `recipe.py` each addon's own. A fix
+  isn't proven until its break is caught. `tools/run_tests.py` checks each time that every break still applies to the
+  code as it is, without running any.
 - **The game is the ground truth:** the fake game gives this build's own answers where its files hold them, but only
   the game says what it really answers. Each addon's API check keeps what it found at login, per build, in the game's
-  saved `<Addon>DevDB` (`apiChecks`), with its errors and the last in-game test run (`lastTests`); read them there.
+  saved `<Addon>DevDB` (`apiChecks`), with its errors, what the game blocked (`gameWarnings`) and the last in-game test
+  run (`lastTests`); read them there. An answer the fake invented has hidden a defect each time: when the game's
+  records or Blizzard's source say otherwise, the fake changes first, then the code.
 - **In the game:** `tools\link_addons.cmd` links the six folders into `Interface\AddOns` (`unlink`, `relink`). Edits
   then show after `/reload`.
 

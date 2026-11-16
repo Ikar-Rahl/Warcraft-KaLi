@@ -9,8 +9,18 @@ local F = FakeWoW
 
 -- Frames: any method exists and does nothing, apart from the ones below.
 local frameMethods = {}
+-- An event the client doesn't have (F.invalidEvents, as a patch that took it away) is an error, as in game. The API
+-- docs give the call a result, `registered`: true here, false for an event a test has the game refuse without an
+-- error (F.refusedEvents).
 function frameMethods:RegisterEvent(event)
+    if F.invalidEvents and F.invalidEvents[event] then
+        error('Frame:RegisterEvent(): Attempt to register unknown event "' .. tostring(event) .. '"', 2)
+    end
+    if F.refusedEvents and F.refusedEvents[event] then
+        return false
+    end
     self.events[event] = true
+    return true
 end
 function frameMethods:UnregisterEvent(event)
     self.events[event] = nil
@@ -304,6 +314,38 @@ end
 function frameMethods:RegisterForClicks(...)
     self.clicks = { ... }
 end
+-- A frame the player moved or sized is "user placed": the game then keeps where a named one was let go in its own
+-- layout file (layout-local.txt) and puts it back there itself, unless the addon says it isn't placed any more
+-- (SetUserPlaced(false)) or that its place isn't the game's to save (SetDontSavePosition). F.Placed lists the named
+-- frames the game would write to that file.
+function frameMethods:StartMoving()
+    self.moving, self.userPlaced = true, true
+end
+function frameMethods:StartSizing(point)
+    self.sizing, self.userPlaced = point or true, true
+end
+function frameMethods:StopMovingOrSizing()
+    self.moving, self.sizing = nil, nil
+end
+function frameMethods:SetUserPlaced(placed)
+    self.userPlaced = placed and true or false
+end
+function frameMethods:IsUserPlaced()
+    return self.userPlaced == true
+end
+function frameMethods:SetDontSavePosition(dont)
+    self.dontSavePosition = dont and true or false
+end
+function F.Placed()
+    local names = {}
+    for _, frame in ipairs(F.frames) do
+        if frame.name and frame.userPlaced and not frame.dontSavePosition then
+            names[#names + 1] = frame.name
+        end
+    end
+    table.sort(names)
+    return names
+end
 -- A mouse click on an addon's SecureActionButtonTemplate, as the game sends it: the press, then the release, each
 -- only if registered, each running PreClick, the template's SecureActionButton_OnClick and PostClick. An addon's
 -- button gets no isKeyPress nor isSecureAction, so its "useOnKeyDown" attribute, else the ActionButtonUseKeyDown
@@ -411,12 +453,62 @@ function CreateFrame(kind, name, parent, template)
     return frame
 end
 
+-- The game sends PLAYER_REGEN_DISABLED just before a fight's lockdown starts (and PLAYER_REGEN_ENABLED just after it
+-- ends): while that event is handled InCombatLockdown() still says no, and an addon may do what it can't a moment
+-- later. A test sets F.combat, then fires the event: its handlers see the lockdown off, as in game.
 function F.Fire(event, ...)
+    local combat = F.combat
+    if event == "PLAYER_REGEN_DISABLED" then
+        F.combat = false
+    end
     for _, frame in ipairs(F.frames) do
         if frame.events[event] and frame.scripts.OnEvent then
             frame.scripts.OnEvent(frame, event, ...)
         end
     end
+    if event == "PLAYER_REGEN_DISABLED" then
+        F.combat = combat
+    end
+end
+
+-- What the game blocks: a function the API docs mark both protected and restricted (SetPassThroughButtons,
+-- SetPropagateMouseClicks, SetPropagateMouseMotion) or restricted (SetPropagateKeyboardInput), called by an addon's
+-- code in a fight, on any frame. Nothing happens then but the event that blames the addon: F.blame, the addon the
+-- runner loaded first. F.blocked lists them. Out of a fight the call's arguments are kept in the frame's field of the
+-- same name less "Set", its first letter small ("passThroughButtons").
+F.blocked = {}
+function F.Blocked(fn)
+    F.blocked[#F.blocked + 1] = fn
+    F.Fire("ADDON_ACTION_BLOCKED", F.blame, fn)
+end
+for _, name in ipairs({ "PassThroughButtons", "PropagateMouseClicks", "PropagateMouseMotion", "PropagateKeyboardInput" }) do
+    local field = name:sub(1, 1):lower() .. name:sub(2)
+    frameMethods["Set" .. name] = function(self, ...)
+        if F.combat then
+            F.Blocked("Frame:Set" .. name .. "()")
+            return
+        end
+        self[field] = { ... }
+    end
+end
+
+-- A secret value, as the game gives an addon while what it asks is restricted (a unit's speed in a fight, a unit's
+-- name or GUID where identities are): it can be kept and passed on, and issecretvalue tells it; comparing it, joining
+-- it to text, turning it into text, doing sums with it or looking inside it is an error. F.identitySecret hides every
+-- unit's name and GUID but the player's own.
+local function secretError(what)
+    return function()
+        error("attempt to " .. what .. " a secret value", 2)
+    end
+end
+F.SECRET = setmetatable({}, { __tostring = secretError("convert to a string"), __concat = secretError("concatenate"),
+    __eq = secretError("compare"), __lt = secretError("compare"), __le = secretError("compare"),
+    __index = secretError("index"), __newindex = secretError("index"), __call = secretError("call"),
+    __add = secretError("perform arithmetic on"), __sub = secretError("perform arithmetic on"),
+    __mul = secretError("perform arithmetic on"), __div = secretError("perform arithmetic on"),
+    __unm = secretError("perform arithmetic on"), __len = secretError("get the length of") })
+function issecretvalue(v)
+    return rawequal(v, F.SECRET)
 end
 
 C_Timer = {
@@ -566,6 +658,9 @@ function UnitClass()
     return "Guerrière", "WARRIOR", 1
 end
 function UnitGUID(unit)
+    if F.identitySecret and unit ~= "player" then
+        return F.SECRET
+    end
     if unit == "questnpc" or unit == "npc" then
         return F.npc
     end
@@ -667,6 +762,13 @@ function F.UpdateSections()
             module:Update(800)
         end
     end
+end
+-- One of Edit Mode's systems (EditModeSystemMixin): it takes its own box's drag.
+function ObjectiveTrackerFrame:OnDragStart()
+    self.systemDragging = true
+end
+function ObjectiveTrackerFrame:OnDragStop()
+    self.systemDragging = nil
 end
 QuestTimerFrame = CreateFrame("Frame", "QuestTimerFrame", ObjectiveTrackerFrame)
 -- F.questTimerHeight: the panel's height while a timed quest runs, as Blizzard's 43 plus 16 per timer.
@@ -855,12 +957,19 @@ EditModeSystemSettingsDialog:SetScript("OnHide", function(self)
     self.attachedToSystem = nil
 end)
 
--- A frame's selection box in Edit Mode (EditModeSystemSelectionBaseMixin): highlighted, or selected with its name.
--- state says which, nil while hidden.
+-- A frame's selection box in Edit Mode (EditModeSystemSelectionBaseTemplate and its mixin, EditModeSystemTemplates.xml
+-- and .lua): highlighted, or selected with its name. state says which, nil while hidden. It comes with Blizzard's own
+-- scripts and its drag registered, all of which take its parent for one of Edit Mode's systems: a press selects the
+-- parent in Edit Mode's manager, a drag calls the parent's own OnDragStart and OnDragStop (EditModeSystemMixin's), the
+-- pointer shows its system's name. A box on an addon's own frame has to replace the first three: a fake box with no
+-- script at all hid KaLi HUD's error on a drag (2026-11-16). F.selections lists every box made.
+F.selections = {}
 function F.MakeSelection(frame)
     frame.Label = frame:CreateFontString()
     frame.MouseOverHighlight = CreateFrame("Frame", nil, frame)
+    frame.MouseOverHighlight.shown = false
     frame.shown = false
+    frame.drags = { "LeftButton" }
     function frame:SetSystem(system)
         self.system = system
     end
@@ -873,7 +982,47 @@ function F.MakeSelection(frame)
         self.Label:SetText(self.system:GetSystemName())
         self:Show()
     end
+    frame:SetScript("OnMouseDown", function(self)
+        EditModeManagerFrame:SelectSystem(self.parent)
+    end)
+    frame:SetScript("OnDragStart", function(self)
+        self.parent:OnDragStart()
+    end)
+    frame:SetScript("OnDragStop", function(self)
+        self.parent:OnDragStop()
+    end)
+    frame:SetScript("OnEnter", function(self)
+        self.MouseOverHighlight:Show()
+        if not self.isSelected then
+            GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
+            GameTooltip:SetText(self.system:GetSystemName())
+            GameTooltip:Show()
+        end
+    end)
+    frame:SetScript("OnLeave", function(self)
+        self.MouseOverHighlight:Hide()
+        GameTooltip:Hide()
+    end)
     frame.mouse = true
+    F.selections[#F.selections + 1] = frame
+end
+-- What the mouse can do to each box that is shown and takes it, as a player trying every frame in Edit Mode: the
+-- pointer on it, a press, a drag and its release, the pointer away. Returns what failed, one line a box.
+function F.TrySelections()
+    local failed = {}
+    for i, box in ipairs(F.selections) do
+        if box:IsShown() and box:IsMouseEnabled() then
+            for _, step in ipairs({ { "OnEnter" }, { "OnMouseDown", "LeftButton" }, { "OnDragStart", "LeftButton" }, { "OnDragStop" },
+                { "OnLeave" } }) do
+                local ok, err = pcall(F.RunScript, box, unpack(step))
+                if not ok then
+                    failed[#failed + 1] = string.format("selection box %d, %s: %s", i, step[1], tostring(err))
+                    break
+                end
+            end
+        end
+    end
+    return failed
 end
 -- Blizzard's tracker's own box, which the addon makes see-through and deaf to the mouse.
 ObjectiveTrackerFrame.Selection = CreateFrame("Frame", nil, ObjectiveTrackerFrame, "EditModeSystemSelectionTemplate")
@@ -965,6 +1114,9 @@ function F.MenuRadios(dropdown)
             setSelected(value)
         end }
     end
+    -- a group's title and the rule above it: not radios
+    function root:CreateTitle() end
+    function root:CreateDivider() end
     dropdown.generator(dropdown, root)
     return radios
 end
@@ -1026,19 +1178,84 @@ Settings = {
     RegisterAddOnCategory = function(category)
         F.settingsRegistered = category
     end,
-    RegisterCanvasLayoutSubcategory = function(parent, frame, name)
-        local sub = { parent = parent, frame = frame, name = name }
-        function sub:GetID()
-            return 78
-        end
-        F.settingsTips = sub
-        return sub, { frame = frame }
+    -- A page of the addon's own, a "canvas": F.settingsPages lists them in the order registered, their IDs from 77,
+    -- a page under another with its parent.
+    RegisterCanvasLayoutCategory = function(frame, name)
+        return F.CanvasPage(frame, name)
     end,
+    RegisterCanvasLayoutSubcategory = function(parent, frame, name)
+        return F.CanvasPage(frame, name, parent)
+    end,
+    -- The panel opens as its OnShow has it: its first page picked again, one of the game's, so the canvas page it
+    -- showed is taken out and hidden (SelectFirstCategory, ClearCurrentCategoryCanvas), and every canvas page asked to
+    -- refresh, shown or not (CallRefreshOnCanvases). Then the page asked for is shown.
     OpenToCategory = function(id)
         F.settingsOpened = id
-        SettingsPanel:Show()
+        if not SettingsPanel:IsShown() then
+            SettingsPanel:Show()
+            F.PickSettingsPage(nil)
+            for _, page in ipairs(F.settingsPages) do
+                if page.frame.OnRefresh then
+                    page.frame:OnRefresh()
+                end
+            end
+        end
+        for _, page in ipairs(F.settingsPages) do
+            if page.id == id then
+                F.PickSettingsPage(page)
+            end
+        end
     end,
 }
+-- Canvas pages as the panel shows them (Blizzard_SettingsPanel.lua's DisplayLayout and ClearCurrentCategoryCanvas): the
+-- page picked, by Settings.OpenToCategory or as a click in the panel's list (F.PickSettingsPage), has its frame put in
+-- the panel's canvas, shown, and asked to refresh; the one shown before is taken out and hidden. Nothing of a canvas
+-- page is in the panel's own lists, which is the point of one: F.settingsLayout stays nil for an addon that has no
+-- other.
+SettingsPanel.Container = CreateFrame("Frame", nil, SettingsPanel)
+SettingsPanel.Container.SettingsCanvas = CreateFrame("Frame", nil, SettingsPanel.Container)
+F.settingsPages = {}
+function F.CanvasPage(frame, name, parent)
+    assert(type(frame) == "table" and frame.GetObjectType, "a canvas page needs its frame")
+    local page = { frame = frame, name = name, parent = parent, id = 76 + #F.settingsPages + 1 }
+    function page:GetID()
+        return self.id
+    end
+    function page:GetName()
+        return self.name
+    end
+    F.settingsPages[#F.settingsPages + 1] = page
+    return page, { frame = frame }
+end
+function F.PickSettingsPage(page)
+    local before = F.settingsPage
+    if before and before ~= page then
+        before.frame:SetParent(nil)
+        before.frame:ClearAllPoints()
+        before.frame:Hide()
+    end
+    F.settingsPage = page
+    if not page then
+        -- one of the game's own pages
+        return
+    end
+    local canvas = SettingsPanel.Container.SettingsCanvas
+    page.frame:SetParent(canvas)
+    page.frame:ClearAllPoints()
+    page.frame:SetAllPoints(canvas)
+    page.frame:Show()
+    if page.frame.OnRefresh then
+        page.frame:OnRefresh()
+    end
+end
+-- A page's row by its name, as the shared page (Shared/Page.lua) keeps its rows in its frame.
+function F.PageRow(page, name)
+    for _, row in ipairs(page and page.frame.rows or {}) do
+        if row.row and row.row.name == name then
+            return row
+        end
+    end
+end
 function CreateSettingsListSectionHeaderInitializer(text)
     return { header = text }
 end
@@ -1063,6 +1280,7 @@ C_XMLUtil = {
 }
 -- Events the client knows: all but F.invalidEvents.
 F.invalidEvents = {}
+F.refusedEvents = {}
 C_EventUtils = {
     IsEventValid = function(name)
         return not F.invalidEvents[name]
@@ -1138,7 +1356,7 @@ NineSliceUtil = {
         frame.nineSliceLayout = layout
     end,
 }
-SOUNDKIT = { IG_MAINMENU_OPTION_CHECKBOX_ON = 856 }
+SOUNDKIT = { IG_MAINMENU_OPTION_CHECKBOX_ON = 856, IG_MAINMENU_OPTION_CHECKBOX_OFF = 857 }
 function PlaySound() end
 function IsModifiedClick(name)
     return F.modifier == name
@@ -1539,11 +1757,11 @@ C_QuestLog = {
     GetQuestWatchType = function(id)
         return F.watched[id] and 0 or nil
     end,
+    -- A quest already watched isn't added again, and the game answers false for it, as for a full list (Ikar's saved
+    -- log, 2026-11-12 to 16: thirteen times, each for a quest tracked seconds before and moved to another group). The
+    -- "true" the fake invented there hid KaLi Quest's false alarm on the tracking limit.
     AddQuestWatch = function(id)
-        if F.watched[id] then
-            return true
-        end
-        if watchCount() >= 25 then
+        if F.watched[id] or watchCount() >= 25 then
             return false
         end
         F.watched[id] = true
@@ -1720,6 +1938,9 @@ function CreateFont(name)
     end
     return font
 end
+-- The font object the shared options page names for its title (Shared/Page.lua), which every addon's API check looks
+-- for; each addon's fake adds the ones its own code names.
+CreateFont("GameFontHighlightHuge")
 Settings.VarType.Number = "number"
 Settings.VarType.String = "string"
 -- A dropdown keeps its options' generator, so the smoke test can read the choices.

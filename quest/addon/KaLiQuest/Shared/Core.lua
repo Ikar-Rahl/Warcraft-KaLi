@@ -17,12 +17,21 @@ local handlers = {}
 -- Frames start without a parent: SmartNavigationMixin hooks CreateFrame and rebuilds the caller's button groups.
 local eventFrame = CreateFrame("Frame", nil, nil)
 
+-- Events this client refused to register, in the order asked: a patch took them away, or renamed them.
+local missingEvents = {}
+
+-- The game raises an error for an event it doesn't know, and its docs give the call a result, false for one it
+-- refuses otherwise. One event gone with a patch mustn't take the rest of a start-up function with it: the handler is
+-- kept, never called, and the API check names the event.
 function ns.On(event, fn)
     local list = handlers[event]
     if not list then
         list = {}
         handlers[event] = list
-        eventFrame:RegisterEvent(event)
+        local ok, registered = pcall(eventFrame.RegisterEvent, eventFrame, event)
+        if not ok or registered == false then
+            missingEvents[#missingEvents + 1] = event
+        end
     end
     list[#list + 1] = fn
 end
@@ -39,8 +48,12 @@ function ns.Off(event, fn)
     end
     if #list == 0 then
         handlers[event] = nil
-        eventFrame:UnregisterEvent(event)
+        pcall(eventFrame.UnregisterEvent, eventFrame, event)
     end
+end
+
+function ns.MissingEvents()
+    return missingEvents
 end
 
 local eventCounts = {} -- since login, for the diagnostics and the report
@@ -98,6 +111,37 @@ function ns.SafeCall(fn, ...)
     end)
 end
 
+-- A handler the game runs every frame (a frame's OnUpdate). An error in one comes back every frame, thousands a
+-- minute (KaLi HUD kept 6,000 of one in a session, 2026-11-13). Set through here, the first error is kept as any other
+-- and takes the handler off its frame; after(frame), if given, then leaves things as they should stand without it.
+-- Setting it again, as the next animation or the next drag does, tries again; fn nil takes it off. Nothing is made
+-- each frame: what the handler was called with waits in these three for the guarded call.
+local frameFn, frameSelf, frameElapsed
+local function runFrame()
+    return frameFn(frameSelf, frameElapsed)
+end
+local function frameFailed(err)
+    if ns.Debug then
+        ns.Debug.Error(err, debugstack and debugstack(2) or debug.traceback())
+    end
+    return err
+end
+function ns.EveryFrame(frame, fn, after)
+    if not fn then
+        frame:SetScript("OnUpdate", nil)
+        return
+    end
+    frame:SetScript("OnUpdate", function(self, elapsed)
+        frameFn, frameSelf, frameElapsed = fn, self, elapsed
+        if not xpcall(runFrame, frameFailed) then
+            self:SetScript("OnUpdate", nil)
+            if after then
+                ns.SafeCall(after, self)
+            end
+        end
+    end)
+end
+
 -- Work asked for many times in one frame runs once, on the next frame.
 local pending = {}
 function ns.Later(key, fn)
@@ -109,6 +153,38 @@ function ns.Later(key, fn)
         pending[key] = nil
         ns.SafeCall(fn)
     end)
+end
+
+-- In a fight, from its first moment to its last. The game sends PLAYER_REGEN_DISABLED just before the fight's lockdown
+-- starts: while that event is handled InCombatLockdown() still says no, so what is drawn then by asking it shows no
+-- fight (the settings dialog kept its rows lit as a fight began). What an addon may do is InCombatLockdown()'s to say;
+-- what it shows asks this. Registered first, so it holds for every other handler of the two events.
+local fighting = false
+ns.On("PLAYER_REGEN_DISABLED", function()
+    fighting = true
+end)
+ns.On("PLAYER_REGEN_ENABLED", function()
+    fighting = false
+end)
+function ns.InCombat()
+    return fighting or InCombatLockdown() == true
+end
+
+-- A value the game may hide from addons, a "secret" value: a unit's name or GUID where identities are restricted, its
+-- speed in a fight. A hidden value can be kept and passed on, but comparing it, joining it to text or looking inside
+-- it is an error, so every read of one goes through here first: each value as it is, or nil in place of a hidden one.
+-- The offline checks fail a call the API docs mark as possibly secret that doesn't (tools/kali/checks.py).
+local function plain(n, v, ...)
+    if n == 0 then
+        return
+    end
+    if issecretvalue and issecretvalue(v) then
+        v = nil
+    end
+    return v, plain(n - 1, ...)
+end
+function ns.Plain(...)
+    return plain(select("#", ...), ...)
 end
 
 -- In a fight the game's windows don't open from an addon: true then, with the game's own error line, so the click

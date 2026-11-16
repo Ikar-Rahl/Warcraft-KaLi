@@ -114,7 +114,8 @@ local function testsText()
     if type(t) ~= "table" then
         return "(never run in game)"
     end
-    return string.format("%s, %s: %s", tostring(t.when), tostring(t.version), tostring(t.summary))
+    return string.format("%s, %s, build %s: %s", tostring(t.when), tostring(t.version), tostring(t.build or "?"),
+        tostring(t.summary))
 end
 
 local function logText()
@@ -237,12 +238,7 @@ local function build()
     frame:SetSize(560, 540)
     frame:SetPoint("CENTER")
     frame:SetTitle(L.REPORT_TITLE)
-    frame:SetMovable(true)
-    frame:EnableMouse(true)
-    frame:RegisterForDrag("LeftButton")
-    frame:SetScript("OnDragStart", frame.StartMoving)
-    frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
-    frame:SetClampedToScreen(true)
+    ns.Movable(frame)
     tinsert(UISpecialFrames, name)
 
     -- Where Forever's own close button sits on this panel.
