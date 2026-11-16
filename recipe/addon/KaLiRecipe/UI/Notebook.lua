@@ -298,6 +298,8 @@ local function build()
     frame:EnableMouse(true)
     frame:SetClampedToScreen(true)
     frame:RegisterForDrag("LeftButton")
+    -- Its place is the addon's to keep (ui().pos): the game's own layout file keeps none of it, as ns.Movable's windows.
+    pcall(frame.SetDontSavePosition, frame, true)
     frame:SetScript("OnDragStart", function(self)
         if not Notebook.docked then
             self:StartMoving()
@@ -305,6 +307,7 @@ local function build()
     end)
     frame:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
+        pcall(self.SetUserPlaced, self, false)
         if not Notebook.docked then
             local point, _, relPoint, x, y = self:GetPoint()
             ui().pos = { x, y, point, relPoint }
@@ -853,6 +856,8 @@ end
 function Notebook.Resized()
     local o = ns.db.options
     local w, h = ns.DB.RANGES.width, ns.DB.RANGES.height
+    -- The grip's sizing marks the window as placed by the player, as a drag does: not for the game's layout file.
+    pcall(frame.SetUserPlaced, frame, false)
     o.width = math.max(w[1], math.min(w[2], math.floor(frame:GetWidth() + 0.5)))
     o.height = math.max(h[1], math.min(h[2], math.floor(frame:GetHeight() + 0.5)))
     if Notebook.docked and docking then

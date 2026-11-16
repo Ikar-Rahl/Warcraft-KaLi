@@ -7,13 +7,20 @@ local F = FakeWoW
 time = os.time
 F.unitGUIDs = { player = "Player-1234-0ABCDEF0" }
 F.unitNames = { player = "Ikar" }
+-- F.identitySecret: every unit's GUID and name but the player's come as the shared fake's secret value.
 function UnitGUID(unit)
+    if F.identitySecret and unit ~= "player" then
+        return F.SECRET
+    end
     if unit == "npc" or unit == "questnpc" then
         return F.npc
     end
     return F.unitGUIDs[unit]
 end
 function UnitName(unit)
+    if F.identitySecret and unit ~= "player" then
+        return F.SECRET
+    end
     if unit == "npc" or unit == "questnpc" then
         return F.npcName
     end
@@ -525,6 +532,21 @@ function MapCanvasPinMixin:OnMouseUp(button)
         self:OnMouseClickAction(button)
     end
 end
+-- Right clicks go through a pin to the map, which zooms out on them: the map asks it of each pin it hands out.
+function MapCanvasPinMixin:ShouldMouseButtonBePassthrough(button)
+    return button == "RightButton"
+end
+function MapCanvasPinMixin:CheckMouseButtonPassthrough(...)
+    self:SetPassThroughButtons()
+    local buttons = {}
+    for i = 1, select("#", ...) do
+        local button = select(i, ...)
+        if self:ShouldMouseButtonBePassthrough(button) then
+            buttons[#buttons + 1] = button
+        end
+    end
+    self:SetPassThroughButtons(unpack(buttons))
+end
 MapCanvasDataProviderMixin = {}
 function MapCanvasDataProviderMixin:GetMap()
     return self.owningMap
@@ -540,7 +562,10 @@ function WorldMapFrame:GetMapID()
 end
 -- As Blizzard_MapCanvas.lua's AcquirePin: a frame from the template (the fake's CreateFrame builds it as the XML says);
 -- a new pin with the mouse gets the map's own OnEnter and OnLeave, after the map asserts the template has none, and
--- the map's mouse-up handler; then OnLoad, then OnAcquired. A real error, as in game, if a template breaks the rule.
+-- the map's mouse-up handler; then OnLoad, the pin shown, OnAcquired, and the pin asked to let right clicks through
+-- (CheckMouseButtonPassthrough, whose SetPassThroughButtons the game blocks in a fight when an addon's data provider
+-- is the one acquiring: a map that never asked hid KaLi Recipe's blocked action, 2026-11-16). A real error, as in
+-- game, if a template breaks the rule.
 function WorldMapFrame:AcquirePin(template, ...)
     local pin = CreateFrame("Frame", nil, self, template)
     if pin:IsMouseEnabled() then
@@ -553,8 +578,9 @@ function WorldMapFrame:AcquirePin(template, ...)
         pin:SetScript("OnMouseUp", pin.OnMouseUp)
     end
     pin:OnLoad()
-    pin:OnAcquired(...)
     pin:Show()
+    pin:OnAcquired(...)
+    pin:CheckMouseButtonPassthrough("RightButton")
     F.pins[#F.pins + 1] = pin
     return pin
 end

@@ -9,6 +9,8 @@ ns.MapPins = MapPins
 
 local TEMPLATE = "KaLiRecipeMapPinTemplate"
 local provider
+-- Pins handed out in a fight, still to be told to let right clicks through.
+local unasked = {}
 
 -- The spots of a map with recipes this character doesn't know: { { x, y, sighting, spells } }, one per place.
 function MapPins.Spots(m, map)
@@ -78,6 +80,28 @@ local function defineMixins()
             ns.SafeCall(W.Waypoint, self.spot.s)
         end
     end
+    -- The map asks each pin it hands out to let right clicks through to it, which zoom it out (AcquirePin's last
+    -- step), with SetPassThroughButtons: a call the game refuses an addon's code in a fight, and the map is handing
+    -- the pin to this addon's provider then. Asked there, it would be a blocked action each time the map shows a pin
+    -- in a fight. So in a fight it waits: a pin used before keeps what it had, a new one is told once the fight ends.
+    local asMap = MapCanvasPinMixin.CheckMouseButtonPassthrough
+    function KaLiRecipeMapPinMixin:CheckMouseButtonPassthrough(...)
+        if InCombatLockdown() then
+            unasked[self] = true
+            return
+        end
+        unasked[self] = nil
+        if asMap then
+            asMap(self, ...)
+        end
+    end
+    local askMap = KaLiRecipeMapPinMixin.CheckMouseButtonPassthrough
+    -- The fight over: the pins handed out meanwhile let right clicks through, as the map asked.
+    function MapPins.AfterFight()
+        for pin in pairs(unasked) do
+            askMap(pin, "RightButton")
+        end
+    end
     provider = CreateFromMixins(MapCanvasDataProviderMixin)
     -- The map calls these in a loop over every provider, its own included: an error here must stay here, or the
     -- providers after this one would not refresh.
@@ -121,6 +145,11 @@ function MapPins.Start()
     ns.On("ADDON_LOADED", function(_, name)
         if name == "Blizzard_WorldMap" or name == "Blizzard_MapCanvas" then
             attach()
+        end
+    end)
+    ns.On("PLAYER_REGEN_ENABLED", function()
+        if MapPins.AfterFight then
+            MapPins.AfterFight()
         end
     end)
     ns.OnChange(MapPins.Refresh)

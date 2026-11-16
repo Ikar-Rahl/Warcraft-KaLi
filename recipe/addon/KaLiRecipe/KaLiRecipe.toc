@@ -49,6 +49,7 @@ UI\MinimapButton.lua
 UI\MapPins.xml
 UI\MapPins.lua
 Shared\Dialog.lua
+Shared\Page.lua
 UI\Options.lua
 Shared\Report.lua
 UI\Report.lua

@@ -1,7 +1,7 @@
 """Run KaLi Recipe's Lua checks outside the game, on Lua 5.1 as the game uses.
 
-The checks of 1, 2, 5, 6, 7 and 11, and the enums' of 9, are the family's (tools/kali/checks.py, first written for KaLi
-Quest):
+The checks of 1, 2, 5, 6, 7, 11 and 13, and the enums' of 9, are the family's (tools/kali/checks.py, first written for
+KaLi Quest):
 1. Every .lua file under recipe/addon/ compiles.
 2. Each addon loads in its TOC's order on the fake WoW API (tools/lua/fakewow.lua, then this addon's
    recipe/tools/lua/fakewow_recipe.lua). A global written that isn't on the allowed list is reported.
@@ -28,6 +28,10 @@ Quest):
 11. No code of the shipped addon tests a value against itself, the usual test for nan, which the game's Lua doesn't
    honour (ns.Finite does).
 12. The sessions after the smoke's start from the files it wrote, as the game reads them (restart_problems).
+13. Every call of a game function whose result the API docs say may come as a secret value (a unit's GUID or name
+   where identities are restricted) reads it through ns.Plain.
+14. Every text of the options window and of the options page fits the room its frame gives it, in each language the
+   addon speaks, measured with the game's own font (tools/kali/labels.py).
 
 Run with: python -I recipe/tools/run_tests.py
 --addons <dir> runs on a copy, for experiments: recipe/addon is linked into the game.
@@ -40,7 +44,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
-from kali import checks  # noqa: E402
+from kali import checks, labels  # noqa: E402
 from kali.paths import RECIPE, REFERENCE  # noqa: E402
 
 RECIPE_LUA = RECIPE / "tools/lua"
@@ -364,6 +368,9 @@ def main():
     nan = checks.self_compare_problems(shipped)
     print(f"nan: {len(nan)} values compared with themselves in the shipped addon")
     problems += nan
+    secret, hidden = checks.secret_problems(shipped)
+    print(f"secret: {hidden} calls whose result the game may hide, {len(secret)} not read through ns.Plain")
+    problems += secret
 
     lua, load_addon = runtime()
     load_addon("KaLiRecipe")
@@ -389,6 +396,9 @@ def main():
     shared_failures = checks.shared_smoke(lua, "KaLiRecipe")
     print(f"shared: {'PASS' if not shared_failures else 'FAIL'}")
     problems += shared_failures
+    misfits, measured = labels.problems(lua, "KaLiRecipeDev", "KaLiRecipeOptions")
+    print(measured)
+    problems += misfits
     leaks = sorted(set(lua.globals().KALI_LEAKS.values()))
     problems += [f"global written: {leak}" for leak in leaks]
     restart, sessions = restart_problems(lua, load_addon)

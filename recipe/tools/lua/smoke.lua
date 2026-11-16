@@ -241,10 +241,19 @@ F.ahBusy = nil
 expect(F.ahQuery and F.ahQuery.itemClassFilters[1].classID == 9, "clicked, another addon busy: a search on the Recipes category")
 expect(ahButton:IsShown(), "and the button stays, for another")
 F.Advance(3)
+-- Its answer's next page: the event carries the rows it adds, as the game's does, and those are what is read. The
+-- whole list isn't read again for each page (a long search would cost the square of its length).
 F.ahResults = { { itemKey = { itemID = 2889 } }, { itemKey = { itemID = 728 } }, { itemKey = { itemID = 6326 } } }
-F.Fire("AUCTION_HOUSE_BROWSE_RESULTS_ADDED")
+local listReads, browseResults = 0, C_AuctionHouse.GetBrowseResults
+C_AuctionHouse.GetBrowseResults = function()
+    listReads = listReads + 1
+    return browseResults()
+end
+F.Fire("AUCTION_HOUSE_BROWSE_RESULTS_ADDED", { { itemKey = { itemID = 6326 } } })
 F.RunTimers()
+C_AuctionHouse.GetBrowseResults = browseResults
 expect(heard() == QUILL, "then a recipe new to the notebook: the whole quill")
+expect(listReads == 0, "a page added to the list: its own rows read, not the whole list again: " .. listReads)
 expect(ns.Scan.ah.answered ~= nil, "the search's answer noted")
 expect(ns.db.sightings[7752] and ns.db.sightings[7752][1].k == "ah", "a recipe listed at the auction house noted")
 -- No marks on the list's rows, Blizzard's or Auctionator's (Ikar, 2026-11-13): the recipe's tooltip says it all.
@@ -402,6 +411,67 @@ expect(#F.chat == 1 and chatHas(ns.Text.QUEST_MARKUP .. " " .. string.format(L.A
     "with its line and sound")
 F.SetLog(log)
 F.logRewards, F.logChoices = {}, {}
+
+-- ---------- Where the game hides who a unit is ----------
+-- In a dungeon or a battleground a unit's GUID and name come as secret values: kept and passed on, but an error to
+-- compare, turn to text or look inside. Each read goes through ns.Plain, which gives nil for one: the recipe is still
+-- noted, without the NPC nobody could name, and no error.
+do
+    local function errors()
+        return ns.Count(KaLiRecipeDevDB.errors)
+    end
+    local function placed(spell, kind, test)
+        for _, s in ipairs(ns.db.sightings[spell] or {}) do
+            if s.k == kind and test(s) then
+                return s
+            end
+        end
+    end
+    local before = errors()
+    expect(issecretvalue(F.SECRET) and ns.Plain(F.SECRET) == nil and select("#", ns.Plain(1, F.SECRET, "a")) == 3
+        and select(3, ns.Plain(1, F.SECRET, "a")) == "a" and ns.Plain("Kobold") == "Kobold",
+        "ns.Plain: nil in place of each hidden value, every other as it is")
+    F.identitySecret = true
+    F.Advance(3)
+    F.npc, F.npcName = "Creature-0-1-0-1-4224-0001", "Un marchand de donjon"
+    F.merchant = { 2598 }
+    F.Fire("MERCHANT_SHOW")
+    F.RunTimers()
+    F.Fire("MERCHANT_CLOSED")
+    expect(placed(2389, "vendor", function(s)
+        return s.npc == nil and s.map == 1457
+    end), "a vendor whose identity the game hides: its recipe noted at its place, with no NPC")
+    expect(ns.DB.Name(ns.db, "npc", 4224) == nil, "and no name kept for it")
+    local ogre = "Creature-0-1-0-1-1235-0003"
+    F.unitGUIDs.target, F.unitNames.target = ogre, "Ogre"
+    F.loot = { { "|Hitem:16110::|h[Recette]|h", ogre } }
+    F.Fire("LOOT_READY")
+    F.RunTimers()
+    expect(placed(15933, "drop", function(s)
+        return s.npc == 1235
+    end) or placed(ns.RECIPE_ITEMS[16110], "drop", function(s)
+        return s.npc == 1235
+    end), "a recipe looted where the target's identity is hidden: noted with the mob the loot names")
+    expect(ns.DB.Name(ns.db, "npc", 1235) == nil, "its name, the target's, not read")
+    F.npc, F.npcName = "Creature-0-1-0-1-6002-0001", "Un donneur de quête"
+    F.questID, F.questTitle = 93, "Dans le donjon"
+    F.questRewards = { { id = 2889 } }
+    F.Fire("QUEST_DETAIL")
+    F.RunTimers()
+    F.Fire("QUEST_FINISHED")
+    expect(placed(2795, "quest", function(s)
+        return s.q == 93 and s.npc == nil and s.map == nil
+    end), "a quest offered by a giver the game hides: its reward noted, with the quest alone")
+    F.Fire("TRAINER_SHOW")
+    F.RunTimers()
+    F.Fire("TRAINER_CLOSED")
+    expect(errors() == before, "and not one error for any of it: " .. tostring(next(KaLiRecipeDevDB.errors)))
+    F.identitySecret = nil
+    F.npc, F.npcName, F.questRewards, F.loot, F.merchant = nil, nil, {}, {}, {}
+    F.unitGUIDs.target, F.unitNames.target = "Creature-0-1-0-1-1234-0002", "Kobold"
+    F.chat = {}
+    heard()
+end
 
 -- ---------- Bags ----------
 F.bags[0] = { 2889, 2406, false, 2697 }
@@ -842,10 +912,31 @@ if pin then
     F.RunScript(pin, "OnMouseUp", "LeftButton")
     expect(F.waypoint and F.waypoint.uiMapID == 1457, "a click on a pin places the waypoint")
 end
+expect(pin and pin.passThroughButtons and pin.passThroughButtons[1] == "RightButton",
+    "a pin lets right clicks through to the map, which zooms out on them, as the map asks of each pin")
 ns.db.options.pins = false
 ns.MapPins.Refresh()
 expect(#F.pins == 0, "none when off")
 ns.db.options.pins = true
+-- The map opened in a fight: the game refuses an addon's code the call that lets right clicks through a pin, and the
+-- map makes it for each pin it hands the addon's provider. Nothing is asked then, so nothing is blocked; the pins
+-- are there all the same, and are told once the fight ends.
+F.combat = true
+F.Fire("PLAYER_REGEN_DISABLED")
+F.blocked = {}
+run(ns.MapPins.Refresh)
+expect(#F.pins >= 1 and #F.blocked == 0,
+    "the map shown in a fight: its pins, and no action of the addon's blocked: " .. table.concat(F.blocked, ", "))
+expect(F.pins[1] and F.pins[1].passThroughButtons == nil, "a pin made in a fight waits to be told")
+local blamed = false
+for _, w in ipairs(KaLiRecipeDevDB.gameWarnings or {}) do
+    blamed = blamed or w.kind == "blocked"
+end
+expect(not blamed, "and the game blamed the addon for nothing")
+F.combat = false
+F.Fire("PLAYER_REGEN_ENABLED")
+expect(F.pins[1] and F.pins[1].passThroughButtons and F.pins[1].passThroughButtons[1] == "RightButton",
+    "the fight over, it lets right clicks through as the others")
 -- The map refreshes every provider in one loop: an error in the addon's stays there, kept like any other.
 local book = ns.book
 ns.book = setmetatable({}, { __index = function()
@@ -868,6 +959,18 @@ for i = #F.errors, 1, -1 do
     end
 end
 WorldMapFrame:Hide()
+
+-- The notebook dragged: its place is the addon's to keep (the saved data's), and nothing of it is left for the game's
+-- own layout file, which would put it back there itself.
+do
+    ns.Notebook.Open()
+    local notebook = ns.Notebook.Frame()
+    F.RunScript(notebook, "OnDragStart", "LeftButton")
+    F.RunScript(notebook, "OnDragStop")
+    expect(notebook.dontSavePosition == true and notebook.userPlaced == false and type(ns.db.ui.pos) == "table",
+        "the notebook dragged keeps its place in the addon's data, none in the game's layout file")
+    ns.Notebook.Close()
+end
 
 -- ---------- Options and the compartment ----------
 -- In a window of their own beside the notebook (Ikar, 2026-11-13), as KaLi Quest's dialog in Edit Mode.
@@ -1042,30 +1145,43 @@ expect(steak and ns.Text.Price(steak) == nil, "the trainer's price hidden by its
 expect(ns.Text.Price({ k = "vendor", cost = 1250 }) ~= nil, "the vendor's still shown")
 defaultOption("priceTrainer")
 expect(steak and ns.Text.Price(steak) ~= nil, "and back")
--- The page under AddOns: no setting, a button to the window, as FlareUI's page is to its own, and the bug report's.
-local pageOpen
-for _, init in ipairs(F.settingsLayout.initializers) do
-    if init.name == L.OPTIONS and init.buttonText == L.OPTIONS_OPEN then
-        pageOpen = init
-    end
-end
-expect(pageOpen and pageOpen.tooltip == L.OPTIONS_OPEN_TIP and next(F.settingsCategory.settings) == nil,
-    "the page under AddOns holds no setting, and a button to the window")
+-- The page under AddOns: a frame of the addon's own, with nothing in the game's own lists of settings. What an addon
+-- puts in those, the game's pages and its search then work with, and the game blames the addon for what they do
+-- (KaLi Quest, for the Social page's Discord rows, 2026-11-12). On it, a button to the window, as FlareUI's page is to
+-- its own.
+local page = ns.Options.page
+expect(page and F.settingsLayout == nil and F.settingsRegistered == page.category and #F.settingsPages == 1,
+    "the page under AddOns is a frame of the addon's own: nothing of it in the game's lists of settings")
+ns.Options.Close()
+expect(page:Open() and SettingsPanel:IsShown() and F.settingsPage == page.category and page.frame:IsShown(),
+    "it opens in the game's options")
+local pageOpen = F.PageRow(page.category, L.OPTIONS)
+expect(pageOpen and pageOpen.Button:GetText() == L.OPTIONS_OPEN and page.frame.Title:GetText() == ns.TITLE,
+    "its title, and one row: a button to the window")
 if pageOpen then
-    ns.Options.Close()
-    Settings.OpenToCategory(F.settingsCategory:GetID())
-    pageOpen.buttonClick()
+    F.RunScript(pageOpen.Hover, "OnEnter")
+    expect(tooltipHas(L.OPTIONS) and tooltipHas(L.OPTIONS_OPEN_TIP) and pageOpen.Light:IsShown(),
+        "the row lights up under the pointer and says what it does")
+    F.RunScript(pageOpen.Hover, "OnLeave")
+    expect(not pageOpen.Light:IsShown() and not F.tooltip.shown, "and no more once it has left")
+    F.RunScript(pageOpen.Button, "OnClick")
     expect(not SettingsPanel:IsShown() and SettingsPanel.skippedTransition and ns.Options.IsShown(),
         "which closes the game's options, without their game menu, and opens it")
     ns.Options.Close()
-    Settings.OpenToCategory(F.settingsCategory:GetID())
+    page:Open()
     F.unapplied = true
-    pageOpen.buttonClick()
+    F.RunScript(pageOpen.Button, "OnClick")
     expect(SettingsPanel:IsShown() and F.popup and F.popup.which == "GAME_SETTINGS_CONFIRM_DISCARD" and not ns.Options.IsShown(),
         "with a change waiting for « Appliquer », the game asks first and the window waits")
     F.unapplied, F.popup = nil, nil
     SettingsPanel:Hide()
 end
+-- The game's options don't open from an addon in a fight: the page says so with the game's own line.
+F.combat = true
+local refusedBefore = #F.uiErrors
+expect(page and not page:Open() and not SettingsPanel:IsShown() and #F.uiErrors == refusedBefore + 1,
+    "in a fight the page doesn't open, and the game's line says why")
+F.combat = false
 ns.Options.Close()
 run(KaLiRecipe_OnAddonCompartmentEnter, "KaLiRecipe", UIParent)
 expect(tooltipHas(L.COMPARTMENT_CLICK), "the compartment's tooltip")
@@ -1140,6 +1256,52 @@ for _, a in ipairs(r.assumed) do
     end
 end
 expect(r.failing == 0, "every assumption holds on the fake: " .. table.concat(notAsAssumed, "; "))
+-- The auction house's answer. A search whose answer was still due when the house closed isn't one the game left
+-- unanswered, which the API check said of it before, with its chat line; only one the game was free to take, still
+-- unanswered after the house stayed open long enough, is.
+do
+    local function ahCheck()
+        for _, a in ipairs((ns.SelfCheck.Assumptions())) do
+            if a.name == "auction house" then
+                return a
+            end
+        end
+    end
+    local clock, later = time, 0
+    time = function()
+        return clock() + later
+    end
+    local function visit(busy, stay)
+        AuctionHouseFrame:Show()
+        F.Fire("AUCTION_HOUSE_SHOW")
+        F.ahBusy = busy
+        ns.Scan.QueryAuctions()
+        F.ahBusy = nil
+        later = later + stay
+        F.Fire("AUCTION_HOUSE_CLOSED")
+        AuctionHouseFrame:Hide()
+        F.RunTimers()
+        return ahCheck()
+    end
+    local quick = visit(nil, 2)
+    expect(quick and #quick.wrong == 0 and tostring(quick.note):find("closed 2 s after the query", 1, true),
+        "the house closed two seconds after the search: its answer was still due, nothing wrong: " .. tostring(quick and quick.wrong[1]))
+    local behind = visit(true, 60)
+    expect(behind and #behind.wrong == 0 and tostring(behind.note):find("sent behind another", 1, true),
+        "sent behind another addon's search, the house closed a minute later: still due: " .. tostring(behind and behind.wrong[1]))
+    local silent = visit(nil, 20)
+    expect(silent and silent.wrong[1] == "the query had no answer in 20 s",
+        "the game free to take it, the house open twenty seconds, no answer: named: " .. tostring(silent and silent.wrong[1]))
+    AuctionHouseFrame:Show()
+    F.Fire("AUCTION_HOUSE_SHOW")
+    F.ahResults = {}
+    F.Fire("AUCTION_HOUSE_BROWSE_RESULTS_UPDATED")
+    F.Fire("AUCTION_HOUSE_CLOSED")
+    AuctionHouseFrame:Hide()
+    F.RunTimers()
+    expect(#ahCheck().wrong == 0, "and its answer, come at the next visit, clears it")
+    time = clock
+end
 
 -- ---------- Saved data refused: the model never made ----------
 -- The addon then does nothing: a vendor, a loot, the bags and the professions window raise no error.

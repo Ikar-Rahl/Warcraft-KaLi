@@ -187,12 +187,20 @@ end)
 SelfCheck.Add("auction house", function()
     local a = ns.Scan.ah
     local wrong = {}
+    local note
     if a.refused then
         wrong[1] = "the query was refused: " .. a.refused
-    elseif a.queried and not a.answered and not (AuctionHouseFrame and AuctionHouseFrame:IsShown()) then
-        wrong[1] = "the query had no answer"
+    elseif a.queried and not a.answered and a.waited then
+        -- Only a query the game was free to take, left unanswered while the house stayed open long enough, is one it
+        -- didn't answer. Closed sooner, or sent behind another addon's, its answer was still due: nothing to say.
+        if not a.queued and a.waited >= ns.Scan.ANSWER_WAIT then
+            wrong[1] = string.format("the query had no answer in %d s", a.waited)
+        else
+            note = string.format("closed %d s after the query%s, before its answer", a.waited,
+                a.queued and ", sent behind another" or "")
+        end
     end
-    return a.queried and 1 or 0, wrong
+    return a.queried and 1 or 0, wrong, note
 end)
 SelfCheck.Add("professions window", function()
     return windowRead.looked, windowRead.wrong, windowRead.spellbook

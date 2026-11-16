@@ -205,7 +205,7 @@ local function onItem(tooltip, data)
     end
     -- « Composant d'artisanat »: its colour is the addon's blue.
     for _, line in ipairs(data.lines or {}) do
-        if line.leftText == ns.G("PROFESSIONS_USED_IN_COOKING", nil) and line.leftColor then
+        if ns.Plain(line.leftText) == ns.G("PROFESSIONS_USED_IN_COOKING", nil) and line.leftColor then
             W.NoteReagentColor(line.leftColor)
             break
         end

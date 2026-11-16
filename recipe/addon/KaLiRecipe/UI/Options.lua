@@ -9,7 +9,8 @@
 -- peux la fetre d'ailleur, similaire a celle des recette (pas d'option, style minimaliste)").
 --
 -- The addon's page in the game's options, under AddOns, is one button to it, as FlareUI's page is to FlareUI's own
--- window. Reached from the notebook's gear, a right click on the compartment, the minimap button or an information
+-- window: a page of the addon's own (Shared/Page.lua), which puts nothing in the game's own lists of settings. The
+-- window is reached from the notebook's gear, a right click on the compartment, the minimap button or an information
 -- bar, and /kr options.
 local _, ns = ...
 local L = ns.L
@@ -17,7 +18,7 @@ local L = ns.L
 local Options = {}
 ns.Options = Options
 
-local category
+local page
 
 local function refresh()
     if ns.book then
@@ -197,17 +198,16 @@ local function fromPage()
 end
 
 function Options.Register()
-    if category or not (Settings and Settings.RegisterVerticalLayoutCategory) then
+    if page then
         return
     end
-    local layout
-    category, layout = Settings.RegisterVerticalLayoutCategory(ns.TITLE)
-    if layout and layout.AddInitializer and CreateSettingsButtonInitializer then
-        layout:AddInitializer(CreateSettingsButtonInitializer(L.OPTIONS, L.OPTIONS_OPEN, function()
-            ns.SafeCall(fromPage)
-        end, L.OPTIONS_OPEN_TIP, true))
-    end
-    Settings.RegisterAddOnCategory(category)
+    page = ns.Page.New({
+        name = ns.TITLE,
+        rows = function()
+            return { { kind = "button", name = L.OPTIONS, text = L.OPTIONS_OPEN, tip = L.OPTIONS_OPEN_TIP, click = fromPage } }
+        end,
+    })
+    Options.page = page
 end
 
 -- Nothing in it is held by the game's combat rules, so it opens in a fight too.

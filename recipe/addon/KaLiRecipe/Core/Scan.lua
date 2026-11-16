@@ -30,8 +30,13 @@ end
 -- How each trainer recipe was recognised this session, for the API check: by the tooltip's spell, by the item it
 -- makes, by its name, or not at all.
 Scan.trainerStats = { tooltip = 0, product = 0, name = 0, other = 0, none = 0 }
--- The auction house: when the addon's own query went out, and whether results came after it.
-Scan.ah = { queried = nil, answered = nil, refused = nil }
+-- The auction house: when the addon's own query went out, and whether results came after it. queued: another query
+-- was going when it left (Auctionator's scans), so the game holds it and answers when it will. waited: how long the
+-- house stayed open after it, noted when it closes with no answer yet.
+Scan.ah = { queried = nil, answered = nil, refused = nil, queued = nil, waited = nil }
+-- A query the game was free to take, still unanswered after the house stayed open this long, is one it didn't answer.
+-- Closed sooner, nothing can be said: the answer was still due (the API check called that "no answer" before).
+Scan.ANSWER_WAIT = 15
 
 local function changed()
     ns.book:Invalidate()
@@ -48,10 +53,12 @@ local function note(visit, spell, s)
     return isNew
 end
 
+-- Who the unit is, by its NPC number, its name kept. Where the game hides a unit's identity (ns.Plain: a dungeon, a
+-- battleground), nobody: the sighting is still noted, without its NPC.
 local function npcOf(unit)
-    local npc = Game.NPCFromGUID(UnitGUID(unit))
+    local npc = Game.NPCFromGUID(ns.Plain(UnitGUID(unit)))
     if npc then
-        ns.DB.SetName(ns.db, "npc", npc, UnitName(unit))
+        ns.DB.SetName(ns.db, "npc", npc, (ns.Plain(UnitName(unit))))
     end
     return npc
 end
@@ -245,10 +252,13 @@ end)
 
 -- ---------- The auction house ----------
 
+-- The rows the house lists: a search's first page comes whole (AUCTION_HOUSE_BROWSE_RESULTS_UPDATED, the list read
+-- then), each page after it as the rows it adds, which its event carries (AUCTION_HOUSE_BROWSE_RESULTS_ADDED, as
+-- Blizzard's own list takes them). Reading the whole list again for every page made a long search, such as
+-- Auctionator's scans, cost the square of its length.
 local ah
-local function readBrowse()
-    local results = ns.Call(C_AuctionHouse and C_AuctionHouse.GetBrowseResults)
-    if not (ah and results) then
+local function readBrowse(results)
+    if not (ah and type(results) == "table") then
         return
     end
     if Scan.ah.queried and not Scan.ah.answered then
@@ -256,7 +266,7 @@ local function readBrowse()
     end
     local any = false
     for _, r in ipairs(results) do
-        local item = r.itemKey and r.itemKey.itemID
+        local item = type(r) == "table" and r.itemKey and r.itemKey.itemID
         local spell = item and ns.RECIPE_ITEMS[item]
         if spell then
             any = note(ah.visit, spell, { k = "ah", item = item }) or any
@@ -265,6 +275,9 @@ local function readBrowse()
     if any then
         changed()
     end
+end
+local function browseList()
+    return ns.Call(C_AuctionHouse and C_AuctionHouse.GetBrowseResults)
 end
 
 -- A search on the whole Recipes category, sent only by a click on the addon's button. It was sent by itself when the
@@ -280,9 +293,11 @@ function Scan.QueryAuctions()
     if Enum.AuctionHouseSortOrder then
         sorts[1] = { sortOrder = Enum.AuctionHouseSortOrder.Name, reverseSort = false }
     end
+    local free = ns.Call(AH.IsThrottledMessageSystemReady)
     local ok, err = pcall(AH.SendBrowseQuery, { searchString = "", sorts = sorts, filters = {},
         itemClassFilters = { { classID = Enum.ItemClass.Recipe } } })
-    Scan.ah.queried, Scan.ah.answered = time(), nil
+    Scan.ah.queried, Scan.ah.answered, Scan.ah.waited = time(), nil, nil
+    Scan.ah.queued = free == false or nil
     if not ok then
         Scan.ah.refused = tostring(err)
     end
@@ -294,22 +309,32 @@ end
 on("AUCTION_HOUSE_SHOW", function()
     ah = { visit = ns.Chat.Visit({ k = "ah" }) }
 end)
-for _, event in ipairs({ "AUCTION_HOUSE_BROWSE_RESULTS_UPDATED", "AUCTION_HOUSE_BROWSE_RESULTS_ADDED" }) do
-    on(event, readBrowse)
-end
+on("AUCTION_HOUSE_BROWSE_RESULTS_UPDATED", function()
+    readBrowse(browseList())
+end)
+on("AUCTION_HOUSE_BROWSE_RESULTS_ADDED", function(_, added)
+    -- The rows added, as the event gives them; were it ever to come without them, the list as before.
+    readBrowse(type(added) == "table" and added or browseList())
+end)
 on("AUCTION_HOUSE_CLOSED", function()
     if ah then
         ah.visit:Flush()
     end
     ah = nil
+    local a = Scan.ah
+    if a.queried and not a.answered and not a.waited then
+        a.waited = time() - a.queried
+    end
 end)
 
 -- ---------- Loot ----------
 
+-- The name of what was looted, when it is the target or under the pointer. A hidden GUID or name (ns.Plain) is no
+-- match and no name: comparing one would be an error, and the drop lost with it.
 local function sourceName(guid)
     for _, unit in ipairs({ "target", "mouseover" }) do
-        if guid and UnitGUID(unit) == guid then
-            return UnitName(unit)
+        if guid and ns.Plain(UnitGUID(unit)) == guid then
+            return (ns.Plain(UnitName(unit)))
         end
     end
 end
@@ -322,7 +347,7 @@ on("LOOT_READY", function()
         local item = Game.ItemFromLink(GetLootSlotLink(slot))
         local spell = item and ns.RECIPE_ITEMS[item]
         if spell then
-            local guid = ns.Call(GetLootSourceInfo, slot)
+            local guid = ns.Plain(ns.Call(GetLootSourceInfo, slot))
             local npc = Game.NPCFromGUID(guid)
             if npc then
                 ns.DB.SetName(ns.db, "npc", npc, sourceName(guid))
@@ -365,8 +390,8 @@ end
 -- wanted poster, whose place is too, with no number (an object's isn't an NPC's); or nobody to place: an item, a
 -- party member's share.
 local function giver()
-    local unit = UnitGUID("questnpc") and "questnpc" or "npc"
-    local kind = tostring(UnitGUID(unit) or ""):match("^(%a+)%-")
+    local unit = ns.Plain(UnitGUID("questnpc")) and "questnpc" or "npc"
+    local kind = tostring(ns.Plain(UnitGUID(unit)) or ""):match("^(%a+)%-")
     if kind == "Creature" or kind == "Vehicle" then
         return npcOf(unit), true
     end
