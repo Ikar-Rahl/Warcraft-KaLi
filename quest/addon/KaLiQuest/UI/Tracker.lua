@@ -656,6 +656,8 @@ function Tracker.SetEnabled(on)
     end
     ns.EditFrame.Sync()
     ns.Area.Apply()
+    -- The options page's switch follows, while that page shows: switched by /kq tracker or the diagnostics panel.
+    ns.Options.Changed()
 end
 
 function Tracker.Start()

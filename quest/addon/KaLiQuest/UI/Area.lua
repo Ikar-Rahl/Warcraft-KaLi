@@ -22,23 +22,28 @@ local function wanted()
     return ns.db ~= nil and ns.db.options.areaHighlight ~= false and ns.Tracker.IsActive()
 end
 
--- A point of a map in the world's yards, or nil where the game won't say, as in instances.
+-- A point of a map in the world's yards: its continent, then its x and y; nothing where the game won't say, as in
+-- instances. The check below runs every second, for every quest, in a fight too: nothing is made for it. The point
+-- the game is asked about is one kept for that, and the answer comes as three values, not a table.
+local point
 local function world(mapID, x, y)
     if not (mapID and x and y) then
         return nil
     end
-    local continent, pos = C_Map.GetWorldPosFromMapPos(mapID, CreateVector2D(x, y))
+    point = point or CreateVector2D(0, 0)
+    point.x, point.y = x, y
+    local continent, pos = C_Map.GetWorldPosFromMapPos(mapID, point)
     if continent and pos then
-        local wx, wy = pos:GetXY()
-        return { continent = continent, x = wx, y = wy }
+        return continent, pos:GetXY()
     end
 end
 
-local function near(a, b)
-    if not (a and b) or a.continent ~= b.continent then
+-- Two points of the world, each its continent, x and y, within range of each other.
+local function near(c1, x1, y1, c2, x2, y2)
+    if not (c1 and c2 and x1 and x2) or c1 ~= c2 then
         return false
     end
-    local dx, dy = a.x - b.x, a.y - b.y
+    local dx, dy = x1 - x2, y1 - y2
     return dx * dx + dy * dy <= RANGE_SQ
 end
 
@@ -69,11 +74,17 @@ local function playerOnMap()
     return mapID
 end
 
-local function signalOf(id, q, pins, player)
+-- The map's quest pins in the world, by quest: their continent, x and y. Kept from one check to the next, and the
+-- table the quests here were in before, to be filled again.
+local pinContinent, pinX, pinY = {}, {}, {}
+local spare = {}
+
+-- pc, px, py: where the player is in the world.
+local function signalOf(id, q, pc, px, py)
     if C_Minimap.IsInsideQuestBlob(id) then
         return "blob"
     end
-    if near(pins[id], player) then
+    if near(pinContinent[id], pinX[id], pinY[id], pc, px, py) then
         return "pin"
     end
     local distanceSq, onContinent = C_QuestLog.GetDistanceSqToQuest(id)
@@ -82,8 +93,11 @@ local function signalOf(id, q, pins, player)
     end
     -- Where it last progressed only says where to go while it isn't done: once done, the turn-in is elsewhere.
     local spot = not q.complete and ns.db.spots[id]
-    if spot and near(world(spot[1], spot[2], spot[3]), player) then
-        return "spot"
+    if spot then
+        local sc, sx, sy = world(spot[1], spot[2], spot[3])
+        if near(sc, sx, sy, pc, px, py) then
+            return "spot"
+        end
     end
 end
 
@@ -93,16 +107,21 @@ function Area.Check()
         return
     end
     local mapID, x, y = playerOnMap()
-    local player = world(mapID, x, y)
-    local pins = {}
-    if player then
+    local pc, px, py = world(mapID, x, y)
+    wipe(pinContinent)
+    wipe(pinX)
+    wipe(pinY)
+    if pc then
         for _, info in ipairs(C_QuestLog.GetQuestsOnMap(mapID) or {}) do
-            pins[info.questID] = world(mapID, info.x, info.y)
+            local id = info.questID
+            if id then
+                pinContinent[id], pinX[id], pinY[id] = world(mapID, info.x, info.y)
+            end
         end
     end
-    local now, changed = {}, false
+    local now, changed = wipe(spare), false
     for id, q in pairs(quests) do
-        now[id] = signalOf(id, q, pins, player)
+        now[id] = signalOf(id, q, pc, px, py)
         if now[id] and not here[id] then
             changed = true
             entered[id] = primed or nil
@@ -111,7 +130,7 @@ function Area.Check()
     for id in pairs(here) do
         changed = changed or not now[id]
     end
-    here = now
+    spare, here = here, now
     primed = true
     if changed then
         ns.RequestRefresh()

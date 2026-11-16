@@ -2,10 +2,11 @@
 Run with: python -I tools/breaks.py tools/breaks/quest.py [word]
 The first ones undo the review of 2026-11-11, whose false alarms came from Ikar's game, not from the tests.
 """
-CHECK, DB, MAIN, ROWS, LAYOUT, PANEL, FRAME, TRACKER, HOST, FONTS, OPTIONS, MENUS, LOCALE, SORTS, MOTION, AREA = (
+CHECK, DB, MAIN, ROWS, LAYOUT, PANEL, FRAME, TRACKER, HOST, FONTS, OPTIONS, MENUS, LOCALE, SORTS, MOTION, AREA, TRACKING, INIT = (
     f"quest/addon/KaLiQuest/{name}.lua" for name in (
         "Core/SelfCheck", "Core/DB", "Core/Main", "UI/Rows", "Core/Layout", "UI/EditPanel", "UI/EditFrame", "UI/Tracker",
-        "UI/Host", "UI/Fonts", "UI/Options", "UI/Menus", "Core/Locale", "Data/Sorts", "UI/Motion", "UI/Area"))
+        "UI/Host", "UI/Fonts", "UI/Options", "UI/Menus", "Core/Locale", "Data/Sorts", "UI/Motion", "UI/Area", "Core/Tracking",
+        "Core/Init"))
 
 BREAKS = [
     # The API check, against what Forever has
@@ -78,7 +79,8 @@ BREAKS = [
      "* (zoom or 1) * Host.Unscale(ObjectiveTrackerFrame)", "* (zoom or 1)"),
     ("scale: the timer keeps the host's own scale", HOST, "timer:SetScale(scale * unscale)", "timer:SetScale(scale)"),
     # The options page's button to Edit Mode, where the size and look went (Ikar, 2026-11-13: "comme dans flare")
-    ("Edit Mode button: missing from the options page", OPTIONS, "ns.SafeCall(ns.EditFrame.OpenEditMode)", "local _ = ns.EditFrame"),
+    ("Edit Mode button: missing from the options page", OPTIONS,
+     "tip = L.OPTION_EDIT_MODE_TIP, click = ns.EditFrame.OpenEditMode }", "tip = L.OPTION_EDIT_MODE_TIP, click = function() end }"),
     ("Edit Mode button: missing from the gear's menu", MENUS, "            ns.EditFrame.OpenEditMode()\n", ""),
     ("Edit Mode button: Blizzard's options left open over it", FRAME, "pcall(options.Close, options, true)", "local _ = options"),
     ("Edit Mode button: opens while Blizzard asks about a change waiting", FRAME,
@@ -104,4 +106,37 @@ BREAKS = [
     ("area: a place learnt on a continent's map", AREA, "    if not x or not zoneKnown(mapID) then", "    if not x then"),
     ("area: a place an earlier version learnt on a continent's map kept", AREA,
      "            forgetUnzoned()\n", ""),
+    # The review of 2026-11-16
+    ("tracking: a quest the game already tracks asked for again, its false read as the limit reached", TRACKING,
+     "    if self:IsWatched(questID) then\n        return true\n    end\n    local ok = C_QuestLog.AddQuestWatch(questID)\n"
+     "    log(\"AddQuestWatch(%d) -> %s\", questID, tostring(ok))\n    if ok or self:IsWatched(questID) then",
+     "    local ok = C_QuestLog.AddQuestWatch(questID)\n"
+     "    log(\"AddQuestWatch(%d) -> %s\", questID, tostring(ok))\n    if ok then"),
+    ("tracking: a refusal never noted", TRACKING,
+     "    ns.SelfCheck.NoteRefusal(questID, C_QuestLog.GetNumQuestWatches())\n    return false",
+     "    return false"),
+    ("tracking: a quest giver the game hides read", TRACKING,
+     "    return ns.Plain(UnitGUID(\"questnpc\")) or ns.Plain(UnitGUID(\"npc\"))",
+     "    return UnitGUID(\"questnpc\") or UnitGUID(\"npc\")"),
+    ("options page: its rows in the game's own list of settings", OPTIONS,
+     "    page = ns.Page.New({ name = ns.TITLE, rows = rows, pages = { { name = L.TIPS_TITLE, frame = buildTips() } } })",
+     "    Settings.RegisterVerticalLayoutCategory(ns.TITLE)\n"
+     "    page = ns.Page.New({ name = ns.TITLE, rows = rows, pages = { { name = L.TIPS_TITLE, frame = buildTips() } } })"),
+    ("options page: the reset row resets nothing", OPTIONS, "                row.set(row.default)", "                local _ = row"),
+    ("options page: a box ticked tells no one", OPTIONS,
+     "                ns.db.options[key] = value\n                ns.SafeCall(onChange or refresh, value)",
+     "                ns.db.options[key] = value"),
+    ("options page: the tracker's box doesn't follow /kq tracker", TRACKER,
+     "    ns.Options.Changed()\nend", "end"),
+    ("options page: its boxes don't follow what a refresh draws", INIT,
+     "        if ns.Options and ns.Options.Changed then\n            ns.Options.Changed()\n        end\n", ""),
+    ("options page: auto-tracking set elsewhere draws nothing again", TRACKING,
+     "    Tracking.ApplyAutoQuestWatch()\n    ns.RequestRefresh()\nend", "    Tracking.ApplyAutoQuestWatch()\nend"),
+    ("Edit Mode: the box keeps Blizzard's own drag, which takes its parent for one of Edit Mode's systems", FRAME,
+     "    selection:SetScript(\"OnDragStart\", function()\n        ns.SafeCall(onDragStart)\n    end)\n", ""),
+    # Texts that fit their room, in each language (tools/kali/labels.py)
+    ("labels: a French label too long for the dialog's two lines", LOCALE,
+     "OPTION_BLOCK_REST = \"Fond de quête au repos\",", "OPTION_BLOCK_REST = \"Fond des quêtes au repos\","),
+    ("labels: a label too long in German alone", LOCALE,
+     "OPTION_BLOCK_HOVER = \"Questfeld bei Mouseover\",", "OPTION_BLOCK_HOVER = \"Questfeld unter dem Mauszeiger\","),
 ]

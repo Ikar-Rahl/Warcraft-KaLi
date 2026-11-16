@@ -1,6 +1,7 @@
 -- The addon's page in the game's options, under AddOns. Reached from the gear on the title row, the addon
--- compartment and /kq options. Changes apply at once; the panel's Defaults button resets them all, and the last
--- row of a section resets that section's.
+-- compartment and /kq options. Changes apply at once; the row under the check boxes puts them back to their defaults.
+-- It's a page of the addon's own (Shared/Page.lua), in the look of Blizzard's: nothing of it goes into the game's own
+-- lists of settings, where the game blamed the addon for what its Social page did (2026-11-12).
 --
 -- The tracker's size, place and look are set in Edit Mode only, on its own frame there (UI/EditPanel.lua): Ikar, on
 -- 2026-11-13, "comme dans flare, enlever les options kali quest qui sont gérées par le mode édition, et y mettre un
@@ -11,45 +12,25 @@ local L = ns.L
 local Options = {}
 ns.Options = Options
 
-local category
-local tips -- the tips page, under the addon's own
-local sectionSettings = {} -- the section being built, for its reset row
+local page -- the addon's page
+local tips -- the tips page, under it
 
 local function refresh()
     ns.RequestRefresh()
 end
 
-local function checkbox(key, name, default, tooltip, onChange)
-    local setting = Settings.RegisterAddOnSetting(category, "KALIQUEST_" .. key:upper(), key, ns.db.options,
-        Settings.VarType.Boolean, name, default and Settings.Default.True or Settings.Default.False)
-    setting:SetValueChangedCallback(function(_, value)
-        ns.SafeCall(onChange or refresh, value)
-    end)
-    Settings.CreateCheckbox(category, setting, tooltip)
-    table.insert(sectionSettings, setting)
-end
-
-local function section(layout, text)
-    if layout and layout.AddInitializer and CreateSettingsListSectionHeaderInitializer then
-        layout:AddInitializer(CreateSettingsListSectionHeaderInitializer(text))
-    end
-end
-
--- Only settings off their default change: the tracker switch, already on, mustn't resume over Blizzard's.
-local function resetRow(layout)
-    local settings = sectionSettings
-    sectionSettings = {}
-    if layout and layout.AddInitializer and CreateSettingsButtonInitializer then
-        layout:AddInitializer(CreateSettingsButtonInitializer(L.OPTIONS_DEFAULTS, ns.G("RESET", "Réinitialiser"), function()
-            ns.SafeCall(function()
-                for _, setting in ipairs(settings) do
-                    if setting:GetValue() ~= setting:GetDefaultValue() then
-                        setting:SetValueToDefault()
-                    end
-                end
-            end)
-        end, L.OPTIONS_DEFAULTS_TIP, false))
-    end
+-- A check box's row for an option: what it shows is the option, and a change is told once, to onChange or the tracker.
+local function check(key, name, default, tip, onChange)
+    return { kind = "check", key = key, default = default, name = name, tip = tip,
+        get = function()
+            return ns.db.options[key] == true
+        end,
+        set = function(value)
+            if (ns.db.options[key] == true) ~= value then
+                ns.db.options[key] = value
+                ns.SafeCall(onChange or refresh, value)
+            end
+        end }
 end
 
 -- Each marker by the name its tooltip gives it, for Edit Mode's dialog.
@@ -107,76 +88,69 @@ local function buildTips()
     return f
 end
 
-function Options.Register()
-    if category or not (Settings and Settings.RegisterVerticalLayoutCategory) then
-        return
-    end
-    local layout
-    category, layout = Settings.RegisterVerticalLayoutCategory(ns.TITLE)
-
-    if layout and layout.AddInitializer and CreateSettingsButtonInitializer then
-        layout:AddInitializer(CreateSettingsButtonInitializer(L.TIPS_TITLE, L.TIPS_OPEN, function()
-            ns.SafeCall(Options.OpenTips)
-        end, L.TIPS_OPEN_TIP, true))
-    end
-    checkbox("tracker", L.OPTION_TRACKER, true, L.OPTION_TRACKER_TIP, function(value)
-        if value then
-            ns.Coverage.Resume()
-        else
-            ns.Tracker.SetEnabled(false)
-        end
-    end)
-    checkbox("autoQuestWatch", ns.G("AUTO_QUEST_WATCH_TEXT", "Suivi automatique de quête"), false,
-        ns.G("OPTION_TOOLTIP_AUTO_QUEST_WATCH", nil), function(value)
-            ns.Tracking.SetAutoQuestWatch(value)
-        end)
+-- The page's rows, in its order, asked for when it first shows.
+local function rows()
+    local list = { { kind = "button", name = L.TIPS_TITLE, text = L.TIPS_OPEN, tip = L.TIPS_OPEN_TIP, click = Options.OpenTips } }
+    local checks = {
+        check("tracker", L.OPTION_TRACKER, true, L.OPTION_TRACKER_TIP, function(value)
+            if value then
+                ns.Coverage.Resume()
+            else
+                ns.Tracker.SetEnabled(false)
+            end
+        end),
+        check("autoQuestWatch", ns.G("AUTO_QUEST_WATCH_TEXT", "Suivi automatique de quête"), false,
+            ns.G("OPTION_TOOLTIP_AUTO_QUEST_WATCH", nil), function(value)
+                ns.Tracking.SetAutoQuestWatch(value)
+            end),
+    }
     -- Forever doesn't load Blizzard's group finder, so there the eye couldn't open anything.
     if ns.Filter.GroupFinderAvailable() then
-        checkbox("findGroup", L.OPTION_FIND_GROUP, false, ns.G("TOOLTIP_TRACKER_FIND_GROUP_BUTTON", nil))
+        checks[#checks + 1] = check("findGroup", L.OPTION_FIND_GROUP, false, ns.G("TOOLTIP_TRACKER_FIND_GROUP_BUTTON", nil))
     end
-    resetRow(layout)
-
+    for _, row in ipairs(checks) do
+        list[#list + 1] = row
+    end
+    -- Only options off their default change: the tracker switch, already on, mustn't resume over Blizzard's.
+    list[#list + 1] = { kind = "button", name = L.OPTIONS_DEFAULTS, text = ns.G("RESET", "Réinitialiser"), tip = L.OPTIONS_DEFAULTS_TIP,
+        click = function()
+            for _, row in ipairs(checks) do
+                row.set(row.default)
+            end
+        end }
     -- Where the size and look went: Edit Mode, the tracker picked, under the game's own name for it.
-    section(layout, L.OPTIONS_LOOK)
-    if layout and layout.AddInitializer and CreateSettingsButtonInitializer then
-        layout:AddInitializer(CreateSettingsButtonInitializer(L.OPTION_EDIT_MODE, ns.G("HUD_EDIT_MODE_MENU", "Mode Édition"),
-            function()
-                ns.SafeCall(ns.EditFrame.OpenEditMode)
-            end, L.OPTION_EDIT_MODE_TIP, true))
-    end
-
-    section(layout, L.DIAG_TITLE)
-    if layout and layout.AddInitializer and CreateSettingsButtonInitializer then
-        layout:AddInitializer(CreateSettingsButtonInitializer(L.DIAG_TITLE, L.DIAG_OPEN, function()
-            ns.SafeCall(ns.DebugPanel.Open)
-        end, L.DIAG_OPEN_TIP, true))
-        layout:AddInitializer(CreateSettingsButtonInitializer(L.REPORT_TITLE, L.REPORT_OPEN, function()
-            ns.SafeCall(ns.Report.Open)
-        end, L.REPORT_OPEN_TIP, true))
-    end
-
-    if Settings.RegisterCanvasLayoutSubcategory then
-        tips = Settings.RegisterCanvasLayoutSubcategory(category, buildTips(), L.TIPS_TITLE)
-    end
-    Settings.RegisterAddOnCategory(category)
+    list[#list + 1] = { kind = "header", text = L.OPTIONS_LOOK }
+    list[#list + 1] = { kind = "button", name = L.OPTION_EDIT_MODE, text = ns.G("HUD_EDIT_MODE_MENU", "Mode Édition"),
+        tip = L.OPTION_EDIT_MODE_TIP, click = ns.EditFrame.OpenEditMode }
+    list[#list + 1] = { kind = "header", text = L.DIAG_TITLE }
+    list[#list + 1] = { kind = "button", name = L.DIAG_TITLE, text = L.DIAG_OPEN, tip = L.DIAG_OPEN_TIP, click = ns.DebugPanel.Open }
+    list[#list + 1] = { kind = "button", name = L.REPORT_TITLE, text = L.REPORT_OPEN, tip = L.REPORT_OPEN_TIP, click = ns.Report.Open }
+    return list
 end
 
--- The options panel can't open in combat.
-local function open(target)
-    if ns.CombatRefused() then
+function Options.Register()
+    if page then
         return
     end
-    if target then
-        Settings.OpenToCategory(target:GetID())
-    end
+    page = ns.Page.New({ name = ns.TITLE, rows = rows, pages = { { name = L.TIPS_TITLE, frame = buildTips() } } })
+    tips = page.pages[1]
+    Options.page, Options.tips = page, tips
 end
 
+-- The game's options can't open in combat: the page says so (Shared/Page.lua).
 function Options.Open()
-    open(category)
+    return page ~= nil and page:Open()
 end
 
 function Options.OpenTips()
-    open(tips)
+    return tips ~= nil and tips:Open()
+end
+
+-- A change made elsewhere, while the page shows.
+function Options.Changed()
+    if page then
+        page:Refresh()
+    end
 end
 
 -- With the saved data refused, there are no options to open, so the click says why, as /kq does.

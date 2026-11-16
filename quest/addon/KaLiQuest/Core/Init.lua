@@ -40,5 +40,9 @@ function ns.RequestRefresh()
         if ns.Refresh then
             ns.Refresh()
         end
+        -- The options page too, while it shows: an option changed elsewhere (/kq tracker, the gear's menu).
+        if ns.Options and ns.Options.Changed then
+            ns.Options.Changed()
+        end
     end)
 end

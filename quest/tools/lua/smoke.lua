@@ -191,6 +191,22 @@ local function click(frame, button)
     F.RunScript(frame, "OnClick", button or "LeftButton")
     F.RunTimers()
 end
+-- The addon's page in the game's options, a frame of its own: picked as a click on it in the panel's list would, then
+-- a row of it by its name, or by its button's text. A check box is ticked as the mouse ticks it.
+local function pageRow(name, buttonText)
+    local page = ns.Options.page
+    F.PickSettingsPage(page.category)
+    for _, f in ipairs(page.frame.rows or {}) do
+        if (name and f.row and f.row.name == name) or (buttonText and f.Button and f.Button:GetText() == buttonText) then
+            return f
+        end
+    end
+end
+local function tick(row, value)
+    row.Check:SetChecked(value)
+    F.RunScript(row.Check, "OnClick")
+    F.RunTimers()
+end
 local function resize(height)
     ObjectiveTrackerFrame:SetHeight(height)
     F.RunScript(ObjectiveTrackerFrame, "OnSizeChanged")
@@ -756,19 +772,27 @@ do
         F.Fire("PLAYER_REGEN_ENABLED")
         expect(rowFor("zoom").Slider:IsSliderEnabled(), "and come back after")
     end
+    -- Whatever the mouse can do to a box in Edit Mode, nothing fails. Blizzard's template comes with scripts of its
+    -- own, which take the box's parent for one of Edit Mode's systems: the addon's frame isn't one, and replaces them.
+    do
+        local kept = ns.DeepCopy(db.editMode.positions)
+        local tried = F.TrySelections()
+        expect(#tried == 0, "the pointer, a press and a drag on the tracker's box in Edit Mode raise no error: "
+            .. table.concat(tried, " | "))
+        db.editMode.positions = kept
+        ns.EditFrame.Apply()
+    end
     F.TriggerRegistry("EditMode.Exit")
     F.RunTimers()
     expect(not box:IsShown() and not (dialog and dialog:IsShown()), "leaving Edit Mode hides its box and its dialog")
 
     -- The options page's « Mode Édition », where the size and look were (Ikar, 2026-11-13: "comme dans flare"):
     -- Blizzard's options close keeping what was set, Edit Mode opens, and the tracker is picked with its dialog open.
-    local editButton
-    for _, init in ipairs(F.settingsLayout.initializers) do
-        if init.name == L.OPTION_EDIT_MODE then
-            editButton = init
-        end
-    end
-    expect(editButton and editButton.buttonText == "Mode Édition" and editButton.tooltip == L.OPTION_EDIT_MODE_TIP,
+    local editRow = pageRow(L.OPTION_EDIT_MODE)
+    local editButton = editRow and { buttonClick = function()
+        F.RunScript(editRow.Button, "OnClick")
+    end }
+    expect(editRow and editRow.Button:GetText() == "Mode Édition" and editRow.row.tip == L.OPTION_EDIT_MODE_TIP,
         "the options page has a « Mode Édition » button where the size and look were")
     if editButton then
         Settings.OpenToCategory(77)
@@ -1079,27 +1103,36 @@ ns.DebugPanel.Open()
 local diagPanel = ns.DebugPanel.Frames()
 expect(diagPanel and diagPanel:IsShown(), "the diagnostics panel still opens")
 diagPanel:Hide()
-local diagButton
-for _, init in ipairs(F.settingsLayout.initializers) do
-    if init.buttonText == "Ouvrir le diagnostic" then
-        diagButton = init
-    end
-end
+-- The page is a frame of the addon's own, with nothing in the game's own lists of settings: what an addon puts in
+-- those, the game's pages and its search then work with, and the game blamed the addon for what its Social page did
+-- with them (C_Discord.IsUserOAuthed, three times, 2026-11-12).
+local optionsPage, tipsPage = ns.Options.page, ns.Options.tips
+expect(F.settingsLayout == nil and F.settingsCategory == nil and F.settingsRegistered == optionsPage.category
+    and #F.settingsPages == 2, "the options page and its tips are frames of the addon's own: nothing in the game's lists of settings")
+local diagButton = pageRow(nil, "Ouvrir le diagnostic")
 if diagButton then
-    diagButton.buttonClick()
+    click(diagButton.Button)
 end
 expect(diagButton and diagPanel:IsShown(), "and so does a button on the options page")
 diagPanel:Hide()
 F.settingsOpened = nil
+SettingsPanel:Hide()
 SlashCmdList.KALIQUEST("options")
-expect(F.settingsOpened == 77, "/kq options opens it too")
-local tipsButton = F.settingsLayout.initializers[1]
-expect(tipsButton and tipsButton.name == "Astuces" and tipsButton.buttonText == "Afficher", "the options page starts with a button to the tips")
+expect(F.settingsOpened == 77 and SettingsPanel:IsShown() and F.settingsPage == optionsPage.category and optionsPage.frame:IsShown()
+    and optionsPage.frame.Title:GetText() == ns.TITLE, "/kq options opens it too, under its title")
+local tipsButton = optionsPage.frame.rows[1]
+expect(tipsButton and tipsButton.row.name == "Astuces" and tipsButton.Button:GetText() == "Afficher", "the options page starts with a button to the tips")
+F.RunScript(tipsButton.Hover, "OnEnter")
+expect(tipsButton.Light:IsShown() and F.tooltip.lines[1] == "Astuces" and F.tooltip.lines[2] == ns.L.TIPS_OPEN_TIP,
+    "a row lights up under the pointer and says what it does, as the game's rows")
+F.RunScript(tipsButton.Hover, "OnLeave")
+expect(not tipsButton.Light:IsShown() and not F.tooltip.shown, "and no more once the pointer has left")
 F.settingsOpened = nil
-tipsButton.buttonClick()
-expect(F.settingsTips and F.settingsTips.parent == F.settingsCategory and F.settingsOpened == 78, "which opens their page, under the addon's")
+click(tipsButton.Button)
+expect(tipsPage.category.parent == optionsPage.category and F.settingsOpened == 78 and F.settingsPage == tipsPage.category
+    and tipsPage.frame:IsShown() and not optionsPage.frame:IsShown(), "which opens their page, under the addon's")
 local tipTexts = {}
-for _, fs in ipairs(F.settingsTips.frame.fontStrings or {}) do
+for _, fs in ipairs(tipsPage.frame.fontStrings or {}) do
     tipTexts[#tipTexts + 1] = fs:GetText() or ""
 end
 tipTexts = table.concat(tipTexts, "\n")
@@ -1107,16 +1140,33 @@ expect(tipTexts:find("Ctrl+clic", 1, true) and tipTexts:find("Maj+clic", 1, true
     and tipTexts:find("dans Options > Raccourcis clavier > Add-ons.", 1, true), "the tips name the shortcuts, the rules, and where to bind the keys")
 F.combat = true
 F.settingsOpened = nil
-tipsButton.buttonClick()
+click(tipsButton.Button)
 expect(F.settingsOpened == nil, "the tips don't open in combat")
 F.combat = false
-local trackerSetting = F.settingsCategory and F.settingsCategory.settings.KALIQUEST_TRACKER
-expect(trackerSetting ~= nil, "the page has the tracker switch")
-trackerSetting:SetValue(false)
+SettingsPanel:Hide()
+local trackerSetting = pageRow(ns.L.OPTION_TRACKER)
+expect(trackerSetting and trackerSetting.Check:GetChecked(), "the page has the tracker switch, ticked")
+tick(trackerSetting, false)
 expect(not tracker.IsActive() and not ns.Host.IsParked(), "switching the tracker off there gives Blizzard's back")
-trackerSetting:SetValue(true)
+-- A click on the row's name ticks its box too, as on the game's own rows.
+F.RunScript(trackerSetting.Hover, "OnMouseUp", "LeftButton")
 F.RunTimers()
-expect(tracker.IsActive() and ns.Host.IsParked(), "and on again")
+expect(tracker.IsActive() and ns.Host.IsParked() and trackerSetting.Check:GetChecked(), "and on again, by a click on its name")
+-- Switched elsewhere while the page shows, its box follows.
+SlashCmdList.KALIQUEST("tracker off")
+F.RunTimers()
+expect(not trackerSetting.Check:GetChecked(), "the tracker switched off by /kq tracker: the page's box follows")
+SlashCmdList.KALIQUEST("tracker on")
+F.RunTimers()
+expect(trackerSetting.Check:GetChecked() and tracker.IsActive(), "and back on")
+-- Auto-tracking switched from the gear's menu or by a command while the page shows: its box follows too.
+local autoRow = pageRow("Suivi automatique de quête")
+ns.Tracking.SetAutoQuestWatch(true)
+F.RunTimers()
+expect(autoRow and autoRow.Check:GetChecked() == true, "auto-tracking switched elsewhere: the page's box follows")
+ns.Tracking.SetAutoQuestWatch(false)
+F.RunTimers()
+expect(autoRow and autoRow.Check:GetChecked() == false, "and back")
 
 KaLiQuest_Binding("next")
 expect(db.open.groups[db.groups[1].id] and not db.open.groups[db.groups[2].id] and not next(db.open.headers),
@@ -1533,7 +1583,7 @@ end
 -- option don't show.
 db.open.categories.world, db.open.headers["Marche de l'Ouest"] = true, true
 expect(db.options.findGroup == false, "the find-group eye is off by default, Ikar's defaults")
-expect(F.settingsCategory.settings.KALIQUEST_FINDGROUP == nil, "without the group finder, as on Forever, the options page doesn't offer the eye")
+expect(pageRow(ns.L.OPTION_FIND_GROUP) == nil, "without the group finder, as on Forever, the options page doesn't offer the eye")
 db.options.findGroup = true
 F.findGroup = { [12] = true }
 ns.RequestRefresh()
@@ -2811,86 +2861,45 @@ do
     KaLiQuestDevDB.debug = false
 end
 
--- The options page: each section with settings ends with a reset row, which puts back that section's settings only.
+-- The options page: its check boxes end with a reset row, which puts them back to their defaults; the sections after
+-- hold buttons only, and no reset row.
 do
-    local sections = { { name = "haut de page", settings = {} } }
-    local resets = 0
-    for _, init in ipairs(F.settingsLayout.initializers) do
-        if init.header then
-            sections[#sections + 1] = { name = init.header, settings = {} }
-        end
-        local s = sections[#sections]
-        if init.setting then
-            s.settings[#s.settings + 1] = init.setting
-        elseif init.buttonText == "Réinitialiser" then
-            s.reset = init
-            resets = resets + 1
-        end
-        s.last = init
-    end
-    local wrong = {}
-    for _, s in ipairs(sections) do
-        if not (#s.settings == 0 and not s.reset or #s.settings > 0 and s.reset and s.last == s.reset
-            and s.reset.name == "Valeurs par défaut" and s.reset.tooltip) then
-            wrong[#wrong + 1] = s.name
+    pageRow()
+    local rows = ns.Options.page.frame.rows
+    local checks, reset, resets, lastCheck = {}, nil, 0, 0
+    for i, f in ipairs(rows) do
+        if f.Check then
+            checks[#checks + 1] = f
+            lastCheck = i
+        elseif f.Button and f.Button:GetText() == "Réinitialiser" then
+            reset, resets = f, resets + 1
         end
     end
-    expect(resets == 1 and #wrong == 0, "the options page's one section with settings ends with a reset row, the others have none: "
-        .. table.concat(wrong, ", "))
+    expect(resets == 1 and #checks >= 2 and rows[lastCheck + 1] == reset and reset.row.name == "Valeurs par défaut" and reset.row.tip,
+        "the options page's check boxes end with a reset row, and the page has no other")
 
     local before = ns.DeepCopy(db.options)
-    local function offDefault(setting)
-        local d = setting:GetDefaultValue()
-        if type(d) == "boolean" then
-            return not d
-        elseif type(d) == "number" then
-            return d + 1
-        end
-        for _, choice in ipairs(setting.options()) do
-            if choice.value ~= d then
-                return choice.value
-            end
-        end
+    for _, f in ipairs(checks) do
+        tick(f, not f.row.default)
     end
-    local function allAt(s, atDefault)
-        for _, setting in ipairs(s.settings) do
-            if (setting:GetValue() == setting:GetDefaultValue()) ~= atDefault then
-                return false
-            end
-        end
-        return true
-    end
-    local withReset = {}
-    for _, s in ipairs(sections) do
-        if s.reset then
-            withReset[#withReset + 1] = s
-            for _, setting in ipairs(s.settings) do
-                setting:SetValue(offDefault(setting))
-            end
-        end
-    end
-    F.RunTimers()
     expect(not tracker.IsActive() and F.cvars.autoQuestWatch == "1", "setup: every setting off its default")
-    local leaks = {}
-    for i, s in ipairs(withReset) do
-        s.reset.buttonClick()
-        F.RunTimers()
-        for j, other in ipairs(withReset) do
-            if not allAt(other, j <= i) then
-                leaks[#leaks + 1] = s.name .. " > " .. other.name
-            end
+    click(reset.Button)
+    local left = {}
+    for _, f in ipairs(checks) do
+        if f.row.get() ~= f.row.default or f.Check:GetChecked() ~= f.row.default then
+            left[#left + 1] = f.row.name
         end
     end
-    expect(#leaks == 0, "each reset row puts back its own section's settings, and no other's: " .. table.concat(leaks, ", "))
+    expect(#left == 0, "the reset row puts every check box back to its default, and each shows it: " .. table.concat(left, ", "))
     expect(tracker.IsActive() and F.cvars.autoQuestWatch == "0", "and what they drive follows: KaLi Quest's tracker back, auto-tracking off")
 
     F.filled.ScenarioObjectiveTracker = true
     F.UpdateSections()
     F.RunTimers()
     expect(not tracker.IsActive(), "setup: a scenario puts KaLi Quest's tracker aside")
-    F.settingsCategory.settings.KALIQUEST_AUTOQUESTWATCH:SetValue(true)
-    withReset[1].reset.buttonClick()
-    F.RunTimers()
+    tick(pageRow("Suivi automatique de quête"), true)
+    expect(db.options.autoQuestWatch == true, "setup: auto-tracking ticked on the page")
+    click(reset.Button)
     expect(db.options.autoQuestWatch == false and not tracker.IsActive(),
         "a reset leaves alone a tracker switch already on, so the tracker stays aside for the scenario")
     F.filled.ScenarioObjectiveTracker = nil
@@ -3007,14 +3016,25 @@ do
     expect(zone and zone.looked == 2 and table.concat(zone.wrong, " | ")
         == "area 148 is named Sombrivage (Darkshore), GetZoneText() says Sombrivage",
         "a zone whose name isn't its area's is named, and kept for the build at the zone change: " .. problems("zone name"))
+    -- The game answers false for a quest already on its list, as for a full one (Ikar's saved log): tracked quests
+    -- moved between groups, as all session long here, are no refusal, and none is asked for again.
+    expect(#now("tracking limit").wrong == 0,
+        "tracked quests moved from group to group all session, and no refusal noted: " .. problems("tracking limit"))
+    local World = ns.Tracking.World
+    local tracked = World:WatchedList()[1]
+    local lookedBefore = now("tracking limit").looked
+    expect(tracked and C_QuestLog.AddQuestWatch(tracked) == false and World:AddWatch(tracked) == true
+        and now("tracking limit").looked == lookedBefore,
+        "a quest the game already tracks: its false isn't a refusal, and the world says it's on the list")
     local addWatch = C_QuestLog.AddQuestWatch
     C_QuestLog.AddQuestWatch = function()
         return false
     end
-    ns.Tracking.World:AddWatch(12)
+    expect(not World:IsWatched(4242) and World:AddWatch(4242) == false, "a quest the game leaves off its list is refused")
     C_QuestLog.AddQuestWatch = addWatch
     local limit = record(checks[#checks].assumed, "tracking limit")
-    expect(limit and limit.looked >= 1 and table.concat(limit.wrong, " | "):find("AddQuestWatch(12) refused with ", 1, true),
+    expect(limit and limit.looked == lookedBefore + 1
+        and table.concat(limit.wrong, " | "):find("AddQuestWatch(4242) refused with ", 1, true),
         "a refusal under the game's 25 is named, and kept for the build")
     local all, failing = ns.SelfCheck.Assumptions()
     local sum = 0
@@ -3139,15 +3159,10 @@ do
         "a report too long for an issue loses its end")
 
     frame:Hide()
-    local row
-    for _, init in ipairs(F.settingsLayout.initializers) do
-        if init.name == "Signaler un bug" then
-            row = init
-        end
-    end
-    expect(row and row.buttonText == "Ouvrir", "the options page has a row for it")
+    local row = pageRow("Signaler un bug")
+    expect(row and row.Button:GetText() == "Ouvrir", "the options page has a row for it")
     if row then
-        row.buttonClick()
+        click(row.Button)
     end
     expect(frame:IsShown(), "which opens the same window")
     frame:Hide()

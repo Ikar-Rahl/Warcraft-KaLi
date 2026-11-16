@@ -19,8 +19,12 @@
 10. Every Enum table and member the addons name is in this build's docs or read by Blizzard's own code.
 11. No code of the shipped addon tests a value against itself, the usual test for nan, which the game's Lua doesn't
    honour (ns.Finite does).
+12. Every call of a game function whose result the API docs say may come as a secret value (a unit's GUID or name
+   where identities are restricted) reads it through ns.Plain.
+13. Every text of the Edit Mode dialog and of the options page fits the room its frame gives it, in each language the
+   addon speaks, measured with the game's own font (tools/kali/labels.py).
 
-The checks of 1 to 8, 10 and 11 are the family's, in tools/kali/checks.py. Run with: python -I quest/tools/run_tests.py
+The checks of 1 to 8 and 10 to 13 are the family's, in tools/kali. Run with: python -I quest/tools/run_tests.py
 --addons <dir> runs on a copy, for experiments: quest/addon is linked into the game.
 """
 import csv
@@ -28,7 +32,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
-from kali import checks  # noqa: E402
+from kali import checks, labels  # noqa: E402
 from kali.paths import QUEST  # noqa: E402
 
 checks.configure(
@@ -107,6 +111,9 @@ def main():
     nan = checks.self_compare_problems(shipped)
     print(f"nan: {len(nan)} values compared with themselves in the shipped addon")
     problems += nan
+    secret, hidden = checks.secret_problems(shipped)
+    print(f"secret: {hidden} calls whose result the game may hide, {len(secret)} not read through ns.Plain")
+    problems += secret
 
     lua, load_addon = checks.runtime()
     load_addon("KaLiQuest")
@@ -129,6 +136,9 @@ def main():
     shared_failures = checks.shared_smoke(lua, "KaLiQuest")
     print(f"shared: {'PASS' if not shared_failures else 'FAIL'}")
     problems += shared_failures
+    misfits, measured = labels.problems(lua, "KaLiQuestDev", "KaLiQuestEditModeDialog")
+    print(measured)
+    problems += misfits
     leaks = sorted(set(lua.globals().KALI_LEAKS.values()))
     problems += [f"global written: {leak}" for leak in leaks]
 

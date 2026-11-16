@@ -25,7 +25,8 @@ function T.FakeWorld(questIDs)
     function w:Count()
         return #self.list
     end
-    -- Like the game: no change if already watched, and nothing past the limit.
+    -- As Tracking's World:AddWatch: whether the quest is on the list afterwards. No change if it already was, and
+    -- nothing past the limit.
     function w:AddWatch(id)
         if self:IsWatched(id) then
             return true

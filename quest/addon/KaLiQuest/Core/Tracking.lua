@@ -28,13 +28,21 @@ function World:WatchedList()
     return list
 end
 
+-- Onto the game's list: true when the quest is on it afterwards. A quest already there isn't asked for again: the game
+-- answers false for it, as it does for a full list (Ikar's log, 2026-11-12 to 16: thirteen times, each a tracked quest
+-- moved to another group), and that answer alone read every such move as the game's limit reached, with the API
+-- check's chat line. A refusal is a quest still off the list after the game said no.
 function World:AddWatch(questID)
+    if self:IsWatched(questID) then
+        return true
+    end
     local ok = C_QuestLog.AddQuestWatch(questID)
     log("AddQuestWatch(%d) -> %s", questID, tostring(ok))
-    if not ok then
-        ns.SelfCheck.NoteRefusal(questID, C_QuestLog.GetNumQuestWatches())
+    if ok or self:IsWatched(questID) then
+        return true
     end
-    return ok
+    ns.SelfCheck.NoteRefusal(questID, C_QuestLog.GetNumQuestWatches())
+    return false
 end
 
 -- Blizzard's own check, which refuses in the New Player Experience.
@@ -64,13 +72,9 @@ local function isDone(questID)
     return C_QuestLog.IsQuestFlaggedCompleted(questID) and not C_QuestLog.IsRepeatableQuest(questID)
 end
 
--- The NPC showing the quest frame, or nil. A secret value can't be compared, so it counts as none.
+-- The NPC showing the quest frame, or nil. One the game hides (ns.Plain) can't be compared, so it counts as none.
 local function questNpc()
-    local guid = UnitGUID("questnpc") or UnitGUID("npc")
-    if guid == nil or (issecretvalue and issecretvalue(guid)) then
-        return nil
-    end
-    return guid
+    return ns.Plain(UnitGUID("questnpc")) or ns.Plain(UnitGUID("npc"))
 end
 
 -- Auto-tracking follows this character's choice, off by default, Ikar's ruling. The game's own value is put
@@ -98,9 +102,11 @@ function Tracking.ApplyAutoQuestWatch()
     end
 end
 
+-- The options page's box follows, while that page shows: the refresh draws it too.
 function Tracking.SetAutoQuestWatch(on)
     ns.db.options.autoQuestWatch = on and true or false
     Tracking.ApplyAutoQuestWatch()
+    ns.RequestRefresh()
 end
 
 local function onCVarsLoaded()
