@@ -1,0 +1,90 @@
+## Interface: 16001
+## Title: KaLi HUD
+## Notes: A metal base along the bottom of the screen for Blizzard's bars, the minimap, the chat and the damage meter, with an info bar at its foot.
+## Notes-frFR: Une base de métal au bas de l’écran pour les barres de Blizzard, la minicarte, la discussion et le compteur de dégâts, avec une barre d’informations à son pied.
+## Notes-deDE: Ein Metallsockel am unteren Bildschirmrand für Blizzards Leisten, die Minikarte, den Chat und die Schadensanzeige, mit einer Infoleiste an seinem Fuß.
+## Notes-esES: Una base de metal en la parte inferior de la pantalla para las barras de Blizzard, el minimapa, el chat y el medidor de daño, con una barra de información a su pie.
+## Notes-esMX: Una base de metal en la parte inferior de la pantalla para las barras de Blizzard, el minimapa, el chat y el medidor de daño, con una barra de información a su pie.
+## Author: Ikar
+## Version: 0.9.0
+## Category: User Interface
+## Category-frFR: Interface utilisateur
+## Category-deDE: Benutzeroberfläche
+## Category-esES: Interfaz de usuario
+## Category-esMX: Interfaz de usuario
+## SavedVariables: KaLiHUDDB, KaLiHUDDevDB
+## IconTexture: Interface\AddOns\KaLiHUD\Media\Icon
+## AddonCompartmentFunc: KaLiHUD_OnAddonCompartmentClick
+## AddonCompartmentFuncOnEnter: KaLiHUD_OnAddonCompartmentEnter
+## AddonCompartmentFuncOnLeave: KaLiHUD_OnAddonCompartmentLeave
+## X-License: MIT
+## X-Website: https://github.com/Ikar-Rahl/Warcraft-KaLi
+
+Core\Init.lua
+Shared\Core.lua
+Shared\Debug.lua
+Core\Locale.lua
+Locale\frFR.lua
+Locale\enUS.lua
+Locale\deDE.lua
+Locale\esES.lua
+Locale\esMX.lua
+Data\Needs.lua
+Data\Look.lua
+Data\Cartouches.lua
+Data\MinimapRings.lua
+Data\Icons.lua
+Data\Effects.lua
+Data\Zones.lua
+Data\Fishing.lua
+Data\BaseStats.lua
+Data\Presets.lua
+Core\Format.lua
+Core\Geometry.lua
+Core\DB.lua
+Core\Frames.lua
+Shared\Commands.lua
+Shared\SelfCheck.lua
+UI\Border.lua
+UI\Bags.lua
+UI\Windows.lua
+UI\Hub\Hub.lua
+UI\Hub\History.lua
+UI\Hub\Buttons.lua
+UI\Hub\Menus.lua
+UI\Hub\Drag.lua
+UI\Hub\InfoBar.lua
+UI\Hub\Folders.lua
+UI\Hub\IconPicker.lua
+UI\Hub\Macros.lua
+UI\Hub\MacroEditor.lua
+UI\Hub\Separators.lua
+UI\Hub\Seeds.lua
+UI\Hub\Collect.lua
+UI\Hub\Natives.lua
+UI\Hub\Items.lua
+UI\Hub\Infos\Infos.lua
+UI\Hub\Infos\Skills.lua
+UI\Hub\Infos\Reputation.lua
+UI\Hub\Infos\StatCard.lua
+UI\Hub\Infos\Stats.lua
+UI\Hub\Infos\StatCheck.lua
+UI\Hub\Infos\Character.lua
+UI\Hub\Infos\World.lua
+UI\Hub\Infos\Social.lua
+UI\Hub\Infos\Session.lua
+UI\Minimap.lua
+UI\StatusBars.lua
+UI\Plate.lua
+Shared\Dialog.lua
+UI\EditFrame.lua
+UI\EditPanel.lua
+Shared\Page.lua
+Core\Sets.lua
+UI\SetWindow.lua
+UI\Options.lua
+Core\Commands.lua
+Core\SelfCheck.lua
+Shared\Report.lua
+UI\Report.lua
+Core\Main.lua

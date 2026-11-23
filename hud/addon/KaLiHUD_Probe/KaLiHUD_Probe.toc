@@ -1,0 +1,9 @@
+## Interface: 16001
+## Title: KaLi HUD (probe)
+## Notes: What this client answers to KaLi HUD's open questions. Changes nothing unless asked. /khprobe
+## Notes-frFR: Ce que ce client répond aux questions ouvertes de KaLi HUD. Ne change rien sauf demande. /khprobe
+## Author: Ikar
+## Version: 0.1.0-dev
+## SavedVariables: KaLiHUDProbeDB
+
+Probe.lua

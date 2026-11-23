@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>KaLi HUD — cartouches</title>
+<style>
+@font-face { font-family: Friz; src: url(art/FRIZQT__.TTF); }
+body { margin: 0; background: #0b0c0e; color: #bbb; font: 13px "Segoe UI", sans-serif; }
+header { display: flex; gap: 22px; align-items: center; padding: 10px 16px; border-bottom: 1px solid #222; }
+header b { color: #eee; font-size: 15px; }
+select { margin-left: 6px; }
+main { display: grid; grid-template-columns: repeat(auto-fill, 630px); gap: 14px; padding: 16px; }
+.card { background: radial-gradient(ellipse at 50% 35%, #454b53, #1b1d21 75%); border-radius: 4px; }
+.card h2 { margin: 0; padding: 6px 12px 0; font: 600 14px "Segoe UI"; color: #e6e6e6; }
+.btn { cursor: pointer; }
+.btn:hover { filter: brightness(1.5); }
+</style>
+</head>
+<body>
+<header>
+  <b>Cartouches</b>
+  <label>Matière <select id="fill"></select></label>
+  <label>Couleur <input type="color" id="color"></label>
+  <label>Relief <input type="range" id="depth" min="0" max="100"></label>
+  <label>Anneau <input type="range" id="ring" min="10" max="32"></label>
+  <label>Sur la bordure <input type="range" id="seat" min="0" max="6"></label>
+  <label>Inverser <select id="flip"><option value="auto">auto</option><option value="non">non</option><option value="oui">oui</option></select></label>
+</header>
+<main id="cards"></main>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="bronze" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4e3be"/><stop offset=".45" stop-color="#d6b386"/><stop offset="1" stop-color="#7e5f3a"/>
+    </linearGradient>
+    <linearGradient id="inner" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2e251b"/><stop offset="1" stop-color="#16110c"/>
+    </linearGradient>
+    <linearGradient id="base" x1="0" y1="0" x2="0" y2="1"><stop offset="0"/><stop offset="1"/></linearGradient>
+    <pattern id="mat" patternUnits="userSpaceOnUse"><image/></pattern>
+    <filter id="tint" color-interpolation-filters="sRGB"><feColorMatrix type="matrix"/></filter>
+    <filter id="bronzeTint" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values=".18 .35 .07 0 0 .14 .27 .05 0 0 .1 .19 .04 0 0 0 0 0 1 0"/></filter>
+    <filter id="gild" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values=".79 0 0 0 0 0 .64 0 0 0 0 0 .42 0 0 0 0 0 1 0"/></filter>
+    <filter id="gold" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0 0 0 0 .84 0 0 0 0 .7 0 0 0 0 .45 0 0 0 1 0"/></filter>
+    <linearGradient id="light" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#999"/></linearGradient>
+    <mask id="lit" maskContentUnits="objectBoundingBox"><rect width="1" height="1" fill="url(#light)"/></mask>
+    <filter id="soft"><feGaussianBlur stdDeviation="2"/></filter>
+    <filter id="deep" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="5"/></filter>
+    <filter id="drop"><feDropShadow dx=".8" dy=".8" stdDeviation=".3" flood-color="#000"/></filter>
+    <clipPath id="inside" clipPathUnits="objectBoundingBox"><rect width="1" height="1"/></clipPath>
+  </defs>
+</svg>
+
+<script src="js/art-data.js"></script>
+<script src="js/gen-data.js"></script>
+<script>
+"use strict";
+const NS = "http://www.w3.org/2000/svg", INK = "#ecd6a6", B = 11, EDGE = 6;
+const state = { fill: "rock", color: "3b2f22", depth: "100", ring: "16", seat: "0", flip: "auto" };
+new URLSearchParams(location.hash.slice(1)).forEach((v, k) => { if (k in state) state[k] = v; });
+// The addon's ns.MATERIALS (Core/Init.lua): Blizzard's tiles, hud/tools/bench_art.py fetches them.
+const MATERIALS = {
+  smooth: { name: "Lisse" },
+  rock: { name: "Roche", src: "atlas/UI-Background-Rock-Brown", lum: 0.185 },
+  stone: { name: "Pierre", src: "atlas/bank-frame-background", lum: 0.223 },
+  darkstone: { name: "Pierre noire", src: "atlas/UI-Frame-Dragonflight-BackgroundTile", lum: 0.064 },
+  marble: { name: "Marbre", src: "file/UI-Background-Marble", lum: 0.052 },
+  leather: { name: "Cuir", src: "atlas/GarrLanding-MiddleTile", lum: 0.248 },
+  wood: { name: "Bois", src: "atlas/gamepad-mapquestlog-bgtile-2k", lum: 0.228 },
+  planks: { name: "Planches", src: "atlas/UI-Frame-Neutral-BackgroundTile", lum: 0.072 },
+  masonry: { name: "Maçonnerie", src: "atlas/UI-Frame-Alliance-BackgroundTile", lum: 0.083 },
+  parchment: { name: "Parchemin", src: "atlas/AdventureMap_TileBg_Parchment", lum: 0.452, size: 512 },
+};
+const FOOT = 0.75, TOP = 1.25;
+
+// UI/Border.lua's Fill: the colour lit from the top less the material's share, the material desaturated and added.
+function applyFill() {
+  const c = [0, 2, 4].map(i => parseInt(state.color.slice(i, i + 2), 16) / 255);
+  const m = MATERIALS[state.fill] || {}, brightest = Math.max(...c);
+  const s = m.src && brightest > 0 ? Math.min(state.depth / 100 / m.lum, 1 / (brightest * TOP)) : 0, share = m.src ? m.lum * s : 0;
+  const css = k => "rgb(" + c.map(v => Math.round(Math.min(1, v * k) * 255)).join(",") + ")";
+  const stops = document.querySelectorAll("#base stop");
+  stops[0].setAttribute("stop-color", css(TOP * (1 - share)));
+  stops[1].setAttribute("stop-color", css(FOOT * (1 - share)));
+  const size = m.size || 256, pat = document.getElementById("mat"), img = pat.querySelector("image");
+  pat.setAttribute("width", size); pat.setAttribute("height", size);
+  img.setAttribute("width", size); img.setAttribute("height", size);
+  if (m.src) img.setAttribute("href", `art/${m.src}.png`);
+  const t = c.map(v => v * s * TOP);
+  document.querySelector("#tint feColorMatrix").setAttribute("values",
+    t.map(v => `${v * 0.299} ${v * 0.587} ${v * 0.114} 0 0`).join(" ") + " 0 0 0 1 0");
+  return share > 0;
+}
+
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+const measure = document.createElement("canvas").getContext("2d");
+function textWidth(s) { measure.font = "12px Friz"; return measure.measureText(s).width; }
+
+function spiral(cx, cy, r0, t0, turns, sx, sy) {
+  let d = "";
+  for (let i = 0; i <= 48; i++) {
+    const f = i / 48, t = t0 + f * turns * 2 * Math.PI, r = r0 * (1 - 0.72 * f);
+    d += (i ? "L" : "M") + (sx * (cx + r * Math.cos(t))).toFixed(2) + "," + (sy * (cy + r * Math.sin(t))).toFixed(2);
+  }
+  return d;
+}
+
+const rounded = (a, b, r) => `M${-a + r},${-b}H${a - r}Q${a},${-b} ${a},${-b + r}V${b - r}Q${a},${b} ${a - r},${b}` +
+  `H${-a + r}Q${-a},${b} ${-a},${b - r}V${-b + r}Q${-a},${-b} ${-a + r},${-b}Z`;
+
+// Ikar's Gemini sheets, newest first, cut by hud/tools/cut_art.py; ring = the centre and inner radius of the piece's ring.
+const GEMINI = Object.entries(window.GEN_ART || {}).reverse().flatMap(([sheet, pieces]) => pieces.map((whole, i) => ({
+  id: `${sheet.split("-")[1]}-${i + 1}`, name: `Gemini ${sheet.split("-")[1]}, n° ${i + 1} — Ikar`, whole })));
+const SVG = "../art/svg/";
+
+// Each shape: path centred on 0,0 with half sizes a, b; pads inside it; extra = ornaments drawn over the band.
+// Art shapes: art.l, r = caps kept whole, mid = the stretched part (default between the caps), in the source's pixels;
+// h = drawn height. Whole shapes: drawn unstretched, ring = [x, y, inner radius] of the ring (or plate) in its pixels,
+// box = its top and foot, plate = the plate's inside (SVG path) when the art leaves it clear.
+const SHAPES = [
+  ...GEMINI,
+  { id: "V1", name: "Cartouche classique — Ikar, SVG", whole: { src: SVG + "01-cartouche-classique.svg", w: 640, h: 96,
+    ring: [320, 48, 15], box: [15, 81], text: true, filter: "url(#gold)",
+    plate: "M211,33H429A6 6 0 0 0 435 39V57A6 6 0 0 0 429 63H211A6 6 0 0 0 205 57V39A6 6 0 0 0 211 33Z" } },
+  { id: "V3", name: "Banderole — Ikar, SVG", whole: { src: SVG + "03-banderole.svg", w: 640, h: 110, ring: [320, 47, 14],
+    box: [28, 86], text: true, filter: "url(#gold)" } },
+  { id: "V4", name: "Cartouche Art déco — Ikar, SVG", whole: { src: SVG + "04-cartouche-art-deco.svg", w: 640, h: 90,
+    ring: [320, 47, 16], box: [4, 69], text: true, filter: "url(#gold)", plate: "M228,47L242,30.5H398L412,47L398,63.5H242Z" } },
+  { id: "V5", name: "Onglet de cadre — Ikar, SVG", whole: { src: SVG + "05-onglet-cadre.svg", w: 640, h: 80, ring: [320, 45, 14],
+    box: [4, 65], text: true, filter: "url(#gold)" } },
+  // Free art, author and licence in the name (hud/tools/bench_art.py fetches it from OpenGameArt).
+  { id: "P", name: "Barre — Cethiel, CC0", art: { src: "art/free/cethiel-bar.png", sheet: [506, 55], l: 16, r: 16 }, h: 24, padL: 10, padR: 8 },
+  { id: "Q", name: "Barre — Wyrmheart, CC0", art: { src: "art/free/wyrmheart-ui.png", sheet: [800, 600], crop: [16, 22, 216, 22], l: 8, r: 8 },
+    h: 22, padL: 10, padR: 8 },
+  { id: "R", name: "Planche — Lamoot, CC-BY 3.0", art: { src: "art/free/lamoot-rpg-gui.png", sheet: [1024, 666], crop: [13, 126, 285, 56],
+    l: 32, r: 32 }, h: 28, dy: 1, padL: 24, padR: 20 },
+  { id: "S", name: "Bannière — ege, CC0, teintée bronze", art: { src: "art/free/ege-banner.png", sheet: [1609, 201],
+    crop: [12, 6, 1587, 189], l: 110, r: 110, mid: [200, 400], filter: "url(#bronzeTint)" }, h: 26, padL: 18, padR: 16 },
+  { id: "T", name: "Frise — Kenney, CC0, dorée", art: { src: "art/free/kenney-border.png", sheet: [96, 96], l: 32, r: 32,
+    filter: "url(#gild)" }, h: 22, under: 2, padL: 9, padR: 8 },
+  // Drawn here.
+  { id: "A", name: "Plaque", path: (a, b) => rounded(a, b, 3) },
+  { id: "B", name: "Cartouche à pointes", padL: 10, padR: 8, path: (a, b, c = 5, p = 7) =>
+      `M${-a + c},${-b}H${a - c}A${c},${c} 0 0 0 ${a},${-b + c}L${a + p},0L${a},${b - c}A${c},${c} 0 0 0 ${a - c},${b}` +
+      `H${-a + c}A${c},${c} 0 0 0 ${-a},${b - c}L${-a - p},0L${-a},${-b + c}A${c},${c} 0 0 0 ${-a + c},${-b}Z` },
+  { id: "C", name: "Volutes", reach: 15.7, path: (a, b) => rounded(a, b, 3), extra: (a, b) =>
+      [1, -1].flatMap(sx => [1, -1].map(sy => spiral(a + 0.25 * b, -0.45 * b, 0.78 * b, -0.75 * Math.PI, 1, sx, sy))) },
+  { id: "D", name: "Onglet", tab: true, padL: 4, padR: 2, path: (a, b) =>
+      `M${-a - 2 * b},${b}L${-a + 2},${-b + 1}Q${-a + 3},${-b} ${-a + 5},${-b}H${a - 5}Q${a - 3},${-b} ${a - 2},${-b + 1}L${a + 2 * b},${b}Z` },
+  { id: "E", name: "Ruban", padL: 16, padR: 14, path: (a, b, n = 7) =>
+      `M${-a},${-b}H${a}L${a - n},0L${a},${b}H${-a}L${-a + n},0Z` },
+  // Blizzard's, for comparison: the addon could only name these atlases, not ship them.
+  { id: "G", name: "Plaque de zone de la minicarte — Blizzard", art: { name: "ui-hud-minimap-header-button", l: 8, r: 8 }, h: 23, padL: 10, padR: 9 },
+  { id: "H", name: "Titre de la fiche du personnage — Blizzard", art: { name: "UI-Character-Info-Title", l: 18, r: 18 }, h: 28, padL: 18, padR: 17 },
+  { id: "I", name: "En-tête de dialogue — Blizzard", art: { pieces: ["UI-Frame-DiamondMetal-Header-CornerLeft",
+      "_UI-Frame-DiamondMetal-Header-Tile", "UI-Frame-DiamondMetal-Header-CornerRight"] }, h: 34, padL: 20, padR: 19 },
+  { id: "J", name: "Cadre de points — Blizzard", art: { name: "Legacy-Tree-Frame-Points-Bar", l: 10, r: 12 }, h: 26, padL: 11, padR: 10 },
+  { id: "K", name: "Bandeau du compteur de dégâts — Blizzard", art: { name: "ui-damagemeters-header-bar", l: 0, r: 0 }, h: 26, padL: 16, padR: 14 },
+  { id: "L", name: "En-tête de section du suivi — Blizzard", art: { name: "UI-QuestTracker-Secondary-Objective-Header", l: 0, r: 0 }, h: 26, dy: -2, padL: 14, padR: 12 },
+  { id: "M", name: "Onglet interne — Blizzard", tab: true, art: { name: "common-internaltab", l: 12, r: 12 }, h: 26, dy: 1, padL: 12, padR: 10 },
+  { id: "N", name: "Notification repliée — Blizzard", art: { name: "UI-Notification-condense", l: 10, r: 12 }, h: 26, padL: 10, padR: 10 },
+];
+
+// Where art comes from: a Blizzard atlas (art-data.js) or a free sheet, cropped.
+function source(art) {
+  if (art.name) {
+    const A = HUD_ART.atlas[art.name];
+    return { src: A.src, W: A.w, H: A.h, crop: [0, 0, A.w, A.h] };
+  }
+  return { src: art.src, W: art.sheet[0], H: art.sheet[1], crop: art.crop || [0, 0, art.sheet[0], art.sheet[1]] };
+}
+
+// One piece of a source (sx..sx+sw across its crop) stretched over x, y, w, h.
+function slice(g, S, sx, sw, x, y, w, h, filter) {
+  if (w <= 0 || sw <= 0) return;
+  const box = el("svg", { x, y, width: w, height: h, viewBox: `${sx} ${S.crop[1]} ${sw} ${S.crop[3]}`, preserveAspectRatio: "none" }, g);
+  const img = el("image", { href: S.src, width: S.W, height: S.H, preserveAspectRatio: "none" }, box);
+  if (filter) img.setAttribute("filter", filter);
+}
+
+// Real art, as SetTextureSliceMargins stretches it: the caps at the art's own scale, the middle stretched.
+function artPlate(g, shape, a) {
+  const H = shape.h, y = -H / 2 + (shape.dy || 0), f = shape.art.filter, u = shape.under;
+  if (u) el("rect", { x: -a + u, y: y + u, width: 2 * a - 2 * u, height: H - 2 * u, fill: "url(#inner)" }, g);
+  if (shape.art.pieces) {
+    const [L, M, R] = shape.art.pieces.map(name => source({ name })), wl = H * L.W / L.H, wr = H * R.W / R.H;
+    slice(g, L, 0, L.W, -a, y, wl, H);
+    slice(g, M, 0, M.W, -a + wl, y, 2 * a - wl - wr, H);
+    slice(g, R, 0, R.W, a - wr, y, wr, H);
+    return;
+  }
+  const S = source(shape.art), [x0, , cw, ch] = S.crop, s = H / ch, l = shape.art.l, r = shape.art.r;
+  const [mx, mw] = shape.art.mid || [x0 + l, cw - l - r];
+  slice(g, S, x0, l, -a, y, l * s, H, f);
+  slice(g, S, mx, mw, -a + l * s, y, 2 * a - (l + r) * s, H, f);
+  slice(g, S, x0 + cw - r, r, a - r * s, y, r * s, H, f);
+}
+
+function band(g, d, width, fill) {
+  el("path", { d, fill: fill ? "#000" : "none", stroke: "#000", "stroke-width": width, opacity: .55, filter: "url(#soft)", transform: "translate(0,2)" }, g);
+  if (fill) el("path", { d, fill: "url(#inner)" }, g);
+  el("path", { d, fill: "none", stroke: "#1a120a", "stroke-width": width + 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, g);
+  el("path", { d, fill: "none", stroke: "url(#bronze)", "stroke-width": width, "stroke-linejoin": "round", "stroke-linecap": "round" }, g);
+}
+
+const ICONS = {
+  up: g => el("path", { d: "M-4,2L0,-2L4,2", fill: "none", stroke: INK, "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round" }, g),
+  down: g => el("path", { d: "M-4,-2L0,2L4,-2", fill: "none", stroke: INK, "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round" }, g),
+};
+
+function icon(g, name, x, y, button) {
+  const outer = el("g", { transform: `translate(${x},${y})`, class: button ? "btn" : "" }, g);
+  if (button) el("rect", { x: -8, y: -8, width: 16, height: 16, fill: "transparent" }, outer);
+  ICONS[name](el("g", { filter: "url(#drop)" }, outer));
+}
+
+function text(g, s, x, y) {
+  el("text", { x: x + 1, y: y + 1, "font-family": "Friz", "font-size": 12, fill: "#000" }, g).textContent = s;
+  el("text", { x, y, "font-family": "Friz", "font-size": 12, fill: "#ffd100" }, g).textContent = s;
+}
+
+const wholeScale = A => state.ring / (2 * A.ring[2]);
+
+// Whole art, its ring on 0,0, scaled so the ring's inside is the "Anneau" setting across.
+function wholeCartouche(g, art, A, what) {
+  const s = wholeScale(A);
+  if (!A.text) el("circle", { r: A.ring[2] * s + 1, fill: "url(#inner)" }, art);
+  if (A.plate) el("path", { d: A.plate, fill: "url(#inner)", transform: `scale(${s}) translate(${-A.ring[0]},${-A.ring[1]})` }, art);
+  const img = el("image", { href: A.src, x: -A.ring[0] * s, y: -A.ring[1] * s, width: A.w * s, height: A.h * s }, art);
+  if (A.filter) img.setAttribute("filter", A.filter);
+  if (what.title) text(g, what.title, -textWidth(what.title) / 2, 4);
+  if (what.arrow) icon(g, what.arrow, 0, 0, true);
+}
+
+// A shape's top and foot around its centre, unflipped.
+function extent(shape) {
+  if (shape.whole) {
+    const A = shape.whole, s = wholeScale(A), [t, f] = A.box || [0, A.h];
+    return [(t - A.ring[1]) * s, (f - A.ring[1]) * s];
+  }
+  if (shape.art) {
+    const y = -shape.h / 2 + (shape.dy || 0);
+    return [y, y + shape.h];
+  }
+  const e = shape.reach ?? B + 2.5;
+  return [-e, e];
+}
+
+// "auto" turns a piece over when its top lies clearly flatter than its foot (cut_art.py's seat: mean gaps to a line).
+function flipped(shape) {
+  if (state.flip !== "auto") return state.flip === "oui";
+  const seat = shape.whole && shape.whole.seat;
+  return !!seat && seat[0] < seat[1] * 0.8;
+}
+
+// One cartouche resting on the edge at y = line: its foot on the border's outer side, or sunk into the border by the
+// "Sur la bordure" setting (at most its width), never centred on it. what = { arrow: "up" | "down" } on windows (Ikar:
+// just an arrow), { title } for the zone.
+function cartouche(svg, shape, cx, line, what) {
+  const flip = flipped(shape), [top, foot] = extent(shape);
+  const g = el("g", { transform: `translate(${cx},${line - EDGE / 2 + +state.seat - (flip ? -top : foot)})` }, svg);
+  const art = el("g", flip ? { transform: "scale(1,-1)" } : {}, g);
+  if (shape.whole) return wholeCartouche(g, art, shape.whole, what);
+  const padL = shape.padL ?? 10, padR = shape.padR ?? 8, aw = what.arrow ? 14 : 0, tw = what.title ? textWidth(what.title) : 0;
+  const a = Math.max((padL + tw + (aw && tw ? aw + 6 : aw) + padR) / 2, 20);
+  if (shape.art) artPlate(art, shape, a);
+  else band(art, shape.path(a, B), 3, true);
+  if (shape.extra) shape.extra(a, B).forEach(d => band(art, d, 2.4, false));
+  if (what.title) text(g, what.title, -a + padL, 4);
+  if (what.arrow) icon(g, what.arrow, tw ? a - padR - aw / 2 : (padL - padR) / 2, 0, true);
+}
+
+function chatWindow(svg, x, y, w, h, material) {
+  el("rect", { x, y, width: w, height: h, fill: "#000", opacity: .6, filter: "url(#deep)", transform: "translate(0,4)" }, svg);
+  el("rect", { x, y, width: w, height: h, fill: "url(#base)" }, svg);
+  if (material) el("rect", { x, y, width: w, height: h, fill: "url(#mat)", filter: "url(#tint)", mask: "url(#lit)", style: "mix-blend-mode:plus-lighter" }, svg);
+  el("rect", { x, y, width: w, height: h, fill: "none", stroke: "#000", "stroke-opacity": .75, "stroke-width": 14, filter: "url(#deep)", "clip-path": "url(#inside)" }, svg);
+  const lines = [["[Général] Ikar : on fait la Mortemine ?", "#ffc0c0"], ["Vous recevez du butin : [Étoffe de lin].", "#00aa00"],
+                 ["Joueur01 a obtenu le haut fait [Niveau 10].", "#ffff00"], ["[Guilde] Lysa : j'arrive dans 5 min", "#40ff40"]];
+  lines.forEach(([s, c], i) => {
+    el("text", { x: x + 13, y: y + 38 + i * 19, "font-family": "Friz", "font-size": 12, fill: "#000" }, svg).textContent = s;
+    el("text", { x: x + 12, y: y + 37 + i * 19, "font-family": "Friz", "font-size": 12, fill: c }, svg).textContent = s;
+  });
+  band(svg, `M${x},${y}H${x + w}V${y + h}H${x}Z`, 4, false);
+}
+
+function label(svg, s, y) { el("text", { x: 12, y, "font-size": 11, fill: "#888", "font-family": "Segoe UI" }, svg).textContent = s; }
+
+// The plate's edge a folded window or the zone rests on (rects: a flat path has no box for the bronze gradient).
+function ledge(svg, y) {
+  el("rect", { x: 49, y: y - EDGE / 2, width: 322, height: EDGE, fill: "#1a120a" }, svg);
+  el("rect", { x: 50, y: y - 2, width: 320, height: 4, fill: "url(#bronze)" }, svg);
+}
+
+function draw() {
+  const main = document.getElementById("cards");
+  main.textContent = "";
+  const material = applyFill(), only = new URLSearchParams(location.hash.slice(1)).get("only");
+  for (const shape of SHAPES.filter(s => !only || only.split(",").includes(s.id))) {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `<h2>${shape.id} — ${shape.name}${flipped(shape) ? " (inversée)" : ""}</h2>`;
+    const svg = el("svg", { width: 630, height: 480, viewBox: "0 0 420 320" }, card);
+    chatWindow(svg, 50, 70, 320, 120, material);
+    cartouche(svg, shape, shape.tab ? 140 : 210, 70, { arrow: "up" });
+    label(svg, "repliée", 268);
+    ledge(svg, 255);
+    cartouche(svg, shape, 210, 255, { arrow: "down" });
+    // A ring holds the arrow, not a name.
+    if (!shape.whole || shape.whole.text) {
+      label(svg, "zone", 316);
+      ledge(svg, 303);
+      cartouche(svg, shape, 210, 303, { title: "Forêt d'Elwynn" });
+    }
+    main.appendChild(card);
+  }
+}
+
+const fillSelect = document.getElementById("fill");
+for (const id in MATERIALS) fillSelect.add(new Option(MATERIALS[id].name, id));
+for (const k in state) {
+  const input = document.getElementById(k);
+  input.value = k === "color" ? "#" + state[k] : state[k];
+  input.oninput = input.onchange = () => {
+    state[k] = k === "color" ? input.value.slice(1) : input.value;
+    location.hash = new URLSearchParams(state);
+    draw();
+  };
+}
+document.fonts.load("12px Friz").then(draw, draw);
+</script>
+</body>
+</html>

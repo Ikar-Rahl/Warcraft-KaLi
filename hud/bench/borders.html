@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>KaLi HUD — la bordure KaLi</title>
+<link rel="stylesheet" href="css/borders.css">
+</head>
+<body>
+<header id="bar">
+  <h1>KaLi HUD — la bordure KaLi</h1>
+  <div class="ctl">
+    <label>Monde <select id="world"></select></label>
+    <label>Zoom <select id="zoom"><option>2</option><option>3</option><option>4</option><option>6</option><option>8</option></select></label>
+  </div>
+</header>
+
+<main>
+  <h3>Dix essais <small>à peu près à la taille du jeu (1,2 pixel par unité) ; cliquer pour le régler en dessous</small></h3>
+  <div id="looks"></div>
+
+  <section id="panel">
+    <h2><span id="look-name"></span> <small id="look-changed">modifié</small></h2>
+    <div id="look-note"></div>
+    <div class="group" id="shape"><b>Dessin de la bordure</b></div>
+    <div class="group" id="game"><b>Réglages du mode Édition</b></div>
+    <div class="group"><b></b><button id="reset">Revenir à l'essai</button><input id="look-json" readonly></div>
+    <p class="hint">Le dessin est cuit dans la texture (Media/BorderKaLi.tga, par hud/tools/make_media.py) ; en jeu,
+      la taille l'agrandit en entier. Le reste se règle en jeu, et vaut partout : le bord de la plaque, la plaque sous la
+      minicarte, les barres d'état, les fenêtres repliées, les poignées.</p>
+  </section>
+
+  <h3>Autour de la minicarte</h3>
+  <canvas id="detail"></canvas>
+  <h3>Le HUD entier</h3>
+  <canvas id="overview"></canvas>
+  <h3>Les cadres</h3>
+  <canvas id="frames"></canvas>
+  <h3>La texture <small>(256 x 32, telle que make_media.py l'écrira pour cet essai)</small></h3>
+  <div id="texture"><canvas id="strip"></canvas><canvas id="frame"></canvas></div>
+  <p id="port-check"></p>
+</main>
+
+<script src="js/art-data.js"></script>
+<script src="js/plate-data.js"></script>
+<script src="js/looks.js"></script>
+<script src="js/bench.js"></script>
+</body>
+</html>

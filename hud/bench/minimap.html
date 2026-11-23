@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>KaLi HUD — anneaux de minicarte</title>
+<style>
+body { margin: 0; background: #0b0c0e; color: #bbb; font: 13px "Segoe UI", sans-serif; }
+header { position: sticky; top: 0; z-index: 1; display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center;
+         padding: 10px 16px; border-bottom: 1px solid #222; background: #0b0c0eee; }
+header b { color: #eee; font-size: 15px; }
+header output { display: inline-block; width: 4.5em; color: #eee; }
+#picks { flex-basis: 100%; display: flex; gap: 10px; align-items: center; min-height: 26px; }
+#picks input { flex: 1; background: #16181b; color: #e6d3a3; border: 1px solid #2a2d31; padding: 4px 8px; font: inherit; }
+button { background: #24272b; color: #ddd; border: 1px solid #3a3e44; border-radius: 3px; padding: 4px 10px; cursor: pointer; font: inherit; }
+button:hover { filter: brightness(1.4); }
+main { display: flex; flex-wrap: wrap; gap: 14px; padding: 16px; align-items: flex-start; }
+.card { border-radius: 4px; background: #16181b; border: 1px solid #22252a; padding: 0 0 6px; }
+.card.picked { border-color: #c9a45a; box-shadow: 0 0 0 1px #c9a45a; }
+.card canvas { display: block; }
+.card .cap { display: flex; align-items: center; gap: 8px; padding: 6px 10px 0; }
+.card .cap span { flex: 1; color: #e6e6e6; font-weight: 600; }
+.card .cap small { color: #888; font-weight: 400; }
+.star { font-size: 16px; padding: 0 8px; line-height: 22px; }
+.picked .star { color: #f0c860; }
+</style>
+</head>
+<body>
+<header>
+  <b>Anneaux de minicarte</b>
+  <label>Carte <input type="range" id="size" min="120" max="480" step="4"> <output id="sizeOut"></output></label>
+  <label>Fond <select id="bg">
+    <option value="#12100d">Plaque</option><option value="#3a3a3a">Gris</option><option value="#8a8f96">Clair</option>
+  </select></label>
+  <label>Planche <select id="sheet"><option value="">Toutes</option></select></label>
+  <label><input type="checkbox" id="withMap" checked> Carte dedans</label>
+  <label><input type="checkbox" id="onlyPicked"> Mes choix seulement</label>
+  <div id="picks"><span>Mes choix :</span><input id="pickText" readonly placeholder="cliquez ☆ sur un anneau"><button id="copy">Copier</button><button id="clear">Vider</button></div>
+</header>
+<main id="cards"></main>
+
+<script src="js/rings-data.js"></script>
+<script>
+"use strict";
+// Each ring drawn as the game would: the map (a minimap from a screenshot, art/rings/map.png) under it, filling
+// its inside up to its measured inner radius; a ring whose inside is painted (rings-data.js: painted) has the map over
+// that paint instead. The map's size is by default the one it had in that screenshot (272 across).
+const SHEET_NAMES = { blizzard: "Blizzard (actuel)", "rings-1": "planche 1", "rings-2": "planche 2",
+                      "rings-3": "planche 3", "rings-4": "planche 4" };
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("kali-rings-" + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem("kali-rings-" + k, JSON.stringify(v)); } catch (e) { /* private window */ } },
+};
+const state = { size: store.get("size", 272), bg: store.get("bg", "#12100d"), sheet: store.get("sheet", ""),
+                withMap: store.get("withMap", true), onlyPicked: false, picks: new Set(store.get("picks", [])) };
+const $ = id => document.getElementById(id);
+const load = src => new Promise(done => { const img = new Image(); img.onload = () => done(img); img.onerror = () => done(null); img.src = src; });
+
+for (const id of Object.keys(SHEET_NAMES)) $("sheet").append(new Option(SHEET_NAMES[id], id));
+$("size").value = state.size; $("bg").value = state.bg; $("sheet").value = state.sheet; $("withMap").checked = state.withMap;
+
+function label(r) {
+  return r.sheet === "blizzard" ? r.name + " (actuel)" : `${r.name} (${SHEET_NAMES[r.sheet]}, n° ${r.n})`;
+}
+
+function showPicks() {
+  $("pickText").value = RINGS.filter(r => state.picks.has(r.id)).map(r => `${r.id} ${r.name}`).join(", ");
+}
+
+function draw(card, r, img, map) {
+  const cv = card.querySelector("canvas"), dpr = window.devicePixelRatio || 1;
+  const s = state.size / 2 / r.rin, pad = 10;
+  const W = Math.ceil(r.w * s) + 2 * pad, H = Math.ceil(r.h * s) + 2 * pad;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  cv.style.width = W + "px"; cv.style.height = H + "px";
+  const c = cv.getContext("2d");
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.fillStyle = state.bg; c.fillRect(0, 0, W, H);
+  c.imageSmoothingQuality = "high";
+  const cx = pad + r.cx * s, cy = pad + r.cy * s;
+  const disc = rad => {
+    if (!state.withMap || !map) return;
+    c.save(); c.beginPath(); c.arc(cx, cy, rad, 0, 2 * Math.PI); c.clip();
+    c.drawImage(map, cx - rad, cy - rad, 2 * rad, 2 * rad); c.restore();
+  };
+  if (!r.painted) disc(state.size / 2 + 1.5);
+  c.drawImage(img, pad, pad, r.w * s, r.h * s);
+  if (r.painted) disc(state.size / 2);
+}
+
+(async () => {
+  const map = await load("art/rings/map.png");
+  const cards = [];
+  for (const r of RINGS) {
+    const img = await load(r.file);
+    if (!img) continue;
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `<canvas></canvas><div class="cap"><span></span><button class="star" title="choisir">☆</button></div>`;
+    card.querySelector(".cap span").innerHTML = `${r.name} <small>${r.sheet === "blizzard" ? "actuel" : SHEET_NAMES[r.sheet] + ", n° " + r.n}</small>`;
+    card.title = label(r) + (r.painted ? " — intérieur peint : la carte le couvre" : "");
+    card.querySelector(".star").addEventListener("click", () => {
+      if (state.picks.has(r.id)) state.picks.delete(r.id); else state.picks.add(r.id);
+      store.set("picks", [...state.picks]);
+      refresh();
+    });
+    $("cards").append(card);
+    cards.push({ card, r, img });
+  }
+  function refresh() {
+    for (const { card, r, img } of cards) {
+      const picked = state.picks.has(r.id);
+      card.classList.toggle("picked", picked);
+      card.querySelector(".star").textContent = picked ? "★" : "☆";
+      card.hidden = (state.sheet && r.sheet !== state.sheet) || (state.onlyPicked && !picked);
+      if (!card.hidden) draw(card, r, img, map);
+    }
+    $("sizeOut").value = state.size + " px";
+    showPicks();
+  }
+  const bind = (id, key, prop = "value", cast = v => v) => $(id).addEventListener("input", () => {
+    state[key] = cast($(id)[prop]);
+    if (key !== "onlyPicked") store.set(key, state[key]);
+    refresh();
+  });
+  bind("size", "size", "value", Number);
+  bind("bg", "bg");
+  bind("sheet", "sheet");
+  bind("withMap", "withMap", "checked");
+  bind("onlyPicked", "onlyPicked", "checked");
+  $("copy").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText($("pickText").value); }
+    catch (e) { $("pickText").select(); document.execCommand("copy"); }
+  });
+  $("clear").addEventListener("click", () => { state.picks.clear(); store.set("picks", []); refresh(); });
+  refresh();
+})();
+</script>
+</body>
+</html>

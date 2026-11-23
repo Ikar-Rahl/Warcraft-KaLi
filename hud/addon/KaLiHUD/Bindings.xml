@@ -1,0 +1,8 @@
+<Bindings>
+	<Binding name="KALIHUD_UNDO" header="KALIHUD" category="ADDONS">
+		KaLiHUD_Binding("undo")
+	</Binding>
+	<Binding name="KALIHUD_REDO" category="ADDONS">
+		KaLiHUD_Binding("redo")
+	</Binding>
+</Bindings>

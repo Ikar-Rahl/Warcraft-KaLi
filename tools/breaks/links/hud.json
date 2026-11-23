@@ -1,0 +1,1773 @@
+{
+ "Edit Mode: a press on the strip picks it in Edit Mode's manager": {
+  "at": "a press on the strip doesn't pick it, or picks it in Edit Mode's manager as one of Blizzard's system",
+  "part": "smoke"
+ },
+ "Edit Mode: the strip's box keeps Blizzard's own drag, which takes its parent for one of Edit Mode's systems": {
+  "part": "smoke"
+ },
+ "all sources: a base's rest taken for the whole base": {
+  "at": "the armour's base isn't its agility's, its items' own and the rest: Armor",
+  "part": "smoke"
+ },
+ "all sources: a passive spell named though the character doesn't know it": {
+  "part": "smoke"
+ },
+ "all sources: a passive spell's form not looked at": {
+  "part": "smoke"
+ },
+ "all sources: a set's bonus from fewer pieces than it takes": {
+  "at": "a set's bonus is named with fewer pieces than it takes: Armor",
+  "part": "smoke"
+ },
+ "all sources: a spell met as an aura named again as a talent's": {
+  "at": "a talent met as an aura is named twice: Dodge",
+  "part": "smoke"
+ },
+ "all sources: a talent valued at its first rank, whatever its rank": {
+  "at": "a talent at its rank or a known passive spell isn't named: Dodge",
+  "part": "smoke"
+ },
+ "all sources: a talent's weapon not looked at": {
+  "at": "a weapon's talent is named without its weapon: Critical Strike",
+  "part": "smoke"
+ },
+ "all sources: a weapon's permanent enchantment counted again with those for a while": {
+  "at": "a weapon's enchantment for a while isn't named, or a permanent one is counted again: STRENGTH",
+  "part": "smoke"
+ },
+ "all sources: an enchantment's spell not named": {
+  "at": "fishing's bonus doesn't name the rod, the lure and the gloves: Pêche | Rang | 30/75 | Bonus | +32 |",
+  "part": "smoke"
+ },
+ "all sources: an item's enchantment not read from its link": {
+  "at": "fishing's bonus doesn't name the rod, the lure and the gloves: Pêche | Rang | 30/75 | Bonus | +32 |",
+  "part": "smoke"
+ },
+ "all sources: an unchanged value shows nothing of what it stands on": {
+  "at": "an unchanged value's base isn't shown, or has a rest: Ranged Attack Power",
+  "part": "smoke"
+ },
+ "all sources: the items' own armour not named": {
+  "at": "the armour's base isn't its agility's, its items' own and the rest: Armor",
+  "part": "smoke"
+ },
+ "all sources: the talents and passive spells read once for the session": {
+  "at": "a talent at its rank or a known passive spell isn't named: Dodge",
+  "part": "smoke"
+ },
+ "all sources: what the value stands on counted among its changes": {
+  "at": "the armour's hover doesn't name its sources: Armor",
+  "part": "smoke"
+ },
+ "asked first: a character taken off its own settings without a question": {
+  "at": "the page's box takes a character off its own settings without asking first",
+  "part": "smoke"
+ },
+ "asked first: a folder's reset asks nothing": {
+  "at": "a bundled folder's reset doesn't ask first",
+  "part": "smoke"
+ },
+ "asked first: a macro opened again forgets what was typed": {
+  "at": "a macro opened again doesn't take up what was typed and not saved, or its question stays",
+  "part": "smoke"
+ },
+ "asked first: a macro's reset asks nothing": {
+  "at": "a bundled macro's reset doesn't ask first",
+  "part": "smoke"
+ },
+ "asked first: an element's reset asks nothing": {
+  "at": "an item's reset doesn't ask first",
+  "part": "smoke"
+ },
+ "asked first: the editor forgets its macro when the whole interface hides": {
+  "at": "the editor forgets its macro when the whole interface hides",
+  "part": "smoke"
+ },
+ "asked first: the options page's reset asks nothing": {
+  "at": "the page's reset puts its options back without asking first",
+  "part": "smoke"
+ },
+ "asked first: what was typed in the editor dropped without a word": {
+  "at": "the editor shut with something typed and not saved doesn't ask about it",
+  "part": "smoke"
+ },
+ "asked first: yes to the editor's question saves nothing": {
+  "at": "yes to the editor's question doesn't save what was typed",
+  "part": "smoke"
+ },
+ "asked first: « Annuler » asks about what it drops": {
+  "at": "« Annuler » asks about what it drops, saves it, or it comes back",
+  "part": "smoke"
+ },
+ "at hand: a resistance's most not said against the target": {
+  "at": "the card doesn't say a resistance's most against the target: Fire",
+  "part": "smoke"
+ },
+ "at hand: a target further than the game's tables taken as one two levels above": {
+  "at": "a target further above than the game's tables go isn't left to its own level's rows: Hit",
+  "part": "smoke"
+ },
+ "at hand: never missing said against a raid boss alone": {
+  "at": "the card doesn't say what never missing an enemy of the character's level takes: Hit",
+  "part": "smoke"
+ },
+ "at hand: the armour's most not said against the target": {
+  "at": "the card doesn't say the armour's most against the target: Armor",
+  "part": "smoke"
+ },
+ "at hand: the defence said against a raid boss alone": {
+  "at": "the card doesn't say the defence an enemy of the character's level's critical strikes stop at: Defen",
+  "part": "smoke"
+ },
+ "at hand: the expertise said against a raid boss alone": {
+  "at": "the card doesn't say the expertise an enemy of the character's level never dodges at: Expertise",
+  "part": "smoke"
+ },
+ "at hand: the target not looked at": {
+  "at": "the card's thresholds aren't the target's, an enemy two levels above: Hit",
+  "part": "smoke"
+ },
+ "at hand: the weapons' hit against a raid boss given as one figure": {
+  "at": "the card doesn't say what never missing a raid boss takes, reached or not, or each kind's hit: Hit",
+  "part": "smoke"
+ },
+ "best of three: a buff's melee haste and its ranged haste added up": {
+  "at": "a source of the weapons' hit is named under the spells', or one of both counts twice: Hit",
+  "part": "smoke"
+ },
+ "best of three: a rating an aura gives not named": {
+  "at": "a rating an aura gives isn't named as a chance: Hit",
+  "part": "smoke"
+ },
+ "best of three: the critical strike's intellect under the weapons'": {
+  "at": "the critical strike isn't its agility's and its intellect's: Critical Strike",
+  "part": "smoke"
+ },
+ "best of three: the melee attacks' sources under another kind's value": {
+  "at": "a source of the weapons' hit is named under the spells', or one of both counts twice: Hit",
+  "part": "smoke"
+ },
+ "best of three: the sources' title without the kind of attack": {
+  "at": "a buff's melee haste and its ranged haste are added up, or the spells' is named with them: Haste",
+  "part": "smoke"
+ },
+ "best of three: what a value gives not said beside it": {
+  "at": "what the haste gives isn't said beside it:",
+  "part": "smoke"
+ },
+ "card: a column with nothing to say kept": {
+  "part": "smoke"
+ },
+ "card: a head longer than a column runs into itself": {
+  "at": "a weapon's card is narrower than its name, its damage and its changes: 278.55",
+  "part": "smoke"
+ },
+ "card: a line without a figure lost with its paragraph's figures": {
+  "at": "a line without a figure is lost with its paragraph's figures, or the figures' sentence stays: INTELL",
+  "part": "smoke"
+ },
+ "card: a raid boss's figures under what the value gives when the notes' grey starts mid-paragraph": {
+  "at": "the game's notes aren't under what there is to know when their grey starts mid-paragraph: Expertise",
+  "part": "smoke"
+ },
+ "card: a value's figures left out, the sheet's sentence in their place": {
+  "at": "the card doesn't give the armour's effect as a figure, or what there is to know of it: Armor",
+  "part": "smoke"
+ },
+ "card: its foot without what a click does": {
+  "part": "smoke"
+ },
+ "card: still there after a click": {
+  "at": "the card stays once the pointer has left, or after a click",
+  "part": "smoke"
+ },
+ "card: the gear's rows not under one name with their sum": {
+  "at": "the card's sources aren't the gear with its sum, the base and the changes with theirs: Armor",
+  "part": "smoke"
+ },
+ "cartouches: Astronomy's not named in the dialog": {
+  "part": "smoke"
+ },
+ "cartouches: Silver's not named in the dialog": {
+  "part": "smoke"
+ },
+ "cartouches: a window folded by an Ornate no longer made falls back to another piece": {
+  "at": "a window folded by an Ornate no longer made loses its piece: bronze1 bronze1",
+  "part": "smoke"
+ },
+ "cartouches: half the window's width again, each ring as its art has it": {
+  "at": "the chat's cartouche's ring isn't RING across: 33.132388663968",
+  "part": "smoke"
+ },
+ "cartouches: the Astronomy style in the silver Ornate 1 still": {
+  "part": "smoke"
+ },
+ "cartouches: the Golden style in the gold Ornate 1 still": {
+  "part": "smoke"
+ },
+ "cartouches: the Silver style in the silver Ornate 2 still": {
+  "part": "smoke"
+ },
+ "cartouches: the Steampunk style in Bronze 2 still": {
+  "part": "smoke"
+ },
+ "cartouches: the art drawn under its size unfiltered": {
+  "at": "the cartouche's art, drawn under its size, isn't filtered: nil",
+  "part": "smoke"
+ },
+ "click outside: a press on a folder's button shuts its list before its click": {
+  "at": "a press on a folder's button shuts its list before its own click",
+  "part": "smoke"
+ },
+ "click outside: a press on a list shuts it": {
+  "at": "a press on a list doesn't keep it, or keeps the one opened from it",
+  "part": "smoke"
+ },
+ "click outside: a press on a list shuts the one it stands in": {
+  "at": "a press on a list opened from another shuts the one it stands in",
+  "part": "smoke"
+ },
+ "click outside: a press shutting one of the game's menus shuts the lists too": {
+  "at": "a press shutting one of the game's menus shuts the open lists too",
+  "part": "smoke"
+ },
+ "click outside: nothing shut": {
+  "at": "a press on a list doesn't keep it, or keeps the one opened from it",
+  "part": "smoke"
+ },
+ "commands: /kh in a fight lists the commands under the game's refusal": {
+  "at": "/kh in a fight opens the options, or lists the commands under the game's refusal",
+  "part": "smoke"
+ },
+ "corners: a step of just what counts as one never raised": {
+  "part": "tests"
+ },
+ "db: a look both its icon alone and its name alone": {
+  "part": "tests"
+ },
+ "db: a macro's seed without its role kept": {
+  "part": "tests"
+ },
+ "db: a ring of folders, each in the next, kept": {
+  "part": "tests"
+ },
+ "edit panel: a status bar's « Annuler » leaves where it was dragged": {
+  "at": "Revert doesn't put the dragged bar back",
+  "part": "smoke"
+ },
+ "edit panel: no section of its own buttons": {
+  "part": "smoke"
+ },
+ "edit panel: « Par défaut » sets the defaults without asking": {
+  "part": "smoke"
+ },
+ "editor place: a macro in a shut list mid-screen, not where the list would open": {
+  "at": "the editor of a macro in a shut list isn't where that list would open: CENTER 0 80",
+  "part": "smoke"
+ },
+ "editor place: a macro in an open list, over the list rather than beside it": {
+  "at": "the editor of a macro in an open list isn't beside the list, level with its button: BOTTOMLEFT 1543.",
+  "part": "smoke"
+ },
+ "editor place: a new macro's opened before the bar has laid it out": {
+  "at": "a new macro's editor isn't above its button on the bar, flush with its side, once laid out: CENTER 0",
+  "part": "smoke"
+ },
+ "editor place: a shut list's member taken for shown, by its last place": {
+  "at": "the editor of a macro in a shut list isn't where that list would open: BOTTOMLEFT 1479.95 25.275",
+  "part": "smoke"
+ },
+ "editor place: beside a list running down, touching it": {
+  "at": "the editor of a macro in an open list isn't beside the list, level with its button: BOTTOMLEFT 1482.",
+  "part": "smoke"
+ },
+ "editor place: mid-screen, not by its macro's button": {
+  "at": "the editor of a macro in an open list isn't beside the list, level with its button: CENTER 0 80",
+  "part": "smoke"
+ },
+ "element delete: a folder offered to be taken off beside its own deletion": {
+  "at": "a folder's menu offers to take it off rather than delete it",
+  "part": "smoke"
+ },
+ "element delete: no way to take one of ours off the HUD": {
+  "at": "one of ours isn't taken off the HUD from its menu",
+  "part": "smoke"
+ },
+ "element delete: not undone": {
+  "at": "a deletion undone doesn't put it back",
+  "part": "smoke"
+ },
+ "element type: a right button's hint before the left's": {
+  "at": "KaLiHUD_Attr_STRENGTH's tooltip: its type isn't its last line, or its buttons' hints aren't together",
+  "part": "smoke"
+ },
+ "element type: another addon's launcher called its information": {
+  "at": "an element's tooltip doesn't say what kind it is",
+  "part": "smoke"
+ },
+ "element type: first of the hub's lines again, between the buttons' hints": {
+  "part": "smoke"
+ },
+ "element type: none on a folder showing its icon alone": {
+  "at": "an element's tooltip doesn't say what kind it is",
+  "part": "smoke"
+ },
+ "element type: none on a tooltip": {
+  "at": "an element's tooltip doesn't say what kind it is",
+  "part": "smoke"
+ },
+ "element type: none on the zone": {
+  "at": "an element's tooltip doesn't say what kind it is",
+  "part": "smoke"
+ },
+ "element type: under a folder's name, over its overflow note": {
+  "at": "the folder for what doesn't fit doesn't say what it's for, or its type isn't its tooltip's last line",
+  "part": "smoke"
+ },
+ "element type: « (KaLi HUD) » on ours again": {
+  "part": "smoke"
+ },
+ "flash: an element in a shut folder is lit itself, unseen, not its folder's button": {
+  "at": "an element shown again in a shut folder doesn't light the folder's button, or opens its list",
+  "part": "smoke"
+ },
+ "flash: an element put back by an undo isn't lit": {
+  "at": "an element put back by an undo isn't lit where it stands",
+  "part": "smoke"
+ },
+ "flash: an element sent into a folder from its menu isn't lit": {
+  "at": "an element sent into a folder from its menu doesn't light the folder's button, or opens its list",
+  "part": "smoke"
+ },
+ "flash: an element shown again from the bar's menu isn't lit": {
+  "at": "an element shown again from the bar's menu isn't lit once where it stands: 0",
+  "part": "smoke"
+ },
+ "flash: what was lit once is lit again at each layout": {
+  "at": "an element hidden, or the hub laid out, lights something",
+  "part": "smoke"
+ },
+ "folders: a bundled folder renamed still bundled": {
+  "at": "a bundled folder renamed stays bundled, or its rename doesn't say it won't be",
+  "part": "smoke"
+ },
+ "folders: a bundled folder renamed, what stood in it by default leaves it": {
+  "at": "what stood by default in a bundled folder renamed leaves it",
+  "part": "smoke"
+ },
+ "folders: a bundled folder without its reset": {
+  "at": "a bundled folder's reset has no tooltip saying what it does",
+  "part": "smoke"
+ },
+ "folders: a deleted folder's contents back where they go by default, as before": {
+  "at": "a deleted folder's contents aren't gone with it",
+  "part": "smoke"
+ },
+ "folders: a drop between two marked by a ring on the nearest": {
+  "at": "a drop down a list isn't marked by a rule between the two",
+  "part": "smoke"
+ },
+ "folders: a drop's rule along the line, not across it": {
+  "at": "a drop down a list isn't marked by a rule between the two",
+  "part": "smoke"
+ },
+ "folders: a folder in a deleted one kept": {
+  "at": "a folder's contents aren't deleted with it, however deep",
+  "part": "smoke"
+ },
+ "folders: a folder into itself or into one it holds": {
+  "at": "a folder goes into itself or into one it holds",
+  "part": "smoke"
+ },
+ "folders: a list shut leaving those opened from it open": {
+  "at": "a folder in a folder doesn't open, or isn't shut with it, or two folders open at once, in a fight",
+  "part": "smoke"
+ },
+ "folders: a list with text never more than one line, whatever its count": {
+  "at": "a separator down a list isn't a rule in its column, counted not (first 1890.2,35.3; last 1890.2,75.3",
+  "part": "smoke"
+ },
+ "folders: a list's floor not the carved bar's": {
+  "at": "a folder's list isn't on the carved bar's darker floor",
+  "part": "smoke"
+ },
+ "folders: a separator counted among its line's members": {
+  "at": "a separator down a list isn't a rule in its column, counted not (first 1902.2,35.3; last 1902.2,75.3",
+  "part": "smoke"
+ },
+ "folders: a separator starting a new line, as before": {
+  "at": "a separator down a list isn't a rule in its column, counted not (first 1902.2,35.3; last 1902.2,75.3",
+  "part": "smoke"
+ },
+ "folders: a separator's rule along its line, not across it": {
+  "at": "a separator down a list isn't a rule in its column, counted not (first 1902.2,35.3; last 1902.2,75.3",
+  "part": "smoke"
+ },
+ "folders: deleting one that holds something asks the empty one's question": {
+  "at": "deleting a folder that holds something doesn't ask first, saying its contents go with it",
+  "part": "smoke"
+ },
+ "folders: one in a list running down opening above it, not beside it": {
+  "at": "a folder in an open one doesn't open beside its list",
+  "part": "smoke"
+ },
+ "folders: one open as a fight ends shuts once left after it": {
+  "at": "a folder opening on a click, open as a fight ends or opened after it, shuts once left",
+  "part": "smoke"
+ },
+ "folders: one open as a fight starts stays open once left in it": {
+  "at": "a folder opening on a click, open as a fight starts or opened in it, stays open once left in it",
+  "part": "smoke"
+ },
+ "folders: one opening on a click stays open once left in a fight": {
+  "at": "a folder opening on a click, open as a fight starts or opened in it, stays open once left in it",
+  "part": "smoke"
+ },
+ "folders: one showing its name alone still shows its icon": {
+  "at": "a folder showing its name alone shows its icon",
+  "part": "smoke"
+ },
+ "folders: one shutting on leaving shut with the pointer on a list opened from it": {
+  "at": "a folder shutting on leaving stays open once the pointer has left",
+  "part": "smoke"
+ },
+ "folders: opening one in a folder shuts that folder": {
+  "at": "a folder in an open one doesn't open beside its list",
+  "part": "smoke"
+ },
+ "folders: our code opening one leaves the others open": {
+  "at": "our code opening a folder leaves another open",
+  "part": "smoke"
+ },
+ "folders: the closing in a fight, turned off, still on": {
+  "at": "the option off, a folder opening on a click shuts once left in a fight",
+  "part": "smoke"
+ },
+ "folders: the folders laid out before those they stand in": {
+  "at": "a folder in an open one doesn't open beside its list",
+  "part": "smoke"
+ },
+ "folders: the folders made before text had columns left without them": {
+  "at": "the bar's folders aren't nine to a column, the emotes eleven, the reputations twelve: 10",
+  "part": "smoke"
+ },
+ "folders: two folders open at once, two lists open from one": {
+  "at": "two folders open from one list",
+  "part": "smoke"
+ },
+ "groups: an item's own armour and what it adds on two rows": {
+  "at": "the gear's rows aren't under one name with their sum, an item's own spell on its row, its enchantmen",
+  "part": "smoke"
+ },
+ "groups: an item's own spell while worn not counted": {
+  "at": "the gear's rows aren't under one name with their sum, an item's own spell on its row, its enchantmen",
+  "part": "smoke"
+ },
+ "groups: the sets' bonuses among the rest, not a group of their own": {
+  "at": "the sets' bonuses aren't a group of their own right after the gear's, the rest after them: Armor",
+  "part": "smoke"
+ },
+ "groups: what the gear adds among the rest, not with the gear": {
+  "at": "the gear's rows aren't under one name with their sum, an item's own spell on its row, its enchantmen",
+  "part": "smoke"
+ },
+ "hints: Mexican Spanish's help in words again": {
+  "part": "smoke"
+ },
+ "hints: a German one in words again": {
+  "part": "smoke"
+ },
+ "hints: the clock's in words again": {
+  "part": "smoke"
+ },
+ "hints: the left button's icon misnamed": {
+  "at": "a note's tooltip doesn't show that the left button opens it",
+  "part": "smoke"
+ },
+ "history: a drop not an action to undo": {
+  "at": "Gold dropped on a folder isn't the last action to undo: créer « Outils »",
+  "part": "smoke"
+ },
+ "history: a macro's deletion undone, its button running nothing": {
+  "at": "a deleted macro stays, or its button still runs",
+  "part": "smoke"
+ },
+ "history: a new action keeps what was undone to do again": {
+  "at": "the stack isn't ten deep, or what was undone can be done again after a new action",
+  "part": "smoke"
+ },
+ "history: more than ten kept": {
+  "at": "the stack isn't ten deep, or what was undone can be done again after a new action",
+  "part": "smoke"
+ },
+ "history: undoing puts back what was done": {
+  "at": "a deletion undone doesn't put it back",
+  "part": "smoke"
+ },
+ "history: undone during a fight": {
+  "at": "an undo isn't greyed, or is done, during a fight",
+  "part": "smoke"
+ },
+ "hub: an item of ours this character hasn't, taken for another addon's on the bar": {
+  "at": "a skill unlearnt stays",
+  "part": "smoke"
+ },
+ "icon picker: open still after a pick": {
+  "at": "a picked icon isn't the folder's at once, as it's painted, or the library stays open",
+  "part": "smoke"
+ },
+ "icon picker: opened from the macro editor, under it": {
+  "at": "a macro's « Icône… » doesn't open the folders' library over everything",
+  "part": "smoke"
+ },
+ "info bar off: LibDBIcon's buttons never put back on the map": {
+  "at": "the info bar off, another addon's button gathered on it (bar) stays put away, out of reach",
+  "part": "smoke"
+ },
+ "info bar off: LibDBIcon's buttons stay put away": {
+  "at": "the info bar off, another addon's button gathered on it (bar) stays put away, out of reach",
+  "part": "smoke"
+ },
+ "info bar off: a button in a folder of the bar stays put away": {
+  "at": "the info bar off, another addon's button gathered on it (folder) stays put away, out of reach",
+  "part": "smoke"
+ },
+ "info bar off: another addon's button gathered on it stays put away": {
+  "at": "the info bar off, another addon's button gathered on it (bar) stays put away, out of reach",
+  "part": "smoke"
+ },
+ "info bar: LibDBIcon's buttons not looked at when the layout changes": {
+  "at": "the info bar off, another addon's button gathered on it (bar) stays put away, out of reach",
+  "part": "smoke"
+ },
+ "info bar: a shut folder's member keeps its old text, opened in a fight": {
+  "at": "in the water, the movement speed isn't the swimming one: Movement Speed 100 %",
+  "part": "smoke"
+ },
+ "info items: a buff's change unread till another event, the auras' unheard": {
+  "at": "in the water, the movement speed isn't the swimming one: Movement Speed 100 %",
+  "part": "smoke"
+ },
+ "info items: a text without an icon under its neighbours' icons": {
+  "at": "the currencies' text isn't under the junk's: 0",
+  "part": "smoke"
+ },
+ "info items: a weapon's base damage with its bonuses in it": {
+  "at": "a weapon's hover hasn't the sheet's base damage: Main Hand",
+  "part": "smoke"
+ },
+ "info items: an attribute's base its current value, its changes in it": {
+  "part": "smoke"
+ },
+ "info items: an attribute's hover without the sheet's base and changes": {
+  "part": "smoke"
+ },
+ "info items: an item of ours with no name, the bar's menu listing it by its id": {
+  "at": "items of ours listed by their id: KaLiHUD_Junk",
+  "part": "smoke"
+ },
+ "info items: armour's and resistances' base with their raise in it": {
+  "part": "smoke"
+ },
+ "info items: defence without the level's most, unlike the sheet's": {
+  "at": "defence isn't the sheet's: Defense 143",
+  "part": "smoke"
+ },
+ "info items: the alarm's title says it's on when it's off": {
+  "at": "the alarm off says it's on: Alarm Enabled",
+  "part": "smoke"
+ },
+ "info items: the attributes' folder made before keeps the bar's speed": {
+  "at": "an attributes' folder made before isn't the sheet's: Attr_HEALTH Attr_POWER Speed | Attr_STRENGTH At",
+  "part": "smoke"
+ },
+ "info items: the hit chance without the spells', unlike the sheet's": {
+  "at": "the hit chance isn't the sheet's: Hit 3,0 %",
+  "part": "smoke"
+ },
+ "info items: the movement speed the one now, 0 standing still": {
+  "at": "standing still, the movement speed isn't the running one: Movement Speed 0 %",
+  "part": "smoke"
+ },
+ "info items: the sheet's resistances left out of the attributes": {
+  "at": "the attributes' folder: Attr_HEALTH Attr_POWER Attr_MOVESPEED | Attr_STRENGTH Attr_AGILITY Attr_STAM",
+  "part": "smoke"
+ },
+ "info items: the world markers in /wm's order, not the raid menu's": {
+  "part": "smoke"
+ },
+ "kept open: Escape doesn't shut it": {
+  "at": "Escape doesn't shut the card kept open for good, or the hover's card doesn't come back after it",
+  "part": "smoke"
+ },
+ "kept open: a click on an attribute keeps no card": {
+  "at": "a left click on an attribute doesn't keep its card open, the pointer gone and a click elsewhere:",
+  "part": "smoke"
+ },
+ "kept open: a second card beside the first on a click on another attribute": {
+  "at": "a click on another attribute doesn't make the card kept open its own: Armor",
+  "part": "smoke"
+ },
+ "kept open: drawn again after it was shut": {
+  "at": "the card kept open stays after its cross, or comes back by itself",
+  "part": "smoke"
+ },
+ "kept open: gone with a click elsewhere, as the hover's": {
+  "at": "a left click on an attribute doesn't keep its card open, the pointer gone and a click elsewhere:",
+  "part": "smoke"
+ },
+ "kept open: its cross does nothing": {
+  "at": "the card kept open stays after its cross, or comes back by itself",
+  "part": "smoke"
+ },
+ "kept open: let go when the whole interface hides": {
+  "at": "the card kept open is let go when the whole interface hides, and no longer follows: Armor",
+  "part": "smoke"
+ },
+ "kept open: not drawn again as the target changes": {
+  "at": "the card kept open isn't drawn again as the value changes, then as the target does: Armor",
+  "part": "smoke"
+ },
+ "kept open: not drawn again as the values change": {
+  "at": "the card kept open isn't drawn again as the value changes, then as the target does: Armor",
+  "part": "smoke"
+ },
+ "kept open: the click's hint still on the card kept open": {
+  "at": "a left click on an attribute doesn't keep its card open, the pointer gone and a click elsewhere: Arm",
+  "part": "smoke"
+ },
+ "kept open: the hover's card beside it for the same value": {
+  "at": "the hover's card shows beside the one kept open of the same value",
+  "part": "smoke"
+ },
+ "kept sets: a set applied takes parts not asked for": {
+  "part": "sets"
+ },
+ "kept sets: a set shares its rows with the settings": {
+  "part": "sets"
+ },
+ "kept sets: a set's wrong values applied as they are": {
+  "part": "sets"
+ },
+ "kept sets: applied in a fight": {
+  "part": "sets"
+ },
+ "kept sets: more kept than there is room for": {
+  "part": "sets"
+ },
+ "kept sets: the bar's steps to undo outlive a set applied": {
+  "part": "sets"
+ },
+ "kept sets: the info bar's part not applied": {
+  "part": "sets"
+ },
+ "kept sets: the settings as they were kept without end": {
+  "part": "sets"
+ },
+ "kept sets: the settings as they were not kept": {
+  "part": "sets"
+ },
+ "kept sets: what isn't a set stays in the file": {
+  "part": "sets"
+ },
+ "kept whole: a character's own settings kept among those of which the oldest goes": {
+  "part": "sets"
+ },
+ "kept whole: a set from a text not marked as one": {
+  "at": "a set from a text that holds macros doesn't say their commands run on a click, or one of the player'",
+  "part": "smoke"
+ },
+ "kept whole: a set from a text says nothing of its macros": {
+  "at": "a set from a text that holds macros doesn't say their commands run on a click, or one of the player'",
+  "part": "smoke"
+ },
+ "kept whole: a set that fails half way leaves a table half replaced": {
+  "part": "sets"
+ },
+ "kept whole: a set's date that can't be stays in the file": {
+  "part": "sets"
+ },
+ "kept whole: a set's marks that can't be stay in the file": {
+  "part": "sets"
+ },
+ "kept whole: how things stand kept in a set": {
+  "part": "sets"
+ },
+ "kept whole: how things stand taken from a set": {
+  "part": "sets"
+ },
+ "kept whole: settings left under a character's name dropped as it takes its own": {
+  "part": "sets"
+ },
+ "kept whole: the account's copy forgets how things stand": {
+  "part": "sets"
+ },
+ "labels: a German word wider than the dialog's label": {
+  "part": "smoke"
+ },
+ "labels: a dropdown's value too long for the dropdown": {
+  "part": "smoke"
+ },
+ "labels: the options page's row name too long for its one line": {
+  "part": "smoke"
+ },
+ "live: a threshold reached still said short": {
+  "at": "the card doesn't say what never missing a raid boss takes, reached or not, or each kind's hit: Hit",
+  "part": "smoke"
+ },
+ "live: each kind's hit left out of what it gives": {
+  "at": "the card doesn't say what never missing a raid boss takes, reached or not, or each kind's hit: Hit",
+  "part": "smoke"
+ },
+ "live: no thresholds on the card": {
+  "at": "the card doesn't say the armour's most and what's short of it: Armor",
+  "part": "smoke"
+ },
+ "live: the armour short of its most not asked of the game": {
+  "at": "the card doesn't say the armour's most and what's short of it: Armor",
+  "part": "smoke"
+ },
+ "live: the armour's most not said against a raid boss": {
+  "at": "the card doesn't say the armour's most against a raid boss: Armor",
+  "part": "smoke"
+ },
+ "live: the value's base not among what it stands on": {
+  "at": "the armour's base isn't its agility's, its items' own and the rest: Armor",
+  "part": "smoke"
+ },
+ "macro descriptions: a copy without them": {
+  "at": "a pasted macro isn't a new one at the bar's right end",
+  "part": "smoke"
+ },
+ "macro descriptions: kept with their blanks and line breaks": {
+  "at": "the editor doesn't save each button's description on one line:   Danser , S'asseoir",
+  "part": "smoke"
+ },
+ "macro descriptions: long lines": {
+  "at": "the editor has no short line for each button's description, the left's then the right's, above the t",
+  "part": "smoke"
+ },
+ "macro descriptions: not in its tooltip": {
+  "at": "a macro's tooltip doesn't say what its buttons do, left then right, over its type: Salut",
+  "part": "smoke"
+ },
+ "macro descriptions: not saved": {
+  "at": "the editor doesn't save each button's description on one line: nil, nil",
+  "part": "smoke"
+ },
+ "macro descriptions: one with a line break kept at load": {
+  "part": "tests"
+ },
+ "macro descriptions: shown in a note's editor": {
+  "at": "a note's editor has a macro's buttons' descriptions, or its right-click's count",
+  "part": "smoke"
+ },
+ "macro descriptions: the right's said while the padlock is open, its right-click the hub menu's": {
+  "at": "open, a macro's tooltip says its right-click does what it doesn't then: Salut",
+  "part": "smoke"
+ },
+ "macro editor: « Exécute » offers to make a macro a note": {
+  "at": "a macro's « Exécute » offers more than its commands and the game's macros: Rien : une note",
+  "part": "smoke"
+ },
+ "macro fields: a right-click's commands not set on its button": {
+  "at": "the editor doesn't save the right-click and the tooltip, or its button isn't set to run the right-cl",
+  "part": "smoke"
+ },
+ "macro fields: a saved right-click that can't be kept": {
+  "part": "tests"
+ },
+ "macro fields: copied without its right-click and tooltip": {
+  "at": "a pasted macro isn't a new one at the bar's right end",
+  "part": "smoke"
+ },
+ "macro fields: its own tooltip not shown": {
+  "at": "a macro's own tooltip isn't shown in place of its commands, or it says its right-click opens the hub",
+  "part": "smoke"
+ },
+ "macro fields: its right-click armed while the padlock is open": {
+  "at": "open, a macro's own right-click runs its commands, or doesn't open its hub menu",
+  "part": "smoke"
+ },
+ "macro fields: its right-click not in its tooltip": {
+  "at": "a macro's tooltip doesn't show its commands then its right-click's",
+  "part": "smoke"
+ },
+ "macro fields: our menu opened after its own right-click ran": {
+  "at": "shut, a macro's own right-click doesn't run its commands, opens a menu of ours, or its left one runs",
+  "part": "smoke"
+ },
+ "macro fields: the editor saves neither": {
+  "at": "the editor doesn't save the right-click and the tooltip, or its button isn't set to run the right-cl",
+  "part": "smoke"
+ },
+ "macro fields: the game's macro of its left button run on its right one": {
+  "at": "with the game's macro on its left, a macro's right-click runs that macro",
+  "part": "smoke"
+ },
+ "macro fields: the hub menu over a macro's own right-click while shut": {
+  "at": "shut, a macro's own right-click doesn't run its commands, opens a menu of ours, or its left one runs",
+  "part": "smoke"
+ },
+ "macro fields: the padlock turning leaves the macros armed as they were": {
+  "at": "open, a macro's own right-click runs its commands, or doesn't open its hub menu",
+  "part": "smoke"
+ },
+ "macros: a bundled macro renamed still bundled": {
+  "at": "a bundled macro renamed keeps its reset",
+  "part": "smoke"
+ },
+ "macros: a bundled macro without its reset": {
+  "at": "a bundled macro's reset doesn't give it back its fields and its place: KaLiHUD_Session KaLiHUD_Error",
+  "part": "smoke"
+ },
+ "macros: a macro on the bar its icon alone, its name not by it": {
+  "at": "a macro on the bar doesn't show its name by its icon",
+  "part": "smoke"
+ },
+ "macros: one showing its name alone still shows its icon": {
+  "at": "a macro showing its name alone shows its icon",
+  "part": "smoke"
+ },
+ "mail: its envelope shown on the bar with no mail": {
+  "at": "with no mail the envelope's frame still shows on the bar",
+  "part": "smoke"
+ },
+ "mail: its place on the bar given up with no mail, the items beside it moving": {
+  "at": "the mail read, the bar's items move at t",
+  "part": "smoke"
+ },
+ "menus: one of ours has the place's reset as well as its own": {
+  "at": "one of ours has the place's reset as well as its own",
+  "part": "smoke"
+ },
+ "menus: undo lit with nothing to undo": {
+  "at": "with nothing done, « Annuler » and « Rétablir » aren't greyed",
+  "part": "smoke"
+ },
+ "minimap: Ikar's rings listed without their themes": {
+  "at": "the map's rings aren't listed under their themes: 20 values",
+  "part": "smoke"
+ },
+ "minimap: a ring of Ikar's wider than Blizzard's not shrunk": {
+  "at": "a ring of Ikar's wider than Blizzard's isn't shrunk to it round the map, in the rim made for Blizzar",
+  "part": "smoke"
+ },
+ "minimap: every ring of Ikar's shrunk to Blizzard's, the narrow ones too": {
+  "at": "a ring of Ikar's no wider than Blizzard's isn't drawn at its own size, its inner edge under the map'",
+  "part": "smoke"
+ },
+ "minimap: one of Ikar's rings never drawn round the map": {
+  "at": "a ring of Ikar's no wider than Blizzard's isn't drawn at its own size, its inner edge under the map'",
+  "part": "smoke"
+ },
+ "minimap: our rings beside the map, under it once it's clicked": {
+  "at": "our border round the map goes under it once the map is clicked, or is drawn in the map's scale: fals",
+  "part": "smoke"
+ },
+ "minimap: our rings on the map in its own scale": {
+  "at": "our border round the map goes under it once the map is clicked, or is drawn in the map's scale: true",
+  "part": "smoke"
+ },
+ "minimap: the plate hugging our border or one of Ikar's rings, not the rim made for Blizzard's": {
+  "at": "the minimap doesn't wear our border in place of its ring, inside the rim made for Blizzard's",
+  "part": "smoke"
+ },
+ "natives: an error in the calendar's every-frame hook comes back every frame": {
+  "at": "an error in the calendar's every-frame hook comes back every frame: 5 times",
+  "part": "smoke"
+ },
+ "natives: the day and night frame's own scripts replaced": {
+  "at": "the day and night frame's own scripts are set by the addon, not hooked",
+  "part": "smoke"
+ },
+ "next pieces: a further bonus said in place of the nearest": {
+  "at": "a set's next pieces aren't said after the sets' bonuses, the nearest alone, grey and in no sum: Armo",
+  "part": "smoke"
+ },
+ "next pieces: a set's nearest bonus not had yet not said": {
+  "at": "a set's next pieces aren't said after the sets' bonuses, the nearest alone, grey and in no sum: Armo",
+  "part": "smoke"
+ },
+ "next pieces: counted as had, among the sets' bonuses": {
+  "at": "a set's next pieces aren't said after the sets' bonuses, the nearest alone, grey and in no sum: Armo",
+  "part": "smoke"
+ },
+ "next pieces: not said for a value nothing changes": {
+  "at": "a set's next pieces aren't said for a value nothing changes: Armor",
+  "part": "smoke"
+ },
+ "note editor: a note's text left under « Exécute »'s empty row": {
+  "at": "a note's left click doesn't open its editor, or it shows « Exécute », or its text stays under that r",
+  "part": "smoke"
+ },
+ "note editor: « Exécute » shown for a note": {
+  "at": "a note's left click doesn't open its editor, or it shows « Exécute », or its text stays under that r",
+  "part": "smoke"
+ },
+ "note: a left click doesn't open its editor": {
+  "at": "a note's left click doesn't open its editor, or it shows « Exécute », or its text stays under that r",
+  "part": "smoke"
+ },
+ "note: a macro's left click opens its editor too": {
+  "at": "a macro's left click opens its editor, as a note's does",
+  "part": "smoke"
+ },
+ "note: a second left click opens its editor again rather than shutting it": {
+  "at": "a note's second left click doesn't shut its editor, or the note runs",
+  "part": "smoke"
+ },
+ "note: its tooltip doesn't say its left click opens it": {
+  "at": "a note's tooltip doesn't show that the left button opens it",
+  "part": "smoke"
+ },
+ "one right-click: Ctrl still needed on a Blizzard widget": {
+  "at": "right-clicking the minimap calendar button doesn't open its hub menu",
+  "part": "smoke"
+ },
+ "one right-click: Ctrl still needed on a handle": {
+  "at": "right-clicking the mail's handle doesn't open its hub menu",
+  "part": "smoke"
+ },
+ "one right-click: Ctrl still needed on ours": {
+  "part": "smoke"
+ },
+ "one right-click: another addon's map button's own taken while the padlock is shut": {
+  "at": "right-clicking another addon's map button, the padlock shut, doesn't reach its own right-click, or o",
+  "part": "smoke"
+ },
+ "one right-click: another addon's object's own taken while the padlock is shut": {
+  "at": "right-clicking Spoken, the padlock shut, doesn't reach its own right-click, or opens a menu of ours",
+  "part": "smoke"
+ },
+ "one right-click: its hint again under one of ours that names its own": {
+  "at": "the clock's tooltip names its right-click twice",
+  "part": "smoke"
+ },
+ "one right-click: its hint under another addon's object while the padlock is shut": {
+  "at": "an addon's launcher without a tooltip gets no name, or, the padlock shut, a hint of a right-click th",
+  "part": "smoke"
+ },
+ "one right-click: the hub's menu not on another addon's object while the padlock is open": {
+  "part": "smoke"
+ },
+ "one right-click: the zone given a hub menu": {
+  "at": "the zone offers a hub menu",
+  "part": "smoke"
+ },
+ "options page: a box ticked sets nothing": {
+  "at": "a check box of the page doesn't set its option",
+  "part": "smoke"
+ },
+ "options page: its boxes don't follow the padlock": {
+  "at": "the padlock clicked while the page shows, its box doesn't follow",
+  "part": "smoke"
+ },
+ "options page: its rows in the game's own list of settings": {
+  "at": "the options page puts something in the game's own lists of settings",
+  "part": "smoke"
+ },
+ "options page: the reset row resets nothing": {
+  "at": "the reset row doesn't put the check boxes back to their defaults, or they don't show it",
+  "part": "smoke"
+ },
+ "options page: the status row reads the info bar the old way": {
+  "at": "the page's status row doesn't show the status",
+  "part": "smoke"
+ },
+ "options split: a part's switch gone from the dialog": {
+  "at": "a row of what the HUD does or sounds like is still in the dialog, or one of its parts' switches left",
+  "part": "smoke"
+ },
+ "options split: a part's switch not on the options page": {
+  "at": "the options page lacks one of the HUD's parts",
+  "part": "smoke"
+ },
+ "options split: a row of what the HUD does left in the dialog": {
+  "at": "a row of what the HUD does or sounds like is still in the dialog, or one of its parts' switches left",
+  "part": "smoke"
+ },
+ "options split: a sound picked on the page doesn't play": {
+  "at": "a slider or a sound picked on the page doesn't set its option, the sound playing; or the page's rese",
+  "part": "smoke"
+ },
+ "options split: no page for what the HUD does and sounds like": {
+  "at": "the options page puts something in the game's own lists of settings",
+  "part": "smoke"
+ },
+ "options split: the auto zoom-out's row on no page": {
+  "at": "the page of what the HUD does and sounds like lacks one of its rows",
+  "part": "smoke"
+ },
+ "options split: the looks' row still named a preset": {
+  "at": "the looks' row isn't named « Style »",
+  "part": "smoke"
+ },
+ "options split: the page's reset plays the sounds it puts back": {
+  "at": "a slider or a sound picked on the page doesn't set its option, the sound playing; or the page's rese",
+  "part": "smoke"
+ },
+ "own settings: a character's own settings its own alone, another may take none": {
+  "part": "sets"
+ },
+ "own settings: a file written with them in place opened as it is": {
+  "part": "sets"
+ },
+ "own settings: back on the account's, its own lost": {
+  "part": "sets"
+ },
+ "own settings: back on the account's, still marked as on its own": {
+  "part": "sets"
+ },
+ "own settings: not in place as the character logs in": {
+  "part": "own"
+ },
+ "own settings: the account's follow a character's own": {
+  "part": "sets"
+ },
+ "own settings: the file written with a character's own in the account's place": {
+  "part": "own"
+ },
+ "padlock: gold while shut too": {
+  "at": "shut, the padlock's cap isn't the plate's background, or has an aura",
+  "part": "smoke"
+ },
+ "padlock: its aura comes again on each hover, a loop": {
+  "at": "unlocked, the padlock's cap isn't gold, or its aura isn't there, come once",
+  "part": "smoke"
+ },
+ "padlock: its aura stays once shut": {
+  "at": "locked again, the padlock's cap stays gold, or its aura stays",
+  "part": "smoke"
+ },
+ "padlock: its cap not the bar's height": {
+  "at": "the padlock's cap isn't the bar's height, its padlock inside it, or the bar's items run under it",
+  "part": "smoke"
+ },
+ "padlock: no aura while open": {
+  "at": "unlocked, the padlock's cap isn't gold, or its aura isn't there, come once",
+  "part": "smoke"
+ },
+ "padlock: the bar's items run under a cap wider than its old room": {
+  "at": "the padlock's cap isn't the bar's height, its padlock inside it, or the bar's items run under it",
+  "part": "smoke"
+ },
+ "plate: an error in the live plate comes back every frame": {
+  "at": "an error in the live plate comes back every frame: 5 times",
+  "part": "smoke"
+ },
+ "presets page: a set applied keeps nothing of the settings as they were": {
+  "at": "a set applied from its window keeps nothing of the settings as they were",
+  "part": "smoke"
+ },
+ "presets page: a set applied takes the parts unticked too": {
+  "at": "a set applied from its window doesn't take the parts ticked alone, or the window stays: border aabbc",
+  "part": "smoke"
+ },
+ "presets page: a set deleted without being asked first": {
+  "part": "smoke"
+ },
+ "presets page: a set opened with its parts unticked": {
+  "at": "a click on a set doesn't open it in its window, a box for each part, all ticked",
+  "part": "smoke"
+ },
+ "presets page: a set's window doesn't bring it up to date": {
+  "at": "a set isn't brought up to date from its window, or without being asked first",
+  "part": "smoke"
+ },
+ "presets page: a set's window doesn't delete it": {
+  "at": "a set isn't deleted from its window, or without being asked first",
+  "part": "smoke"
+ },
+ "presets page: a set's window doesn't rename it": {
+  "at": "a set isn't renamed from its window",
+  "part": "smoke"
+ },
+ "presets page: another character's own settings not in the list": {
+  "at": "the presets' list lacks a set kept, or another character's own settings",
+  "part": "smoke"
+ },
+ "presets page: another character's settings offered to be deleted": {
+  "at": "another character's own settings don't open as a set does, or can be changed from here",
+  "part": "smoke"
+ },
+ "presets page: its box doesn't put the character on settings of its own": {
+  "at": "the page's box doesn't put the character on settings of its own, and back",
+  "part": "smoke"
+ },
+ "presets page: the list's button opens no list": {
+  "part": "smoke"
+ },
+ "presets page: the settings kept without a name asked for": {
+  "at": "the settings as they are aren't kept under a name asked for",
+  "part": "smoke"
+ },
+ "presets page: « Appliquer » lit with no part ticked": {
+  "at": "« Appliquer » stays lit with no part ticked",
+  "part": "smoke"
+ },
+ "reputations: a faction the pane no longer lists stays": {
+  "at": "a faction the pane no longer lists stays in the reputations' folder: Reputation_69 Reputation_72 Rep",
+  "part": "smoke"
+ },
+ "reputations: a header with no standing of its own is an item": {
+  "at": "the reputations' folder holds a header, or not each faction the pane lists: Reputation_469 Reputatio",
+  "part": "smoke"
+ },
+ "reputations: a standing isn't in its colour": {
+  "at": "a reputation doesn't say its standing in its colour and how far into it: Darnassus Honoré 54 %",
+  "part": "smoke"
+ },
+ "reputations: one at the last standing counts on": {
+  "at": "a reputation doesn't say its standing in its colour and how far into it: Darnassus Honoré 54 %",
+  "part": "smoke"
+ },
+ "reputations: one says nothing of how far into its standing": {
+  "at": "a reputation doesn't say its standing in its colour and how far into it: Darnassus Honoré",
+  "part": "smoke"
+ },
+ "reputations: the bar's menu doesn't list them": {
+  "at": "the bar's menu doesn't list the reputations under their heading",
+  "part": "smoke"
+ },
+ "reputations: the box ticked again leaves the faction watched": {
+  "at": "a reputation's box unticked leaves it the watched faction",
+  "part": "smoke"
+ },
+ "reputations: the menu's box doesn't set the game's watched faction": {
+  "at": "a reputation's box doesn't make it the game's watched faction: nil",
+  "part": "smoke"
+ },
+ "reputations: their folder isn't made for a game saved before it": {
+  "at": "the reputations' folder isn't made for a game saved before it, at the inner end of the bar's left si",
+  "part": "smoke"
+ },
+ "reputations: their folder nine to a column": {
+  "at": "the bar's folders aren't nine to a column, the emotes eleven, the reputations twelve: 9",
+  "part": "smoke"
+ },
+ "reputations: their folder, gone since it was made, is made again": {
+  "at": "the reputations' folder, gone since it was made, is made again",
+  "part": "smoke"
+ },
+ "review D01: a login with a folder left open calls a function that isn't there yet": {
+  "part": "smoke"
+ },
+ "review D01: the folders' setup failing takes the macros' start and what's made once with it": {
+  "part": "smoke"
+ },
+ "review D02: a fight starting with the padlock open leaves it open": {
+  "at": "a fight starting with the padlock open leaves it open, a macro's own right-click running nothing",
+  "part": "smoke"
+ },
+ "review D02: a list open as such a fight starts is lost by the game's auto-hide": {
+  "at": "a list open as a fight starts with the padlock open isn't shut once left: the game's auto-hide lost",
+  "part": "smoke"
+ },
+ "review D02: a padlock the player shut opens after a fight": {
+  "at": "a padlock the player had shut opens after a fight",
+  "part": "smoke"
+ },
+ "review D02: the padlock shut for a fight doesn't say it opens again": {
+  "at": "the padlock shut for a fight doesn't say it opens again after it",
+  "part": "smoke"
+ },
+ "review D02: the padlock shut for a fight stays shut after it": {
+  "at": "the padlock shut for a fight doesn't open again after it",
+  "part": "smoke"
+ },
+ "review D03: a folder leaves the bar for want of room": {
+  "at": "with no room on the bar, its own items stay on it, or a folder or the zone leaves it",
+  "part": "smoke"
+ },
+ "review D03: a folder of the player's told to take what doesn't fit leaves the bar while it holds nothing": {
+  "at": "a folder of the player's told to take what doesn't fit, holding nothing, leaves the bar",
+  "part": "smoke"
+ },
+ "review D03: a folder unticked still takes what doesn't fit": {
+  "at": "setup: no folder for what doesn't fit, the calendar on the bar",
+  "part": "smoke"
+ },
+ "review D03: a folder's menu has no box for what doesn't fit": {
+  "at": "a folder's menu has no box for what doesn't fit",
+  "part": "smoke"
+ },
+ "review D03: a place grown past what the bar has left runs over its neighbours": {
+  "at": "a place grown past what the bar has left runs over its neighbours: 6",
+  "part": "smoke"
+ },
+ "review D03: a saved folder for what doesn't fit said so otherwise than true": {
+  "part": "tests"
+ },
+ "review D03: a widget with no room on the bar keeps its handle where it stood": {
+  "at": "the padlock open, a widget with no room on the bar keeps a handle where it stood",
+  "part": "smoke"
+ },
+ "review D03: one of Blizzard's widgets with no room on the bar stays drawn": {
+  "at": "with no folder for it, what doesn't fit is drawn all the same, or a folder is made again: 0",
+  "part": "smoke"
+ },
+ "review D03: the folder for what doesn't fit doesn't say what it's for": {
+  "at": "the folder for what doesn't fit doesn't say what it's for, or its type isn't its tooltip's last line",
+  "part": "smoke"
+ },
+ "review D03: the folder for what doesn't fit doesn't show while the padlock is open": {
+  "at": "the padlock open, the folder for what doesn't fit doesn't show to be arranged",
+  "part": "smoke"
+ },
+ "review D03: the folder for what doesn't fit made away from the padlock": {
+  "at": "the first time something doesn't fit on the bar, the folder for it isn't made at its right end: KaLi",
+  "part": "smoke"
+ },
+ "review D03: the folder for what doesn't fit shows on the bar with nothing to hold": {
+  "at": "setup: the folder for what doesn't fit, holding nothing, has no button on the bar",
+  "part": "smoke"
+ },
+ "review D03: the folder made for what doesn't fit isn't the one that takes it": {
+  "at": "the first time something doesn't fit on the bar, the folder for it isn't made at its right end: nil",
+  "part": "smoke"
+ },
+ "review D03: the folder made for what doesn't fit, its box unticked, shows on a bar too full with nothing to hold": {
+  "at": "more on the bar than it's wide, « Suite », its box unticked, shows on it holding nothing",
+  "part": "smoke"
+ },
+ "review D03: the folder made for what doesn't fit, no longer the one, shows on the bar with nothing to hold": {
+  "at": "« Suite », its box unticked, shows on the bar holding nothing",
+  "part": "smoke"
+ },
+ "review D03: the folder made for what doesn't fit, reset, isn't the one that takes it again": {
+  "at": "« Suite » reset isn't the folder that takes what doesn't fit again",
+  "part": "smoke"
+ },
+ "review D03: the folder that took what doesn't fit deleted, the one made for it doesn't take it again": {
+  "at": "the folder told to take what doesn't fit deleted, « Suite » doesn't take it again: nil",
+  "part": "smoke"
+ },
+ "review D03: the zone leaves the bar for want of room": {
+  "at": "with no room on the bar, its own items stay on it, or a folder or the zone leaves it",
+  "part": "smoke"
+ },
+ "review D03: what doesn't fit listed out of its order on the bar": {
+  "at": "what doesn't fit isn't in its folder's list as it reads on the bar: KaLiHUD_Calendar,KaLiHUD_XP,KaLi",
+  "part": "smoke"
+ },
+ "review D03: what doesn't fit on the bar drawn over the rest": {
+  "at": "the first time something doesn't fit on the bar, the folder for it isn't made at its right end: nil",
+  "part": "smoke"
+ },
+ "review D03: what doesn't fit, with a folder for it, in no list": {
+  "at": "what doesn't fit isn't in its folder's list as it reads on the bar:",
+  "part": "smoke"
+ },
+ "review D03: with no folder for what doesn't fit, another is made each time": {
+  "at": "the first time something doesn't fit on the bar, the folder for it isn't made at its right end: KaLi",
+  "part": "smoke"
+ },
+ "review D04: a setting changed from an element's menu leaves its place as wide as it was": {
+  "at": "a setting changed from an element's menu leaves its place as wide as it was: 46.059701492537 > 46.05",
+  "part": "smoke"
+ },
+ "review D04: a setting changed leaves each place as wide as it was": {
+  "at": "a setting changed doesn't give each item its own width again: 156",
+  "part": "smoke"
+ },
+ "review D04: a text that shrinks moves what's laid out after it": {
+  "at": "a text that shrinks moves what's laid out after it, or isn't drawn: 132",
+  "part": "smoke"
+ },
+ "review D04: an element moved by the player leaves each place as wide as it was": {
+  "at": "an element the player moved doesn't give each item its own width again: 156",
+  "part": "smoke"
+ },
+ "review D04: an undo leaves each place as wide as it was": {
+  "at": "an undo doesn't give each item its own width again: 156",
+  "part": "smoke"
+ },
+ "review D04: arranging the bar leaves each place as wide as it was": {
+  "at": "the padlock turned doesn't give each item its own width again: 156",
+  "part": "smoke"
+ },
+ "review D04: the padlock turned leaves each place as wide as it was": {
+  "at": "the padlock turned doesn't give each item its own width again: 156",
+  "part": "smoke"
+ },
+ "review D04: the zone, its name shorter, keeps the longer one's place, off the map's centre": {
+  "at": "the zone, its name shorter, keeps the longer one's place: its name no longer under the map's centre",
+  "part": "smoke"
+ },
+ "review D05: an element that failed to draw is tried again at each layout": {
+  "at": "an element that fails to draw isn't kept once with the question mark in its place: 4",
+  "part": "smoke"
+ },
+ "review D05: one element failing to draw takes the bar's layout with it": {
+  "part": "smoke"
+ },
+ "review D07: a drag failing at its first frame leaves the hub dragging": {
+  "at": "a drag failing at its first frame isn't refused, or leaves the hub dragging: 0",
+  "part": "smoke"
+ },
+ "review D07: a drag stopped by an error leaves the hub dragging": {
+  "at": "an error while something is dragged comes back every frame, or leaves the hub dragging: 1",
+  "part": "smoke"
+ },
+ "review D07: a drop whose place can't be read leaves the hub dragging": {
+  "part": "smoke"
+ },
+ "review D07: an error while something is dragged comes back every frame": {
+  "at": "an error while something is dragged comes back every frame, or leaves the hub dragging: 0",
+  "part": "smoke"
+ },
+ "review D08: a minimap button made by an addon loaded after login isn't taken": {
+  "at": "a minimap button made by an addon loaded after login isn't taken",
+  "part": "smoke"
+ },
+ "review D09: shut, a right-click on another addon's plain readout does nothing": {
+  "at": "another addon's tooltip isn't shown, or, locked, a plain readout's lacks the hub menu's hint, or has",
+  "part": "smoke"
+ },
+ "review D10: an open folder laid out once for each member that changed": {
+  "at": "five members of an open folder changing lay its list out more than once, or aren't drawn: 5",
+  "part": "smoke"
+ },
+ "review D11: an item named after login is never offered to other displays": {
+  "at": "an item of ours named after login is never offered to other displays",
+  "part": "smoke"
+ },
+ "review D11: other displays offered items with no name": {
+  "at": "an item of ours with no name yet is offered to other displays",
+  "part": "smoke"
+ },
+ "review D11: other displays offered what this character hasn't": {
+  "at": "an item of ours this character hasn't is offered to other displays",
+  "part": "smoke"
+ },
+ "review D11: the library come with a later addon isn't looked for": {
+  "part": "alone"
+ },
+ "review D12: a button left to its addon under a key that isn't a name is kept": {
+  "part": "tests"
+ },
+ "review D12: a saved element under a key that isn't a name is kept": {
+  "part": "tests"
+ },
+ "review notes: every action the game blocked kept, without end": {
+  "at": "every action the game blocked is kept, without end: 62",
+  "part": "smoke"
+ },
+ "review notes: the errors' count drawn again by an update that changes nothing": {
+  "at": "the errors' count is drawn again by an update that changes nothing",
+  "part": "smoke"
+ },
+ "review notes: the time away drawn again by an update that changes nothing": {
+  "at": "the time away is drawn again by an update that changes nothing",
+  "part": "smoke"
+ },
+ "right-click count: not counted as it's typed": {
+  "at": "the right-click's commands have no count of their letters: 0/255 caractères utilisés",
+  "part": "smoke"
+ },
+ "second round 10: a launcher told to show its name by its icon doesn't": {
+  "at": "a launcher told to show its name doesn't:",
+  "part": "smoke"
+ },
+ "second round 10: a saved look that isn't one is kept": {
+  "part": "tests"
+ },
+ "second round 10: an element told to show its icon alone keeps its text": {
+  "at": "an element told to show its icon alone keeps its text: 0c",
+  "part": "smoke"
+ },
+ "second round 10: an element told to show its text alone keeps its icon": {
+  "at": "an element told to show its text alone keeps its icon: 29 for 29",
+  "part": "smoke"
+ },
+ "second round 10: an element's look on the bar follows it into a folder's list": {
+  "at": "an element shown by its icon alone on the bar loses its text in a folder's list of texts",
+  "part": "smoke"
+ },
+ "second round 10: an element's menu has no choice of its icon or its text": {
+  "at": "an element's menu has no « Affichage », or no text alone in it",
+  "part": "smoke"
+ },
+ "second round 10: its icon or its text offered to an element with no icon": {
+  "at": "« Affichage » is offered to an element with no icon to show or hide",
+  "part": "smoke"
+ },
+ "second round 10: the look an element comes with is kept as a saved one": {
+  "at": "an element told to show its icon and its text again doesn't, or keeps a look saved: 29",
+  "part": "smoke"
+ },
+ "second round 11: the clock has a setting of its own for its hours again": {
+  "part": "tests"
+ },
+ "second round 11: the clock keeps to twenty-four hours whatever the game says": {
+  "at": "the clock doesn't follow the game's own hours, twelve or twenty-four: 21:07, 21:07",
+  "part": "smoke"
+ },
+ "second round 11: the clock tells the realm's time whatever the game says": {
+  "at": "the clock doesn't tell the local time when the game's own setting says so: 21:07",
+  "part": "smoke"
+ },
+ "second round 6: a new measure leaves the deaths as they were": {
+  "at": "a new measure doesn't start the deaths again, or their tooltip doesn't say since when: 1",
+  "part": "smoke"
+ },
+ "second round 6: a new measure leaves the experience gained as it was": {
+  "at": "a new measure doesn't start the experience gained again, or its tooltip doesn't say since when: 200",
+  "part": "smoke"
+ },
+ "second round 6: a new measure leaves the gold won as it was": {
+  "at": "a new measure doesn't start the gold won again, or its tooltip doesn't say since when: 70000c",
+  "part": "smoke"
+ },
+ "second round 6: the session's menu has no new measure": {
+  "at": "the session's menu has no new measure",
+  "part": "smoke"
+ },
+ "second round 6: the session's time counts from login after a new measure": {
+  "at": "a new measure doesn't start the session's time again, or the time since login leaves its tooltip: 1",
+  "part": "smoke"
+ },
+ "second round 6: the tooltips don't say since when a measure counts": {
+  "at": "a new measure doesn't start the gold won again, or its tooltip doesn't say since when: 0c",
+  "part": "smoke"
+ },
+ "second round 9: a data source that stood on the bar where it came leaves it for the folder": {
+  "at": "a data source that stood on the bar before new ones landed in a folder leaves it",
+  "part": "smoke"
+ },
+ "second round 9: a first install's data sources are kept on the bar": {
+  "at": "at a first run another addon's data source lands on the bar, not in the folder where new addons land",
+  "part": "smoke"
+ },
+ "second round 9: a folder made at a first run saves the data sources' place on the bar before they're settled": {
+  "at": "at a first run another addon's data source lands on the bar, not in the folder where new addons land",
+  "part": "smoke"
+ },
+ "second round 9: a new addon's data source lands on the bar": {
+  "at": "at a first run another addon's data source lands on the bar, not in the folder where new addons land",
+  "part": "smoke"
+ },
+ "seeds: a folder's reset keeps the player's separators": {
+  "at": "a bundled folder's reset doesn't give it back its contents as made, the player's after them: KaLiHUD",
+  "part": "smoke"
+ },
+ "seeds: a folder's reset leaves its place": {
+  "at": "a bundled folder's reset doesn't give it back its settings and its place",
+  "part": "smoke"
+ },
+ "seeds: a folder's reset leaves its settings": {
+  "at": "a bundled folder's reset doesn't give it back its settings and its place",
+  "part": "smoke"
+ },
+ "seeds: a folder's reset leaves out what the player put in it": {
+  "at": "a bundled folder's reset doesn't give it back its contents as made, the player's after them: KaLiHUD",
+  "part": "smoke"
+ },
+ "seeds: a macro's reset at its folder's end": {
+  "at": "a bundled macro's reset doesn't give it back its fields and its place: KaLiHUD_Session KaLiHUD_Error",
+  "part": "smoke"
+ },
+ "seeds: an item made for a folder reset at its end": {
+  "at": "an item made for a folder isn't reset into it where it stood: KaLiHUD_Attr_HEALTH KaLiHUD_Attr_MOVES",
+  "part": "smoke"
+ },
+ "seeds: an item's reset keeps its options": {
+  "at": "an item's reset doesn't give it back its options and its place",
+  "part": "smoke"
+ },
+ "seeds: what was made before the tags left untagged": {
+  "at": "what was made before the tags isn't tagged by its fields",
+  "part": "smoke"
+ },
+ "send to: an element's menu has no folder to send it to": {
+  "at": "a folder's menu offers to put it in itself or in one it holds",
+  "part": "smoke"
+ },
+ "send to: an element's menu lists another place than the folders to send it to": {
+  "at": "an element's menu lists other places than the folders to send it to: 14 folders, 1 others",
+  "part": "smoke"
+ },
+ "shared sets: a set shared shows no text": {
+  "at": "a set shared from its window doesn't show its text to copy",
+  "part": "smoke"
+ },
+ "shared sets: a set's text without its head": {
+  "at": "a set shared from its window doesn't show its text to copy",
+  "part": "smoke"
+ },
+ "shared sets: a text from a newer version read as it is": {
+  "part": "share"
+ },
+ "shared sets: a text read not kept as a set": {
+  "at": "a set's text pasted isn't kept as a set under a name asked for and opened, nothing applied",
+  "part": "smoke"
+ },
+ "shared sets: a text that doesn't read shuts the import's window without a word": {
+  "at": "a text that isn't a set's isn't refused with a word, the import's window staying",
+  "part": "smoke"
+ },
+ "shared sets: a text with line breaks in it not read": {
+  "part": "share"
+ },
+ "shared sets: a text's wrong values kept": {
+  "part": "share"
+ },
+ "shared sets: the page's row imports nothing": {
+  "at": "the page's import row doesn't open the import's window",
+  "part": "smoke"
+ },
+ "shared sets: what isn't a text raises an error": {
+  "part": "share"
+ },
+ "sources: a buff's points named but not taken from what's left": {
+  "at": "fishing's bonus doesn't name the rod, the lure and the gloves: Pêche | Rang | 30/75 | Bonus | +32 |",
+  "part": "smoke"
+ },
+ "sources: a chance's points written as a number, not a percent": {
+  "at": "a hit buff or an item's hit rating isn't named as a chance: Hit",
+  "part": "smoke"
+ },
+ "sources: a share of the whole not set apart from what's left": {
+  "at": "a share of the whole isn't worked out: STRENGTH",
+  "part": "smoke"
+ },
+ "sources: a share's worth not shown": {
+  "at": "a share of the whole isn't worked out: STRENGTH",
+  "part": "smoke"
+ },
+ "sources: a value the game gives no sum of names nothing": {
+  "at": "an elixir's spell damage isn't named: Spell Power",
+  "part": "smoke"
+ },
+ "sources: an aura the game gives no points of left without its spell's own": {
+  "part": "smoke"
+ },
+ "sources: an aura's misc not looked at, another attribute's buff counted": {
+  "at": "a debuffed attribute's hover doesn't name its debuff, or names another's item: INTELLECT",
+  "part": "smoke"
+ },
+ "sources: an aura's points numbered by its auras alone": {
+  "part": "smoke"
+ },
+ "sources: an aura's points numbered by its spell's effects alone": {
+  "part": "smoke"
+ },
+ "sources: an item's name not in its quality's colour": {
+  "at": "a buffed attribute's hover doesn't name its item and its buff, or names what doesn't change it: STRE",
+  "part": "smoke"
+ },
+ "sources: an item's rating as points, not the sheet's share of a percent": {
+  "at": "a hit buff or an item's hit rating isn't named as a chance: Hit",
+  "part": "smoke"
+ },
+ "sources: named during a fight": {
+  "at": "a value's sources are named during a fight: Armor",
+  "part": "smoke"
+ },
+ "sources: not shown on hover": {
+  "at": "a buffed attribute's hover doesn't name its item and its buff, or names what doesn't change it: STRE",
+  "part": "smoke"
+ },
+ "sources: one school's spell damage without its school": {
+  "at": "an elixir's spell damage isn't named: Spell Power",
+  "part": "smoke"
+ },
+ "sources: something left beside a share the game's numbers don't let work out": {
+  "at": "a share of the armour has something left beside it: Armor",
+  "part": "smoke"
+ },
+ "sources: the debuffs unread": {
+  "at": "a debuffed attribute's hover doesn't name its debuff, or names another's item: INTELLECT",
+  "part": "smoke"
+ },
+ "sources: the gear's stats unread": {
+  "at": "a buffed attribute's hover doesn't name its item and its buff, or names what doesn't change it: STRE",
+  "part": "smoke"
+ },
+ "sources: the spells' effects not this build's": {
+  "part": "static"
+ },
+ "speed: a hidden speed read": {
+  "at": "a secret speed errors or changes the speed shown",
+  "part": "smoke"
+ },
+ "status: the info bar read with the saved data refused": {
+  "at": "/kh status with the saved data refused raises an error, or doesn't say why: addon/KaLiHUD/UI/Hub/Fol",
+  "part": "smoke"
+ },
+ "styles: a saved one that can't be kept": {
+  "part": "smoke"
+ },
+ "styles: a « Non » applies it anyway": {
+  "at": "a style over a colour the player changed doesn't ask first naming it alone, or applies before the an",
+  "part": "smoke"
+ },
+ "styles: every value a style sets counted as the player's": {
+  "at": "a style over a colour the player changed doesn't ask first naming it alone, or applies before the an",
+  "part": "smoke"
+ },
+ "styles: one sets an opacity": {
+  "part": "smoke"
+ },
+ "styles: one's border colour not in its list": {
+  "part": "smoke"
+ },
+ "styles: picked over the player's own change without asking": {
+  "part": "smoke"
+ },
+ "styles: the defaults not the Blizzard style's": {
+  "part": "tests"
+ },
+ "styles: the last applied not remembered, so going to another asks": {
+  "at": "a yes doesn't apply the style, or it changes what it doesn't set",
+  "part": "smoke"
+ },
+ "styles: the section's « Annuler » leaves a look of the player's own": {
+  "at": "the style section's « Annuler » isn't lit",
+  "part": "smoke"
+ },
+ "styles: the window's « Par défaut » leaves the style": {
+  "at": "« Par défaut » doesn't set the Blizzard style",
+  "part": "smoke"
+ },
+ "trials: a setting saved of what was tried kept": {
+  "part": "tests"
+ },
+ "trials: the pockets' marks left out of the map's section": {
+  "at": "what was tried is still in the dialog, or the pockets' marks aren't with the map's rows",
+  "part": "smoke"
+ },
+ "unknown: a raid boss's parry given as one figure": {
+  "at": "a raid boss's parry isn't given as the game's two figures, marked unknown: Expertise",
+  "part": "smoke"
+ },
+ "unknown: a source known in part shown as the whole": {
+  "at": "a source known in part shows its figure as the whole, without the mark: Attack Power",
+  "part": "smoke"
+ },
+ "unknown: a source's amount the game doesn't give left blank": {
+  "part": "smoke"
+ },
+ "unknown: a threshold nothing has checked not marked": {
+  "at": "the card doesn't say what never missing a raid boss takes, reached or not, or each kind's hit: Hit",
+  "part": "smoke"
+ },
+ "unknown: the card doesn't say what its mark means": {
+  "at": "a source of unknown amount has no question mark in its place, or the card doesn't say what it means:",
+  "part": "smoke"
+ },
+ "unknown: the mark under a skill with no word of what it means": {
+  "at": "a skill's source of unknown amount hasn't the mark, or its tooltip doesn't say what it means: Pêche",
+  "part": "smoke"
+ },
+ "windows: FlareUI's skin round the chat back at full strength, whatever it was": {
+  "at": "unfolded, the chat's skin or the damage meter's window isn't as see-through as it was: 1, 0.7",
+  "part": "smoke"
+ },
+ "windows: a fold stopped by an error stays half way": {
+  "at": "an error in a fold on its way comes back every frame, or leaves the fold half way",
+  "part": "smoke"
+ },
+ "windows: an error in a fold on its way comes back every frame": {
+  "at": "an error in a fold on its way comes back every frame, or leaves the fold half way",
+  "part": "smoke"
+ },
+ "windows: the damage meter's window back at full strength, whatever it was": {
+  "at": "unfolded, the chat's skin or the damage meter's window isn't as see-through as it was: 0.6, 1",
+  "part": "smoke"
+ },
+ "would be: a consumable under the pointer tried on nothing": {
+  "at": "a consumable under the pointer isn't tried on the card kept open: Armor",
+  "part": "smoke"
+ },
+ "would be: a consumable's buff added again while it is on": {
+  "at": "a consumable whose buff is on is said to add it again: Armor",
+  "part": "smoke"
+ },
+ "would be: a consumable's figure, the data's alone, given as the game's own": {
+  "at": "a consumable under the pointer isn't tried on the card kept open, its figure marked as the data's: A",
+  "part": "smoke"
+ },
+ "would be: a figure that can't be said given all the same": {
+  "at": "a meal under the pointer isn't said to give what isn't known: Armor",
+  "part": "smoke"
+ },
+ "would be: a figure that would change given as the new one alone": {
+  "at": "the rows that would go, come or change aren't said so, in the light blue: Armor",
+  "part": "smoke"
+ },
+ "would be: a row that would come not in the light blue": {
+  "at": "the rows that would go, come or change aren't said so, in the light blue: Armor",
+  "part": "smoke"
+ },
+ "would be: a row that would go left as it is": {
+  "at": "the rows that would go, come or change aren't said so, in the light blue: Armor",
+  "part": "smoke"
+ },
+ "would be: a talent at its last rank tried at one more": {
+  "at": "a talent at its last rank is tried at one more: Dodge",
+  "part": "smoke"
+ },
+ "would be: a talent not bought not tried": {
+  "at": "a talent not bought isn't tried at its first rank: Dodge",
+  "part": "smoke"
+ },
+ "would be: a talent under the pointer tried on nothing": {
+  "at": "a talent under the pointer isn't tried at its next rank: Dodge",
+  "part": "smoke"
+ },
+ "would be: a two-handed weapon tried with the off hand's item kept": {
+  "at": "a two-handed weapon is tried with the off hand's item kept: Armor",
+  "part": "smoke"
+ },
+ "would be: a weapon's oil kept with another weapon in its place": {
+  "at": "a weapon's oil is kept with another weapon in its place: STRENGTH",
+  "part": "smoke"
+ },
+ "would be: an item under the pointer tried on nothing": {
+  "at": "the card kept open doesn't say what the value would be with the item under the pointer: Armor",
+  "part": "smoke"
+ },
+ "would be: an item worn already tried in another's place": {
+  "at": "an item worn already, or one that gives the value nothing, is said to change it: Armor",
+  "part": "smoke"
+ },
+ "would be: still said once the tooltip has gone": {
+  "at": "what would be stays once the tooltip has gone: Armor",
+  "part": "smoke"
+ },
+ "would be: the base's rest worked out again from what would be": {
+  "at": "an item worn already, or one that gives the value nothing, is said to change it: Armor",
+  "part": "smoke"
+ },
+ "would be: the card's head says the value as it is": {
+  "at": "the card kept open doesn't say what the value would be with the item under the pointer: Armor",
+  "part": "smoke"
+ },
+ "would be: the dodge given a figure the sources can't follow": {
+  "at": "a value the sources can't follow is given a figure: Dodge",
+  "part": "smoke"
+ },
+ "would be: the item tried in the colour of the one worn": {
+  "at": "the rows that would go, come or change aren't said so, in the light blue: Armor",
+  "part": "smoke"
+ },
+ "would be: the item tried not read in its slot": {
+  "at": "the card kept open doesn't say what the value would be with the item under the pointer: Armor",
+  "part": "smoke"
+ },
+ "would be: two figures a row run into its name": {
+  "at": "the card isn't wider for two figures a row",
+  "part": "smoke"
+ },
+ "would be: what the item's attributes give left out": {
+  "at": "the card kept open doesn't say what the value would be with the item under the pointer: Armor",
+  "part": "smoke"
+ },
+ "would be: what's left of the changes worked out again from what would be": {
+  "at": "what the game's sums leave over isn't as it was beside what would be: Armor",
+  "part": "smoke"
+ }
+}

@@ -1,0 +1,15 @@
+## Interface: 16001
+## Title: KaLi HUD (tests)
+## Notes: Developer tests for KaLi HUD. Type /kh test to run them.
+## Notes-frFR: Tests de développement de KaLi HUD. Tapez /kh test pour les lancer.
+## Author: Ikar
+## Version: 0.1.0-dev
+## LoadOnDemand: 1
+## Dependencies: KaLiHUD
+
+Shared\Harness.lua
+Shared\Locales.lua
+Test_Geometry.lua
+Test_Format.lua
+Test_DB.lua
+Test_Cards.lua
