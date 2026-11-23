@@ -92,8 +92,14 @@ function ns.Call(fn, ...)
     end
 end
 
+-- The colon after the addon's name, in the player's language: the game's own (HEADER_COLON), which French writes after
+-- a no-break space and the other languages without one (Ikar 2026-11-21: "with each language it own rules").
+function ns.Colon()
+    return ns.G and ns.G("HEADER_COLON", ":") or ":"
+end
+
 function ns.Say(msg)
-    print("|cffffd200" .. ns.TITLE .. " :|r " .. tostring(msg))
+    print("|cffffd200" .. ns.TITLE .. ns.Colon() .. "|r " .. tostring(msg))
 end
 
 -- Runs fn and reports an error instead of letting it escape. Returns ok, then fn's results.
@@ -139,6 +145,26 @@ function ns.EveryFrame(frame, fn, after)
             end
         end
     end)
+end
+
+-- A handler the game runs on the player's doing (a frame's script, a hook on one of the game's functions, a menu's
+-- entry): fn under the same guard, its first six arguments passed on and its first three results given back. An error
+-- there went to the game's own handler alone, and neither the addon's log nor its bug report had it (KaLi HUD's review
+-- of 2026-11-18). Nothing is made at each call: what the handler was called with waits in these six for the guarded
+-- call, as above; a handler called from inside itself has read its own by then.
+function ns.Guarded(fn)
+    local a1, a2, a3, a4, a5, a6
+    local function run()
+        return fn(a1, a2, a3, a4, a5, a6)
+    end
+    return function(b1, b2, b3, b4, b5, b6)
+        a1, a2, a3, a4, a5, a6 = b1, b2, b3, b4, b5, b6
+        local ok, r1, r2, r3 = xpcall(run, frameFailed)
+        a1, a2, a3, a4, a5, a6 = nil, nil, nil, nil, nil, nil
+        if ok then
+            return r1, r2, r3
+        end
+    end
 end
 
 -- Work asked for many times in one frame runs once, on the next frame.

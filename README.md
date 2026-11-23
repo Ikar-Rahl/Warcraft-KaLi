@@ -6,11 +6,13 @@ Addons for World of Warcraft Forever, by Ikar. French first, then English, Germa
 | --- | --- | --- |
 | **KaLi Quest** | Your own quest groups, in a rewritten objective tracker | [quest/](quest/README.md) |
 | **KaLi Recipe** | A notebook of the recipes you come across, without spoiling the ones you haven't met | [recipe/](recipe/README.md) |
+| **KaLi HUD** | A bronze base along the bottom of the screen for Blizzard's bars, the minimap, the chat and the damage meter, with an info bar at its foot | [hud/](hud/README.md) |
 
-To install one, copy its folder from `quest/addon/` or `recipe/addon/` (`KaLiQuest`, `KaLiRecipe`) into the game's
-`Interface\AddOns`. The `_Tests` and `_Probe` folders are for development; players don't need them.
+To install one, copy its folder from `quest/addon/`, `recipe/addon/` or `hud/addon/` (`KaLiQuest`, `KaLiRecipe`,
+`KaLiHUD`) into the game's `Interface\AddOns`. The `_Tests` and `_Probe` folders are for development; players don't
+need them.
 
-Found a bug? Each addon's `/kq report` or `/kr report` gives a link to copy: opened in a browser, it's a
+Found a bug? Each addon's `/kq report`, `/kr report` or `/kh report` gives a link to copy: opened in a browser, it's a
 [new issue](https://github.com/Ikar-Rahl/Warcraft-KaLi/issues/new) whose title says which addon it's from, with a
 question about what happened. Then copy the report from the same window and paste it in.
 
@@ -18,7 +20,7 @@ question about what happened. Then copy the report from the same window and past
 
 | Path | What it is |
 | --- | --- |
-| `quest/`, `recipe/` | One addon each: `addon/` (the addon, its in-game tests, its probe), `docs/` (its design record), `bench/` (a page to try its look without the game), `tools/` (its test runner, generators, saved-file reader) |
+| `quest/`, `recipe/`, `hud/` | One addon each: `addon/` (the addon, its in-game tests, its probe), `docs/` (its design record), `bench/` (a page to try its look without the game), `tools/` (its test runner, generators, saved-file reader) |
 | `shared/` | The code the addons share: the event core, the debug log, the API check, the bug report, the slash command dispatcher, the settings window, the options page, and the in-game test harness. See [shared/README.md](shared/README.md) |
 | `tools/` | What the family's development shares: one command for every check, the fake game the Lua runs on, the offline checks, the shared code's copier, the deliberate-break harness, and the links into the game |
 
@@ -32,27 +34,30 @@ Needs Python 3.13, and Lua 5.1 through lupa, installed locally:
   values the game may hide read through `ns.Plain`, the in-game tests on Lua 5.1, a smoke test that plays a whole
   session on the fake game, the shared code's own checks on each addon's copy, and every text of the dialogs and the
   options pages measured against the room it has, in each language (with the game's font from a bench's art folder;
-  without it that check says so and passes). `quest` or `recipe` runs one addon; `--write-needs` updates the lists
-  of what each addon takes from the game.
+  without it that check says so and passes). `quest`, `recipe` or `hud` runs one addon; `--write-needs` updates the
+  lists of what each addon takes from the game.
 - **The shared code:** edit `shared/`, never an addon's `Shared/` copy, then `python -I tools/sync_shared.py`.
 - **Deliberate breaks:** `python -I tools/breaks.py <file>` plants one fault at a time in a copy of the code and checks
-  the tests fail; `tools/breaks/shared.py` holds the shared code's, `quest.py` and `recipe.py` each addon's own. A fix
-  isn't proven until its break is caught. `tools/run_tests.py` checks each time that every break still applies to the
-  code as it is, without running any.
+  the tests fail; `tools/breaks/shared.py` holds the shared code's, `quest.py`, `recipe.py` and `hud.py` each addon's
+  own. A fix isn't proven until its break is caught. `tools/run_tests.py` checks each time that every break still
+  applies to the code as it is, without running any.
 - **The game is the ground truth:** the fake game gives this build's own answers where its files hold them, but only
   the game says what it really answers. Each addon's API check keeps what it found at login, per build, in the game's
-  saved `<Addon>DevDB` (`apiChecks`), with its errors, what the game blocked (`gameWarnings`) and the last in-game test
-  run (`lastTests`); read them there. An answer the fake invented has hidden a defect each time: when the game's
-  records or Blizzard's source say otherwise, the fake changes first, then the code.
-- **In the game:** `tools\link_addons.cmd` links the six folders into `Interface\AddOns` (`unlink`, `relink`). Edits
+  saved `<Addon>DevDB` (`apiChecks`, and in its `told` what didn't hold when it said so in chat), with its errors, what
+  the game blocked (`gameWarnings`) and the last in-game test run (`lastTests`); read them there. An answer the fake
+  invented has hidden a defect each time: when the game's records or Blizzard's source say otherwise, the fake changes
+  first, then the code.
+- **In the game:** `tools\link_addons.cmd` links the nine folders into `Interface\AddOns` (`unlink`, `relink`). Edits
   then show after `/reload`.
 
 The tools read Blizzard's UI source and tables, and QuestieDB, from a `reference/` folder beside the repository; set
 `KALI_REFERENCE` to put it elsewhere, and `KALI_GAME` for the game's folder.
 
 **Never published:** Blizzard's art, sounds and font, the screenshots, and data built from QuestieDB (GPL-3.0). The
-benches' scripts make them locally, into folders `.gitignore` keeps out.
+benches' scripts make them locally, into folders `.gitignore` keeps out. Nor are the images KaLi HUD's cartouches and
+minimap rings are cut from (`hud/art/`, generated with Google Gemini): the addon ships the pieces.
 
 ## Licence
 
-MIT, see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE). KaLi HUD's own [LICENSE](hud/addon/KaLiHUD/LICENSE) adds FlareUI's notice, for the code
+adapted from it, and says where its art comes from.

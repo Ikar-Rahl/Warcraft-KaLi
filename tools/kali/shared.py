@@ -7,10 +7,10 @@ under a one-line header, and any difference is a problem: edit the source, then 
 """
 import re
 
-from kali.paths import QUEST, RECIPE, SHARED
+from kali.paths import HUD, QUEST, RECIPE, SHARED
 
 # The addons, each by its folder of folders and its main folder's name.
-ADDONS = {"quest": (QUEST / "addon", "KaLiQuest"), "recipe": (RECIPE / "addon", "KaLiRecipe")}
+ADDONS = {"quest": (QUEST / "addon", "KaLiQuest"), "recipe": (RECIPE / "addon", "KaLiRecipe"), "hud": (HUD / "addon", "KaLiHUD")}
 HEADER = "-- Copied from shared/{} by tools/sync_shared.py: edit the source, not this copy.\n"
 
 
@@ -64,7 +64,9 @@ def problems():
     for source in sources():
         used |= set(re.findall(r"\bL\.([A-Z][A-Z0-9_]*)", source.read_text(encoding="utf-8")))
     for folders, name in ADDONS.values():
-        locale = (folders / name / "Core/Locale.lua").read_text(encoding="utf-8")
+        # Core/Locale.lua and each language's file under Locale/ (one language a file since 2026-11-21)
+        files = [folders / name / "Core/Locale.lua"] + sorted((folders / name / "Locale").glob("*.lua"))
+        locale = "\n".join(f.read_text(encoding="utf-8") for f in files)
         defined = set(re.findall(r"^\s*([A-Z][A-Z0-9_]*)\s*=", locale, re.M))
         out += [f"shared: the shared code uses L.{key}, which {name}'s locale doesn't define" for key in sorted(used - defined)]
     return out

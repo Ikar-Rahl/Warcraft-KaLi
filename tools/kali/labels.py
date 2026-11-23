@@ -78,13 +78,20 @@ return function(dev, dialogName)
             place("value", v[2])
         end
     end
-    local page = ns.Options and ns.Options.page
-    if page and page.category then
-        pcall(F.PickSettingsPage, page.category)
-        for _, f in ipairs(page.frame and page.frame.rows or {}) do
-            if f.row and f.row.kind ~= "header" then
-                place("page", f.row.name)
-                place("pageButton", f.row.text)
+    -- the options page, and the pages listed under it
+    local main = ns.Options and ns.Options.page
+    local pages = { main }
+    for _, under in ipairs(main and main.pages or {}) do
+        pages[#pages + 1] = under
+    end
+    for _, page in ipairs(pages) do
+        if page.category then
+            pcall(F.PickSettingsPage, page.category)
+            for _, f in ipairs(page.frame and page.frame.rows or {}) do
+                if f.row and f.row.kind ~= "header" then
+                    place("page", f.row.name)
+                    place("pageButton", f.row.text)
+                end
             end
         end
     end

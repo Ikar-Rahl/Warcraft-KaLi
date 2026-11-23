@@ -22,21 +22,52 @@ function frameMethods:RegisterEvent(event)
     self.events[event] = true
     return true
 end
+-- One unit's events alone, or a few units' (RegisterUnitEvent): the event comes to the frame for those units only,
+-- the unit its first value, as in game; RegisterEvent after it takes every unit's again.
+function frameMethods:RegisterUnitEvent(event, ...)
+    if F.invalidEvents and F.invalidEvents[event] then
+        error('Frame:RegisterUnitEvent(): Attempt to register unknown event "' .. tostring(event) .. '"', 2)
+    end
+    if F.refusedEvents and F.refusedEvents[event] then
+        return false
+    end
+    local units = {}
+    for i = 1, select("#", ...) do
+        units[select(i, ...)] = true
+    end
+    self.events[event] = units
+    return true
+end
 function frameMethods:UnregisterEvent(event)
     self.events[event] = nil
 end
+-- Every function the game is handed to call later on the player's doing (a frame's script, a hook, a callback of the
+-- game's registry, what a menu's entry does), each once: F.handlers, for a runner to check they are guarded (KaLi
+-- HUD's does: an error in one goes to the game alone, and the addon's own log never has it).
+F.handlers = {}
+local function handed(fn)
+    if type(fn) == "function" then
+        F.handlers[fn] = true
+    end
+    return fn
+end
+F.Handed = handed
 function frameMethods:SetScript(name, fn)
-    self.scripts[name] = fn
+    self.scripts[name] = handed(fn)
 end
 function frameMethods:GetScript(name)
     return self.scripts[name]
 end
 function frameMethods:HookScript(name, fn)
     self.hooks[name] = self.hooks[name] or {}
-    table.insert(self.hooks[name], fn)
+    table.insert(self.hooks[name], handed(fn))
 end
 -- Runs a script and its hooks, as the game does.
 function F.RunScript(frame, name, ...)
+    -- the element the pointer is on: the last one entered
+    if name == "OnEnter" then
+        F.entered = frame
+    end
     if frame.scripts[name] then
         frame.scripts[name](frame, ...)
     end
@@ -52,6 +83,10 @@ function frameMethods:CreateFontString()
 end
 function frameMethods:CreateTexture()
     return CreateFrame("Texture")
+end
+-- A texture's flat colour, kept for the tests (texture.colorTexture = { r, g, b, a }).
+function frameMethods:SetColorTexture(r, g, b, a)
+    self.colorTexture = { r, g, b, a or 1 }
 end
 -- Child frames, in the order they came, as GetChildren gives them: regions and animations aren't children.
 local NOT_CHILDREN = { FontString = true, Texture = true, AnimationGroup = true, Animation = true }
@@ -92,11 +127,53 @@ function frameMethods:SetParent(parent)
     end
     self.parent = parent
 end
+-- All at once, as in game, whose Lua holds about 8000 values (LUAI_MAXCSTACK): past that the call errs. It did on
+-- Ikar's minimap, crowded with another addon's pins (2026-11-22, KaLi HUD's Collect.lua: "stack overflow").
+F.MOST_RESULTS = 7999
 function frameMethods:GetChildren()
-    return unpack(self.fakeChildren or {})
+    local children = self.fakeChildren or {}
+    if #children > F.MOST_RESULTS then
+        error("stack overflow", 2)
+    end
+    return unpack(children)
+end
+function frameMethods:GetNumChildren()
+    return #(self.fakeChildren or {})
 end
 function frameMethods:GetParent()
     return self.parent
+end
+-- The game's list of all its frames, one after another in the order they were made: EnumerateFrames() gives the first,
+-- EnumerateFrames(frame) the one after it. Regions and animations aren't frames. A walk asks for the next of the one it
+-- was just given, found at once; any other is looked for.
+local walked, walkedAt
+function EnumerateFrames(after)
+    local start = 1
+    if after ~= nil then
+        if after == walked and F.frames[walkedAt] == after then
+            start = walkedAt + 1
+        else
+            start = nil
+            for i, f in ipairs(F.frames) do
+                if f == after then
+                    start = i + 1
+                    break
+                end
+            end
+            if not start then
+                return nil
+            end
+        end
+    end
+    for i = start, #F.frames do
+        local f = F.frames[i]
+        if not NOT_CHILDREN[f.kind] then
+            walked, walkedAt = f, i
+            return f
+        end
+    end
+    walked, walkedAt = nil, nil
+    return nil
 end
 function frameMethods:GetName()
     return self.name
@@ -391,11 +468,28 @@ local function noop() end
 -- Blizzard's templates whose OnLoad, run inside CreateFrame, reads what a frame made without a parent lacks. As in
 -- game, an error there goes to the game's error handler, past the caller's own capture, and CreateFrame still returns.
 F.templateErrors = {}
+-- NineSlicePanelMixin:OnLoad (Blizzard_SharedXML/NineSlice.lua): its layout's type, its own or its parent's
+-- (GetFrameLayoutType); with one, its texture kit, its own or its parent's (GetFrameLayoutTextureKit), so a nine-slice
+-- frame made with no parent errs as in game (KaLi HUD's dialog border, 2026-11-16: "NineSlice.lua:310: attempt to index
+-- a nil value").
+local function nineSliceOnLoad(frame)
+    local layoutType = frame.layoutType or frame:GetParent().layoutType
+    if layoutType then
+        return frame.layoutTextureKit or frame:GetParent()[frame.atlasKey or "layoutTextureKit"]
+    end
+end
+-- DialogTemplates.xml's borders: nine-slice panels of the "Dialog" layout (their KeyValue).
+local function dialogBorder(frame)
+    frame.layoutType = "Dialog"
+    return nineSliceOnLoad(frame)
+end
 local TEMPLATE_ONLOAD = {
-    -- NineSlicePanelMixin:OnLoad, through GetFrameLayoutType.
-    NineSlicePanelTemplate = function(frame)
-        return frame.layoutType or frame:GetParent().layoutType
-    end,
+    NineSlicePanelTemplate = nineSliceOnLoad,
+    DialogBorderNoCenterTemplate = dialogBorder,
+    DialogBorderTemplate = dialogBorder,
+    DialogBorderDarkTemplate = dialogBorder,
+    DialogBorderTranslucentTemplate = dialogBorder,
+    DialogBorderOpaqueTemplate = dialogBorder,
 }
 local function isMethodName(key)
     if type(key) ~= "string" then
@@ -441,6 +535,14 @@ function CreateFrame(kind, name, parent, template)
         function frame:SetTitle(title)
             self.TitleContainer.TitleText:SetText(title)
         end
+    elseif template == "ButtonFrameTemplate" then
+        -- Its own close button, the template's CloseButton (a UIPanelCloseButton).
+        frame.CloseButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
+    elseif template == "UIPanelCloseButton" then
+        -- Blizzard's own click, which hides its window through HideUIPanel (UIPanelCloseButton_OnClick, below).
+        frame.scripts.OnClick = function(self, ...)
+            return UIPanelCloseButton_OnClick(self, ...)
+        end
     end
     local onLoad = TEMPLATE_ONLOAD[template]
     if onLoad then
@@ -462,7 +564,8 @@ function F.Fire(event, ...)
         F.combat = false
     end
     for _, frame in ipairs(F.frames) do
-        if frame.events[event] and frame.scripts.OnEvent then
+        local registered = frame.events[event]
+        if registered and frame.scripts.OnEvent and (registered == true or registered[(...)]) then
             frame.scripts.OnEvent(frame, event, ...)
         end
     end
@@ -579,6 +682,8 @@ BACKDROP_DARK_DIALOG_32_32 = {}
 ChatFontNormal = {}
 LOCALIZED_CLASS_NAMES_MALE = { WARRIOR = "Guerrier", PALADIN = "Paladin" }
 QUESTS_LABEL = "Quêtes"
+-- the French client's colon after a name, a no-break space before it (GlobalStrings' HEADER_COLON)
+HEADER_COLON = "\194\160:"
 TRACK_QUEST_ABBREV = "Suivi"
 WORLD = "Monde"
 ERR_NOT_IN_COMBAT = "Impossible de faire ceci tout en combattant."
@@ -676,6 +781,7 @@ function hooksecurefunc(t, key, fn)
         t, key, fn = _G, t, key
     end
     local original = t[key]
+    F.Handed(fn)
     t[key] = function(...)
         local results = { original(...) }
         fn(...)
@@ -834,6 +940,7 @@ managerInit:SetScript("OnEvent", function(self, event)
 end)
 EventRegistry = {}
 function EventRegistry:RegisterCallback(event, fn, owner)
+    F.Handed(fn)
     F.registry[event] = F.registry[event] or {}
     table.insert(F.registry[event], function(...)
         fn(owner, ...)
@@ -926,6 +1033,11 @@ end
 function sliderMethods:RegisterCallback(event, fn, owner)
     self.callbacks[event] = self.callbacks[event] or {}
     self.callbacks[event][owner] = fn
+end
+function sliderMethods:UnregisterCallback(event, owner)
+    if self.callbacks[event] then
+        self.callbacks[event][owner] = nil
+    end
 end
 function sliderMethods:SetEnabled(enabled)
     self.enabled = enabled and true or false
@@ -1053,9 +1165,23 @@ function EditModeManagerFrame:CanEnterEditMode()
 end
 
 -- The panels the addons open and close, as Blizzard's panel manager does: Edit Mode's manager enters Edit Mode as it
--- shows, and leaves it as it hides, as its OnShow and OnHide do.
+-- shows, and leaves it as it hides, as its OnShow and OnHide do. In a fight it refuses both to an addon's code
+-- (UIParentPanelManager.lua's CheckProtectedFunctionsAllowed: "We no longer allow addons to show or hide UI panels in
+-- combat"): nothing happens but the game's chat line, INTERFACE_ACTION_BLOCKED, which no event tells, so no addon can
+-- see it (Ikar 2026-11-22, KaLi Recipe's notebook that wouldn't close in a fight). F.panelsRefused lists the frames.
+F.panelsRefused = {}
+local function panelsAllowed(frame)
+    if F.combat then
+        F.panelsRefused[#F.panelsRefused + 1] = frame.name or tostring(frame)
+        return false
+    end
+    return true
+end
 function ShowUIPanel(frame)
     if not frame or frame:IsShown() then
+        return
+    end
+    if not panelsAllowed(frame) then
         return
     end
     F.shownPanel = frame
@@ -1068,9 +1194,26 @@ function HideUIPanel(frame)
     if not (frame and frame:IsShown()) then
         return
     end
+    if not panelsAllowed(frame) then
+        return
+    end
     frame:Hide()
     if frame == EditModeManagerFrame then
         F.TriggerRegistry("EditMode.Exit")
+    end
+end
+-- Blizzard's close button's click (SharedUIPanelTemplates.lua): its window's onCloseCallback, when it has one, says
+-- whether to go on; then HideUIPanel, which a fight refuses an addon's window (above).
+function UIPanelCloseButton_OnClick(self)
+    local parent = self:GetParent()
+    if parent then
+        local continueHide = true
+        if parent.onCloseCallback then
+            continueHide = parent.onCloseCallback(self)
+        end
+        if continueHide then
+            HideUIPanel(parent)
+        end
     end
 end
 
@@ -1542,7 +1685,7 @@ local function menuDescription()
     local d = { items = {} }
     local function add(kind, text, a, b)
         local item = menuDescription()
-        item.kind, item.text, item.choose, item.isSelected = kind, text, a, b
+        item.kind, item.text, item.choose, item.isSelected = kind, text, F.Handed(a), b
         d.items[#d.items + 1] = item
         return item
     end
@@ -1574,9 +1717,16 @@ MenuUtil = {
         return d
     end,
 }
+-- A text as a reader compares it: each language's typography (2026-11-21: French's no-break spaces and apostrophe,
+-- put in as its strings load) read as plain spaces and apostrophes, so a test can name an entry as it's written in its
+-- language's file; whether the typography is right is the language test's (tests/Locales.lua).
+function F.Plain(text)
+    return type(text) == "string" and (text:gsub("\194\160", " "):gsub("\226\128\153", "'")) or text
+end
+
 function F.MenuItem(text, menu)
     for _, item in ipairs((menu or F.lastMenu or { items = {} }).items) do
-        if item.text == text then
+        if item.text == text or F.Plain(item.text) == F.Plain(text) then
             return item
         end
         local found = F.MenuItem(text, item)
@@ -1905,10 +2055,10 @@ end
 function GetCursorPosition()
     return F.cursorX or 0, F.cursorY or 0
 end
--- StaticPopup: records the last one shown; F.AcceptPopup() clicks its first button.
+-- StaticPopup: records the last one shown, the two texts its own takes in; F.AcceptPopup() clicks its first button.
 StaticPopupDialogs = {}
-function StaticPopup_Show(which, text, _, data)
-    F.popup = { which = which, text = text, data = data }
+function StaticPopup_Show(which, text, text2, data)
+    F.popup = { which = which, text = text, text2 = text2, data = data }
     return {}
 end
 function F.AcceptPopup()

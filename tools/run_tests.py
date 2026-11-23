@@ -1,9 +1,9 @@
 """Every offline check of the KaLi family, before every commit: the shared code's copies match their source and the
 addons' locales hold every string it uses, every deliberate break still applies to the code as it is (tools/breaks.py
-runs them), then each addon's own runner (quest/tools/run_tests.py, recipe/tools/run_tests.py), whose checks are
-listed at their top.
+runs them), then each addon's own runner (quest/tools/run_tests.py, recipe/tools/run_tests.py,
+hud/tools/run_tests.py), whose checks are listed at their top.
 
-Run with: python -I tools/run_tests.py [quest|recipe] [--write-needs]
+Run with: python -I tools/run_tests.py [quest|recipe|hud] [--write-needs]
 Ends with ALL PASS, or FAIL and what failed (exit 1).
 """
 import subprocess
@@ -13,9 +13,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import breaks  # noqa: E402
 from kali import shared  # noqa: E402
-from kali.paths import QUEST, RECIPE  # noqa: E402
+from kali.paths import HUD, QUEST, RECIPE  # noqa: E402
 
-RUNNERS = {"quest": ("KaLi Quest", QUEST / "tools/run_tests.py"), "recipe": ("KaLi Recipe", RECIPE / "tools/run_tests.py")}
+RUNNERS = {"quest": ("KaLi Quest", QUEST / "tools/run_tests.py"), "recipe": ("KaLi Recipe", RECIPE / "tools/run_tests.py"),
+           "hud": ("KaLi HUD", HUD / "tools/run_tests.py")}
 
 
 def main():

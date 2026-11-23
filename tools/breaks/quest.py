@@ -7,6 +7,10 @@ CHECK, DB, MAIN, ROWS, LAYOUT, PANEL, FRAME, TRACKER, HOST, FONTS, OPTIONS, MENU
         "Core/SelfCheck", "Core/DB", "Core/Main", "UI/Rows", "Core/Layout", "UI/EditPanel", "UI/EditFrame", "UI/Tracker",
         "UI/Host", "UI/Fonts", "UI/Options", "UI/Menus", "Core/Locale", "Data/Sorts", "UI/Motion", "UI/Area", "Core/Tracking",
         "Core/Init"))
+# One language a file since 2026-11-21 (Core/Locale.lua keeps the machinery)
+LOCALE_DEDE = "quest/addon/KaLiQuest/Locale/deDE.lua"
+LOCALE_ESMX = "quest/addon/KaLiQuest/Locale/esMX.lua"
+LOCALE_FRFR = "quest/addon/KaLiQuest/Locale/frFR.lua"
 
 BREAKS = [
     # The API check, against what Forever has
@@ -75,9 +79,22 @@ BREAKS = [
     # Blizzard's tracker scaled by another addon (FlareUI's minimap, Ikar's game, 2026-11-13)
     ("scale: the rows keep the host's own scale", TRACKER,
      "local scale = layout.zoom * ns.Host.Unscale(root:GetParent())", "local scale = layout.zoom"),
-    ("scale: the host's width keeps its own scale", HOST,
-     "* (zoom or 1) * Host.Unscale(ObjectiveTrackerFrame)", "* (zoom or 1)"),
     ("scale: the timer keeps the host's own scale", HOST, "timer:SetScale(scale * unscale)", "timer:SetScale(scale)"),
+    # Blizzard's tracker never resized: its OnSizeChanged then ran its next update tainted for the session (Ikar's
+    # probe, 2026-11-22: "topModulePadding KaLiQuest"). The addon's frame stands on the corner that holds it instead.
+    ("host: Blizzard's tracker widened to the rows again, so its updates run tainted", TRACKER,
+     "    local width = layout.width\n    -- The tracker's own frame,",
+     "    local width = layout.width\n"
+     "    pcall(ObjectiveTrackerFrame.SetWidth, ObjectiveTrackerFrame, (width + ns.Host.SCROLLBAR_ROOM) * layout.zoom)\n"
+     "    -- The tracker's own frame,"),
+    ("host: the frame on the host's top left whatever corner holds it", HOST,
+     "        local corner = heldBy(host)\n        frame:SetPoint(corner, host, corner, 0, 0)\n",
+     "        frame:SetPoint(\"TOPLEFT\", host, \"TOPLEFT\", 0, 0)\n"),
+    ("host: the frame on the stand-in's top left whatever corner holds it", HOST,
+     "        local corner = heldBy(host)\n        frame:SetPoint(corner, shadowOf(host), corner, 0, 0)\n",
+     "        frame:SetPoint(\"TOPLEFT\", shadowOf(host), \"TOPLEFT\", 0, 0)\n"),
+    ("host: a host held by its middle grows the frame from its left", HOST,
+     "    return \"TOP\"\nend\n", "    return \"TOPLEFT\"\nend\n"),
     # The options page's button to Edit Mode, where the size and look went (Ikar, 2026-11-13: "comme dans flare")
     ("Edit Mode button: missing from the options page", OPTIONS,
      "tip = L.OPTION_EDIT_MODE_TIP, click = ns.EditFrame.OpenEditMode }", "tip = L.OPTION_EDIT_MODE_TIP, click = function() end }"),
@@ -93,12 +110,22 @@ BREAKS = [
     ("Edit Mode button: works in a fight", FRAME,
      "function EditFrame.OpenEditMode()\n    if ns.CombatRefused() then", "function EditFrame.OpenEditMode()\n    if false then"),
     # The languages (2026-11-13: German and Spanish): every English string, with English's blanks in English's order
-    ("languages: a German string loses a blank", LOCALE, 'SHOWN_ONE = "%d Quest von %d angezeigt",',
+    ('languages: a German string loses a blank',
+     LOCALE_DEDE,
+     'SHOWN_ONE = "%d Quest von %d angezeigt",',
      'SHOWN_ONE = "%d Quest angezeigt",'),
-    ("languages: a German string missing", LOCALE, '        JOURNAL = "Questlog",\n', ""),
-    ("languages: Mexican Spanish without Castilian under it", LOCALE, "}, { __index = OWN.esES })", "}, {})"),
-    ("languages: a language without strings gets none, not English's", LOCALE,
-     "    return OWN[locale] or OWN.enUS\n", "    return OWN[locale]\n"),
+    ('languages: a German string missing',
+     LOCALE_DEDE,
+     '    JOURNAL = "Questlog",\n',
+     ''),
+    ('languages: Mexican Spanish without Castilian under it',
+     LOCALE_ESMX,
+     '}, { __index = OWN.esES })',
+     '}, {})'),
+    ("languages: a language without strings gets none, not English's",
+     LOCALE,
+     '    return OWN[locale] or OWN.enUS\n',
+     '    return OWN[locale]\n'),
     ("languages: the German quest headers' names left out", SORTS, '        [81] = "Krieger",\n', ""),
     # The area mark's learnt places (Ikar, 2026-11-15: « Un maître perdu », of Darkshore, marked at Ironforge's inn)
     ("area: objectives coming after a loading screen taken for progress", MOTION,
@@ -135,8 +162,16 @@ BREAKS = [
     ("Edit Mode: the box keeps Blizzard's own drag, which takes its parent for one of Edit Mode's systems", FRAME,
      "    selection:SetScript(\"OnDragStart\", function()\n        ns.SafeCall(onDragStart)\n    end)\n", ""),
     # Texts that fit their room, in each language (tools/kali/labels.py)
-    ("labels: a French label too long for the dialog's two lines", LOCALE,
-     "OPTION_BLOCK_REST = \"Fond de quête au repos\",", "OPTION_BLOCK_REST = \"Fond des quêtes au repos\","),
-    ("labels: a label too long in German alone", LOCALE,
-     "OPTION_BLOCK_HOVER = \"Questfeld bei Mouseover\",", "OPTION_BLOCK_HOVER = \"Questfeld unter dem Mauszeiger\","),
+    ("labels: a French label too long for the dialog's two lines",
+     LOCALE_FRFR,
+     'OPTION_BLOCK_REST = "Fond de quête au repos",',
+     'OPTION_BLOCK_REST = "Fond des quêtes au repos",'),
+    ('labels: a label too long in German alone',
+     LOCALE_DEDE,
+     'OPTION_BLOCK_HOVER = "Questfeld bei Mouseover",',
+     'OPTION_BLOCK_HOVER = "Questfeld unter dem Mauszeiger",'),
+    # The mouse buttons as icons in every addon (Ikar 2026-11-21: "About icons, yes. As much as possible.")
+    ("languages: a hint names the right button in words", LOCALE_FRFR,
+     'FIRST_GROUP_HINT = RIGHT_CLICK .. " d\u00e9placer vers un groupe"',
+     'FIRST_GROUP_HINT = "Clic droit : d\u00e9placer vers un groupe"'),
 ]

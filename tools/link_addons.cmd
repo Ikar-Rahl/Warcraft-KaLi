@@ -14,6 +14,7 @@ if /i "%1"=="relink" (
 )
 for %%A in (KaLiQuest KaLiQuest_Tests KaLiQuest_Probe) do call :one %%A "%REPO%\quest\addon" %1
 for %%A in (KaLiRecipe KaLiRecipe_Tests KaLiRecipe_Probe) do call :one %%A "%REPO%\recipe\addon" %1
+for %%A in (KaLiHUD KaLiHUD_Tests KaLiHUD_Probe) do call :one %%A "%REPO%\hud\addon" %1
 exit /b 0
 
 :one
@@ -26,5 +27,7 @@ if exist "%DST%\%1" (
     echo %1 already exists in AddOns, left as it is
     exit /b 0
 )
+rem A folder not written yet (KaLi HUD's, while it's built) gets its link once it exists.
+if not exist "%~2\%1" exit /b 0
 mklink /J "%DST%\%1" "%~2\%1"
 exit /b 0

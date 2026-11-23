@@ -123,7 +123,7 @@ function Debug.Error(err, stack)
     end
     if not reportedThisSession then
         reportedThisSession = true
-        print("|cffff5555" .. ns.TITLE .. " :|r " .. (ns.L and ns.L.ERROR_LINE or "error, " .. ns.SLASH .. " errors"))
+        print("|cffff5555" .. ns.TITLE .. ns.Colon() .. "|r " .. (ns.L and ns.L.ERROR_LINE or "error, " .. ns.SLASH .. " errors"))
     end
     local handler = geterrorhandler and geterrorhandler()
     if handler then
@@ -210,10 +210,15 @@ local function serialize(value, indent, lines, seen)
 end
 ns.Serialize = serialize
 
--- Blizzard's red X, raised above the window's own parts, such as a template's border at level 500.
+-- Blizzard's red X, raised above the window's own parts, such as a template's border at level 500. Its click hides the
+-- window itself: the template's own goes through HideUIPanel, which this build refuses an addon's window in a fight
+-- (Ikar 2026-11-22, KaLi Recipe's notebook: "I waans't able to close kali receipe I opened during a fight").
 function ns.CloseButton(window, x, y)
     local close = CreateFrame("Button", nil, nil, "UIPanelCloseButton")
     close:SetParent(window)
+    close:SetScript("OnClick", function()
+        window:Hide()
+    end)
     local top = window:GetFrameLevel()
     for _, part in ipairs({ window:GetChildren() }) do
         if part ~= close then

@@ -4,5 +4,6 @@
 *.tga binary
 *.png binary
 *.jpg binary
+*.jpeg binary
 *.ttf binary
 *.ogg binary

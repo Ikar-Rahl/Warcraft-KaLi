@@ -445,8 +445,9 @@ def needs(sources, documented, defined_in, templates_in, fonts_in):
             found["atlases"].update(a for a in re.findall(r"\|A:([\w-]+):", s) if a.lower() in atlases)
         for index in re.findall(r'\b(?:GetCVar|GetCVarBool|SetCVar|C_CVar\.\w+)\(\s*"(\d+)"', code):
             found["cvars"].add(strings[int(index)])
-        # ns.G("NAME", fallback), or a table's name = "NAME", fallback = ... passed to it.
-        for index in re.findall(r'\bns\.G\(\s*"(\d+)"|\bname\s*=\s*"(\d+)"\s*,\s*fallback\s*=', code):
+        # ns.G("NAME", fallback), or a table's name = "NAME", fallback = ... passed to it. Not a name made at run time,
+        # ns.G("RAID_TARGET_" .. n): the game has no string by its first part alone.
+        for index in re.findall(r'\bns\.G\(\s*"(\d+)"(?!\s*\.\.)|\bname\s*=\s*"(\d+)"\s*,\s*fallback\s*=', code):
             found["strings"].add(strings[int(index[0] or index[1])])
     return found
 

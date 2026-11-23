@@ -7,8 +7,9 @@ import time
 import urllib.request
 import zlib
 
-# The game data's build the benches' art and the generated tables come from, one small patch behind the client.
-BUILD = "1.60.1.70790"
+# The game data's build the benches' art and the generated tables come from: the client's own (Ikar 2026-11-22:
+# "we must build against the latest version"). The tools that read the tables take it from here.
+BUILD = "1.60.1.71037"
 CASC = "https://wago.tools/api/casc/{}?version=" + BUILD
 
 

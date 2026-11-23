@@ -4,6 +4,12 @@ quest/bench/art/
 quest/bench/js/fake-log.js
 recipe/bench/art/
 recipe/bench/js/data.js
+hud/bench/art/
+
+# The sheets KaLi HUD's cartouches and minimap rings are cut from (hud/tools/cut_art.py, make_cartouches.py,
+# cut_rings.py, make_rings.py), images Ikar generated with Google Gemini: 56 MB, kept local unless Ikar chooses to
+# publish them. The addon ships the pieces cut from them.
+hud/art/
 
 # The Lua runtime the test runners load (python -I -m pip install --target tools/pylib lupa), and Python's caches.
 tools/pylib/

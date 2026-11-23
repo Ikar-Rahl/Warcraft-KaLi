@@ -79,6 +79,19 @@ do
     F.RunTimers()
 end
 
+-- A window's X in a fight: the game refuses an addon's HideUIPanel then, which the template's own click goes through,
+-- so the X hides its window itself (Ikar 2026-11-22, KaLi Recipe's notebook that wouldn't close in a fight).
+do
+    local window = CreateFrame("Frame", nil, UIParent)
+    local close = ns.CloseButton(window, 0, 0)
+    window:Show()
+    local was, refused = F.combat, #F.panelsRefused
+    F.combat = true
+    pcall(F.RunScript, close, "OnClick", "LeftButton", false)
+    F.combat = was
+    expect(not window:IsShown() and #F.panelsRefused == refused, "in a fight a window's X doesn't close it")
+end
+
 -- Values the game hides (secret values): ns.Plain gives nil in place of each, every other as it is, however many.
 do
     local a, b, c = ns.Plain(1, F.SECRET, "three")
@@ -322,6 +335,30 @@ for i = 1, 7 do
 end
 ns.SelfCheck.AtLogin()
 expect(#dev.apiChecks == 5, "the API check keeps " .. #dev.apiChecks .. " builds, not 5")
+-- What didn't hold when the chat said so is kept with the build's entry, and in the report, though it holds since: the
+-- assumptions run again later (KaLi Quest's at each zone change), and what they find then replaces what they found.
+do
+    local holds, afterLogin = false, ns.SelfCheck.AfterLogin
+    ns.SelfCheck.Add("kali smoke: holds later", function()
+        return 1, holds and {} or { "not yet" }
+    end)
+    ns.SelfCheck.AfterLogin = nil
+    dev.apiChecks = {}
+    ns.SelfCheck.AtLogin()
+    holds = true
+    ns.SelfCheck.Store()
+    local entry, said, still = dev.apiChecks[#dev.apiChecks], {}, false
+    for _, w in ipairs(type(entry.told) == "table" and entry.told.what or {}) do
+        said[w] = true
+    end
+    for _, a in ipairs(entry.assumed) do
+        still = still or a.name == "kali smoke: holds later" and #a.wrong > 0
+    end
+    expect(not still and said["kali smoke: holds later: not yet"], "what didn't hold when the chat said so isn't kept")
+    expect(ns.Report.Text():find("\n      kali smoke: holds later: not yet", 1, true),
+        "what didn't hold when the chat said so isn't in the report")
+    ns.SelfCheck.AfterLogin = afterLogin
+end
 dev.apiChecks = checks
 -- The game's warnings against the addon: the same one twice is one entry counted twice; a blocked action reaches the
 -- addon's own hook.
@@ -471,6 +508,65 @@ do
     expect(F.tooltip.lines[1] == "Fortschrittsleisten" and F.tooltip.lines[2] == "kali smoke: why",
         "dialog: a label broken by hand is broken in its tooltip's title too: " .. tostring(F.tooltip.lines[1]))
     F.RunScript(row, "OnLeave")
+    handle:Close()
+end
+
+-- A section's own « Annuler » and « Par défaut » (spec.sectionButtons), on one line under its rows: each changes its
+-- section's values alone, « Annuler » its own extra too, asking nothing; each lit only when it has something to do.
+do
+    local values, held = { a = 5, b = true, c = 7 }, { place = "home" }
+    local handle = ns.Dialog.New({
+        title = "kali smoke",
+        open = "one",
+        sections = function()
+            return {
+                { id = "one", name = "One", rows = {
+                    { kind = "slider", key = "a", name = "A", step = 1 },
+                    { kind = "check", key = "b", name = "B" },
+                }, extra = {
+                    take = function()
+                        return { held.place }
+                    end,
+                    same = function(h)
+                        return h[1] == held.place
+                    end,
+                    put = function(h)
+                        held.place = h[1]
+                    end,
+                } },
+                { id = "two", name = "Two", rows = { { kind = "slider", key = "c", name = "C", step = 1 } } },
+            }
+        end,
+        options = function()
+            return values
+        end,
+        defaults = { a = 3, b = false, c = 2 },
+        ranges = { a = { 0, 10 }, c = { 0, 10 } },
+        sectionButtons = { revert = { text = "Annuler" }, defaults = { text = "Par défaut" } },
+    })
+    handle:Open()
+    handle:Snapshot()
+    local function line(id)
+        for _, f in ipairs(handle.frame.rows) do
+            if f.section.id == id and f.row.kind == "buttons" then
+                return f
+            end
+        end
+    end
+    local one, two, sections = line("one"), line("two"), handle:Sections()
+    expect(one and two and one:IsShown() and not two:IsShown() and one.Revert:GetParent() == one
+        and one.Defaults:GetParent() == one and not one.Revert:IsEnabled() and one.Defaults:IsEnabled(),
+        "dialog: a section's « Annuler » and « Par défaut » aren't on one line of the open section, or aren't lit as they should be")
+    handle:Set(sections[1].rows[1], 8)
+    handle:Set(sections[2].rows[1], 9)
+    held.place = "dragged"
+    expect(one.Revert:IsEnabled(), "dialog: a section's « Annuler » stays grey once its value changed")
+    F.RunScript(one.Revert, "OnClick")
+    expect(values.a == 5 and values.c == 9 and held.place == "home" and not one.Revert:IsEnabled(),
+        "dialog: a section's « Annuler » doesn't put back its own values and extra alone")
+    F.RunScript(one.Defaults, "OnClick")
+    expect(values.a == 3 and values.b == false and values.c == 9 and not one.Defaults:IsEnabled(),
+        "dialog: a section's « Par défaut » doesn't set its own values alone")
     handle:Close()
 end
 

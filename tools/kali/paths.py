@@ -21,6 +21,7 @@ PYLIB = ROOT / "tools/pylib"
 
 QUEST = ROOT / "quest"
 RECIPE = ROOT / "recipe"
+HUD = ROOT / "hud"
 SHARED = ROOT / "shared"
 
 

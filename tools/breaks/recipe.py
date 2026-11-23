@@ -6,6 +6,12 @@ GAME, SCAN, MAIN, CHECK, DB, NOTEBOOK, MINIMAP, SOUNDS, OPTIONS, FOLLOW, MODEL, 
     f"recipe/addon/KaLiRecipe/{name}.lua"
     for name in ("Core/Game", "Core/Scan", "Core/Main", "Core/SelfCheck", "Core/DB", "UI/Notebook", "UI/MinimapButton",
                  "Core/Sounds", "UI/Options", "UI/Follow", "Core/Model", "Core/Text", "UI/Chat", "Core/Locale"))
+# One language a file since 2026-11-21 (Core/Locale.lua keeps the machinery)
+LOCALE_DEDE = "recipe/addon/KaLiRecipe/Locale/deDE.lua"
+LOCALE_ESES = "recipe/addon/KaLiRecipe/Locale/esES.lua"
+LOCALE_ESMX = "recipe/addon/KaLiRecipe/Locale/esMX.lua"
+LOCALE_ENUS = "recipe/addon/KaLiRecipe/Locale/enUS.lua"
+LOCALE_FRFR = "recipe/addon/KaLiRecipe/Locale/frFR.lua"
 
 BREAKS = [
     # The API check, against what Forever answers
@@ -85,12 +91,18 @@ BREAKS = [
      "return ns.Text.Limited(s) and link(spell) .. \" \" .. ns.Text.CLOCK_MARKUP or link(spell)", "return link(spell)"),
     ("stock: the visit's line not told which sighting", SCAN, "visit:Add(spell, what, s)", "visit:Add(spell, what)"),
     # The languages (2026-11-13: German and Spanish): every English string, with English's blanks in English's order
-    ("languages: a Spanish string's blanks in another order", LOCALE, 'ALT_HAS = "%s tiene %d (%s)",',
+    ("languages: a Spanish string's blanks in another order",
+     LOCALE_ESES,
+     'ALT_HAS = "%s tiene %d (%s)",',
      'ALT_HAS = "%d tiene %s (%s)",'),
-    ("languages: a German key misspelt", LOCALE, 'OPT_MINIMAP_LOCK = "Position sperren",',
+    ('languages: a German key misspelt',
+     LOCALE_DEDE,
+     'OPT_MINIMAP_LOCK = "Position sperren",',
      'OPT_MINIMAP_LOK = "Position sperren",'),
-    ("languages: a Mexican string the same as Castilian's", LOCALE,
-     'PLACE_WAYPOINT = "Poner un marcador de mapa",', 'PLACE_WAYPOINT = "Poner una marca de mapa",'),
+    ("languages: a Mexican string the same as Castilian's",
+     LOCALE_ESMX,
+     'PLACE_WAYPOINT = "Poner un marcador de mapa",',
+     'PLACE_WAYPOINT = "Poner una marca de mapa",'),
     ("languages: a German profession's name left out", "recipe/addon/KaLiRecipe/Data/Recipes.lua",
      '        [185] = "Kochkunst",\n', ""),
     # Quest rewards as the rest (Ikar, 2026-11-15: "same behaviour as the rest, sound, log line, harden the logic ... an
@@ -152,7 +164,28 @@ BREAKS = [
      "        pcall(self.SetUserPlaced, self, false)\n        if not Notebook.docked then", "        if not Notebook.docked then"),
     ("notebook: its place the game's to save", "recipe/addon/KaLiRecipe/UI/Notebook.lua",
      "    pcall(frame.SetDontSavePosition, frame, true)\n", ""),
+    # The vendors visited, on hover (Ikar, 2026-11-21: "vu (gray) or jamais visite) green", "with icon if from alt")
+    ("vendors: a visit not kept", SCAN, "    ns.DB.Visit(ns.db, npc, Game.Key(), time())\n", ""),
+    ("vendors: another's visit shown with « Sur un autre personnage » off", "recipe/addon/KaLiRecipe/UI/Tooltips.lua",
+     "    local other = alts and v.other and not v.mine\n", "    local other = v.other and not v.mine\n"),
+    ("vendors: the icon out of reach not a vendor's", "recipe/addon/KaLiRecipe/UI/Tooltips.lua",
+     'SELLS[kind and (kind:gsub("^unable", ""))]', "SELLS[kind]"),
+    ("vendors: white with no recipe", "recipe/addon/KaLiRecipe/UI/Tooltips.lua",
+     "v.recipes > 0 and W.WHITE or W.GRAY }", "W.WHITE }"),
+    ("vendors: one known by its recipes alone, never visited", MODEL,
+     "    local other = by == nil and counts[npc] ~= nil\n", "    local other = false\n"),
+    ("vendors: a copy's visits not merged", DB, "            if (mine[key] or 0) < t then\n", "            if false then\n"),
+    ("vendors: a visit that can't be read dropped, not set aside", DB,
+     '                    aside(where .. "." .. tostring(key), "not a visit", t)\n', ""),
     # Texts that fit their room, in each language (tools/kali/labels.py)
-    ("labels: a label too long for the options window's two lines", LOCALE,
-     "OPT_SOUND_RECIPE = \"Son : nouvelle recette\",", "OPT_SOUND_RECIPE = \"Son d'une nouvelle recette\","),
+    ("labels: a label too long for the options window's two lines",
+     LOCALE_FRFR,
+     'OPT_SOUND_RECIPE = "Son : nouvelle recette",',
+     'OPT_SOUND_RECIPE = "Son d\'une nouvelle recette",'),
+    # The mouse buttons as icons in every addon (Ikar 2026-11-21: "About icons, yes. As much as possible.")
+    ("languages: the notebook's hint names the left button in words", LOCALE_ENUS,
+     'CLICK_OPEN = LEFT_CLICK .. " open the notebook"', 'CLICK_OPEN = "Click: open the notebook"'),
+    # Ikar 2026-11-22: "I waans't able to close kali receipe I opened during a fight"
+    ("notebook: its X through Blizzard's HideUIPanel, refused in a fight", "recipe/addon/KaLiRecipe/UI/Notebook.lua",
+     "        frame.CloseButton:SetScript(\"OnClick\", function()\n            Notebook.Close()\n        end)\n", ""),
 ]

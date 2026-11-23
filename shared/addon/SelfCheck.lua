@@ -16,6 +16,7 @@ ns.SelfCheck = SelfCheck
 
 local BUILDS_KEPT = 5
 local WARNINGS_KEPT = 20
+local TOLD_KEPT = 20 -- of what didn't hold when the chat said so
 
 -- A dotted global's value: "Enum.ItemClass.Recipe".
 function SelfCheck.Resolve(name)
@@ -139,15 +140,33 @@ end
 local current -- this build's entry in <Addon>DevDB.apiChecks, from login
 
 -- Once per build and addon version. A missing game string isn't worth it: the addon has its own wording for each.
+-- What didn't hold then is kept with the entry (told.what), the assumptions first: they run again later (KaLi Quest's
+-- at each zone change), and what they find then replaces what they found.
 local function tell()
-    local count = current.failing or 0
+    if current.told then
+        return
+    end
+    local what, count = {}, current.failing or 0
+    for _, a in ipairs(current.assumed or {}) do
+        for _, w in ipairs(a.wrong) do
+            what[#what + 1] = tostring(a.name) .. ": " .. tostring(w)
+        end
+    end
     for _, m in ipairs(current.missing or {}) do
         if not m:find("^string ") then
+            what[#what + 1] = m
             count = count + 1
         end
     end
-    if count > 0 and not current.told then
-        current.told = true
+    if count > 0 then
+        local kept = {}
+        for i = 1, math.min(#what, TOLD_KEPT) do
+            kept[i] = what[i]
+        end
+        if #what > TOLD_KEPT then
+            kept[#kept + 1] = string.format("(%d more)", #what - TOLD_KEPT)
+        end
+        current.told = { when = date("%Y-%m-%d %H:%M:%S"), what = kept }
         ns.Say(ns.L.API_NOT_AS_ASSUMED)
     end
 end
