@@ -19,7 +19,7 @@ On [authors.curseforge.com](https://authors.curseforge.com/#/projects/create/cho
 | Field | Value |
 | --- | --- |
 | Name | KaLi HUD |
-| Summary | A metal base along the bottom of the screen for Blizzard's bars, the minimap, the chat and the damage meter, with an info bar. |
+| Summary | Adaptable base plate, with minimap, collapsible panels and info bar. (Ikar's, 2026-11-23; also the TOC's Notes, in each language) |
 | Description | [KaLiHUD/README.md](../../addon/KaLiHUD/README.md) |
 | License | MIT License |
 | Class | Addons |

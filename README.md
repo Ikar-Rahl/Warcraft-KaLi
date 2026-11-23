@@ -6,7 +6,7 @@ Addons for World of Warcraft Forever, by Ikar. French first, then English, Germa
 | --- | --- | --- |
 | **KaLi Quest** | Your own quest groups, in a rewritten objective tracker | [quest/](quest/README.md) |
 | **KaLi Recipe** | A notebook of the recipes you come across, without spoiling the ones you haven't met | [recipe/](recipe/README.md) |
-| **KaLi HUD** | A bronze base along the bottom of the screen for Blizzard's bars, the minimap, the chat and the damage meter, with an info bar at its foot | [hud/](hud/README.md) |
+| **KaLi HUD** | Adaptable base plate, with minimap, collapsible panels and info bar | [hud/](hud/README.md) |
 
 To install one, copy its folder from `quest/addon/`, `recipe/addon/` or `hud/addon/` (`KaLiQuest`, `KaLiRecipe`,
 `KaLiHUD`) into the game's `Interface\AddOns`. The `_Tests` and `_Probe` folders are for development; players don't
