@@ -57,7 +57,7 @@ repository, are in `release/KaLiQuest-0.9.0/gallery/`, in the Gallery's order.
 
 | # | In the Gallery | In the description |
 | --- | --- | --- |
-| 1 | `KaLiQuest-video.mp4`, 45 s, put on YouTube | |
+| 1 | `KaLiQuest-video.mp4`, 45 s, on YouTube: [Q2OJeZRcSps](https://www.youtube.com/watch?v=Q2OJeZRcSps) (YouTube files it as a Short) | |
 | 2 | `01-your-groups.png`: four groups of your own under Track, the Journal folded | Under the opening lines |
 | 3 | `02-several-quests-at-once.png`: three quests picked with Ctrl+click | After « Your groups » |
 | 4 | `03-filters-with-counts.png`: the filter menu, each choice with its count | After « Find what you need » |

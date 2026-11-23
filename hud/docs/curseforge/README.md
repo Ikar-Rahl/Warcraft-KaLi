@@ -56,8 +56,8 @@ from the nine strips: each style's middle, under its name.
 
 | # | In the Gallery | In the description |
 | --- | --- | --- |
-| 1 | `KaLiHUD-video-1-the-plate.mp4`, 2 min 15 s, put on YouTube | |
-| 2 | `KaLiHUD-video-2-info-bar-folders-stats.mp4`, 3 min 42 s, put on YouTube | |
+| 1 | `KaLiHUD-video-1-the-plate.mp4`, 2 min 15 s, on YouTube: [BpzNhzMewgY](https://www.youtube.com/watch?v=BpzNhzMewgY) | |
+| 2 | `KaLiHUD-video-2-info-bar-folders-stats.mp4`, 3 min 42 s, on YouTube: [nGf-PaR8KSg](https://www.youtube.com/watch?v=nGf-PaR8KSg) | |
 | 3 | `01-the-plate.png`: the whole foot of the screen, in the default style | Under the opening lines |
 | 4 | `02-nine-styles.png`: the nine styles, each under its name | After « The plate » |
 | 5 | `03-chat-and-meter-folded.png`: the chat and the damage meter folded into their cartouches, the info bar whole | After « The info bar » |

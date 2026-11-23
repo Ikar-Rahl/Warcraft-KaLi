@@ -58,7 +58,7 @@ another player's nameplate is blurred.
 
 | # | In the Gallery | In the description |
 | --- | --- | --- |
-| 1 | `KaLiRecipe-video.mp4`, 37 s, put on YouTube | |
+| 1 | `KaLiRecipe-video.mp4`, 37 s, on YouTube: [SmFL6TxUkIc](https://www.youtube.com/watch?v=SmFL6TxUkIc) | |
 | 2 | `01-notebook-beside-the-professions-window.png`: the notebook docked, the « Notebook: » line under the rank bar | Under the opening lines |
 | 3 | `02-noted-at-the-auction-house.png`: **Note the recipes**, and its chat line: 466 recipes noted | After « Noted where you meet them » |
 | 4 | `03-the-notebook.png`: a profession's recipes by category, a recipe's detail below, in Clean | After « The notebook » |
