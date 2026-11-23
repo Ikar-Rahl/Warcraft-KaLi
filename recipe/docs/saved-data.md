@@ -20,6 +20,7 @@ Keys are numbers wherever the game has a number: recipe spells, items, NPCs, map
 | --- | --- | --- |
 | `version` | The format: 2 | — |
 | `sightings` | `{ [spell] = { sighting, ... } }`: where and when each recipe was seen | **Gone for good.** This is the notebook |
+| `visits` | `{ [npc] = { [GUID] = time } }`: each vendor opened, by character, its last time (since 2026-11-21) | Shown as never visited until opened again. What can't be read is set aside |
 | `forgotten` | `{ [spell] = time }`: recipes taken out with `/kr forget` | A copy could bring them back |
 | `options` | Only the options the player changed. The others read their default | The player's choices |
 | `names` | `{ [locale] = { npc = { [id] = name }, quest = { ... } } }`: names the game gave | Shown as « Quelqu'un » until met again |
@@ -50,6 +51,7 @@ Keys are numbers wherever the game has a number: recipe spells, items, NPCs, map
 6. **Every deletion leaves a mark.** `/kr forget` records the time in `forgotten`. A copy then can't bring back what was seen before it, but the recipe is noted again if it's seen afterwards. Anything that deletes later must do the same, or the copies will undo it.
 7. **No number the file can't hold.** At logout, nan and inf are taken out (counted in `meta.nonFinite`): written as `nan` or `inf`, they would make the whole file unreadable. A number is judged by how it prints, never by comparing it: the game's Lua compares nan as equal to everything (`/kr test` found it, 2026-11-10).
 8. **A released step never changes.** Step n turns format n − 1 into n. A step reads nothing that may change later (`DEFAULTS`, `KINDS`): what it needs is written inside it, as step 2 holds version 1's defaults. A new format adds a step, a fixture in [Fixtures.lua](../addon/KaLiRecipe_Tests/Fixtures.lua) that is never edited afterwards, and a line in this page's history.
+9. **Visits merge by character:** two copies keep each character's latest visit of each vendor. Adding `visits` needed no step, as `stock` didn't.
 
 ## Startup and logout
 

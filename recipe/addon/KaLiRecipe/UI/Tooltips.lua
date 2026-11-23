@@ -183,6 +183,49 @@ function Tooltips.MaterialLines(m, item, o)
     return out
 end
 
+-- ---------- A vendor, on hover ----------
+
+-- The game's green (GREEN_FONT_COLOR).
+local GREEN = { 0.1, 1, 0.1 }
+
+-- A vendor's line (Ikar 2026-11-21: "show no receipe (gray), or has receipe (white). with icon if from alt. never visited
+-- in green, and if alt already visisted but alt discoverability is diabled shoudl be green for local character"): opened,
+-- with how many recipes seen there, grey with none, white with some, the friend icon when only another character opened
+-- it; never opened, green, where the game's icon says it sells. alts: another's visit counts (« Sur un autre
+-- personnage »). Nil where there's nothing to say.
+function Tooltips.VendorLine(m, npc, sells, alts)
+    local v = m:Vendor(npc)
+    local other = alts and v.other and not v.mine
+    if not (v.mine or other) then
+        return sells and { L.VENDOR_NEVER, nil, GREEN } or nil
+    end
+    local text = v.recipes > 0 and ns.Plural(v.recipes, L.VENDOR_ONE, L.VENDOR_MANY) or L.VENDOR_NONE
+    return { (other and "|A:" .. W.ATLAS.friend .. ":14:14|a " or "") .. text, nil, v.recipes > 0 and W.WHITE or W.GRAY }
+end
+
+-- The icons the game gives a vendor before any talk, as its nameplate's (Ikar's probe, 2026-11-21: a vendor
+-- « Pickup », an innkeeper « Innkeeper »; repairers and the merchant cursor's own as Cursormode names them). One that
+-- talks or gives quests shows that instead: it says nothing until opened.
+local SELLS = { pickup = true, buy = true, innkeeper = true, repairnpc = true }
+local icon
+
+-- Whether the game's icon for the unit says it sells: SetUnitCursorTexture on a texture of the addon's own, never shown,
+-- the lower priority icons too (the probe's flight master and quest giver had none without), its file read back,
+-- « Crosshair_<kind>_64 », « Unable » before the kind out of reach.
+function Tooltips.Sells(unit)
+    if type(SetUnitCursorTexture) ~= "function" then
+        return false
+    end
+    icon = icon or UIParent:CreateTexture()
+    icon:Hide()
+    if not ns.Plain(ns.Call(SetUnitCursorTexture, icon, unit, nil, true, false)) then
+        return false
+    end
+    local file = ns.Plain(ns.Call(icon.GetTextureFilePath, icon))
+    local kind = tostring(file or ""):lower():match("crosshair_(%a+)_%d+$")
+    return SELLS[kind and (kind:gsub("^unable", ""))] == true
+end
+
 local function add(tooltip, lines)
     for _, line in ipairs(lines) do
         local c, rc = line[3] or W.WHITE, line[4] or W.GRAY
@@ -227,6 +270,23 @@ local function onSpell(tooltip, data)
     add(tooltip, Tooltips.RecipeLines(ns.book, data.id, ns.db.options.recipeTip))
 end
 
+-- An NPC under the mouse: the vendor's line, on the game's own tooltip only.
+local function onUnit(tooltip, data)
+    if not (ns.book and tooltip == GameTooltip and data) then
+        return
+    end
+    local _, unit = tooltip:GetUnit()
+    unit = ns.Plain(unit)
+    local npc = ns.Game.NPCFromGUID(ns.Plain(data.guid) or (unit and ns.Plain(UnitGUID(unit))))
+    if not npc then
+        return
+    end
+    local line = Tooltips.VendorLine(ns.book, npc, unit ~= nil and Tooltips.Sells(unit), ns.db.options.mAlt)
+    if line then
+        add(tooltip, { line })
+    end
+end
+
 function Tooltips.Start()
     if not (TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum.TooltipDataType) then
         return false
@@ -237,5 +297,10 @@ function Tooltips.Start()
     TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Spell, function(tooltip, data)
         ns.SafeCall(onSpell, tooltip, data)
     end)
+    if Enum.TooltipDataType.Unit then
+        TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tooltip, data)
+            ns.SafeCall(onUnit, tooltip, data)
+        end)
+    end
     return true
 end

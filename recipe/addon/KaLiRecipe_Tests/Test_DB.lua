@@ -290,6 +290,18 @@ T.Add("DB", "two copies merge: one sighting per place, the earliest first date, 
     T.Eq(DB.MaxStock(nil, nil), nil, "neither: none")
 end)
 
+T.Add("DB", "vendors' visits: what can't be read set aside, each character's latest kept when copies merge", function()
+    local db = DB.Load({ version = 2, visits = { [4223] = { me = 100, alt = "x" }, bad = { me = 1 }, [5000] = 7 } }, NOW)
+    local aside = byPlace(db)
+    T.Eq(db.visits[4223].me, 100, "a visit kept")
+    T.True(db.visits[4223].alt == nil and aside["visits.4223.alt"] ~= nil, "one without a date set aside")
+    T.True(aside["visits.bad"] ~= nil and aside["visits.5000"] ~= nil, "not a vendor, or no visits: set aside")
+    local other = DB.Load({ version = 2, visits = { [4223] = { me = 50, alt = 300 }, [6000] = { alt = 10 } } }, NOW)
+    local _, _, n = DB.Merge(db, other)
+    T.Eq(db.visits[4223].me .. " " .. db.visits[4223].alt .. " " .. db.visits[6000].alt .. " " .. n, "100 300 10 2",
+        "the latest of each, the other's new ones")
+end)
+
 T.Add("DB", "a vendor's stock a file can't hold is cleared, the sighting kept", function()
     local data = { version = DB.VERSION, sightings = { [2795] = {
         { k = "vendor", npc = 4223, t0 = 1, t = 1, item = 2889, stock = 0 / 0 },
@@ -449,6 +461,25 @@ T.Add("DB", "names the game gave are kept per language, by number", function()
     T.Eq(DB.Name(db, "npc", 4223), "Ellandrieth", "kept")
     T.Eq(DB.Name(db, "npc", 4224), nil, "an empty name isn't")
     T.Eq(db.names[ns.LOCALE].npc.x, nil, "a bad number isn't")
+end)
+
+T.Add("DB", "a name met in another language stands in: this language's first, then English's, then the others'", function()
+    local saved = ns.LOCALE
+    ns.LOCALE = "frFR"
+    local ok, err = pcall(function()
+        local db = DB.Load(nil)
+        db.names.esES = { npc = { [1] = "Instructor" } }
+        db.names.deDE = { npc = { [1] = "Lehrer", [2] = "Kobold (de)", [3] = "Händler" } }
+        db.names.enUS = { npc = { [2] = "Kobold" } }
+        DB.SetName(db, "npc", 3, "Marchand")
+        T.Eq(DB.Name(db, "npc", 3), "Marchand", "this language's own")
+        T.Eq(DB.Name(db, "npc", 2), "Kobold", "English's before the others")
+        T.Eq(DB.Name(db, "npc", 1), "Lehrer", "then the others, by language: German before Spanish")
+        T.Eq(DB.Name(db, "npc", 4), nil, "none in any language")
+        T.Eq(DB.Name(db, "quest", 1), nil, "nor of another kind")
+    end)
+    ns.LOCALE = saved
+    assert(ok, err)
 end)
 
 T.Add("DB", "the window's state: what doesn't fit goes back to its default", function()

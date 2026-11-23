@@ -194,6 +194,19 @@ function GameTooltip:SetItemByID(id)
     F.tooltip.lines[#F.tooltip.lines + 1] = tostring(F.itemNames[id] or id)
     runPostCalls(self, 0, id)
 end
+-- The unit under the mouse, and the icon the game gives it (SetUnitCursorTexture): F.cursorIcons[unit], a file as
+-- Ikar's probe read them (2026-11-21).
+F.cursorIcons = {}
+function SetUnitCursorTexture(texture, unit)
+    local file = F.cursorIcons[unit]
+    texture.GetTextureFilePath = function()
+        return file
+    end
+    return file ~= nil
+end
+function GameTooltip:GetUnit()
+    return F.unitNames[F.tooltipUnit], F.tooltipUnit
+end
 function GameTooltip:SetSpellByID(id)
     F.tooltip.lines[#F.tooltip.lines + 1] = tostring(F.spellNames[id] or id)
     runPostCalls(self, 1, id)

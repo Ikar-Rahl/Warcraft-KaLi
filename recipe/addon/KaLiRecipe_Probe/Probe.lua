@@ -8,6 +8,7 @@
 --   /krprobe ah         at the auction house: one query on Recipes without a click, and what comes back
 --   /krprobe sounds     every sound the options offer, one after the other
 --   /krprobe volume     how the game takes a volume asked with a sound: three short quills, read back
+--   /krprobe cursor     on or off: each NPC hovered, the cursor the game gives it (a vendor before any talk?)
 --   /krprobe show       the report so far
 local ADDON = ...
 
@@ -370,13 +371,66 @@ COMMANDS.volume = function()
     end
 end
 
+-- The cursor the game gives an NPC under the mouse, before any talk (Ikar 2026-11-21: a vendor « vu » or « jamais
+-- visité » on hover): SetUnitCursorTexture, as the nameplates' interact icon uses it, on a texture of the probe's own,
+-- then that texture read back. On until asked again; each NPC noted once, in the chat and the report.
+local cursorTex, cursorOn, cursorSeen
+local function shown(v)
+    if type(issecretvalue) == "function" and issecretvalue(v) then
+        return "secret"
+    end
+    return tostring(v)
+end
+local function cursorOf(lowPriority)
+    local has = call(SetUnitCursorTexture, cursorTex, "mouseover", nil, lowPriority, false)
+    local parts = { "has " .. shown(has) }
+    for _, m in ipairs({ "GetTexture", "GetTextureFileID", "GetTextureFilePath", "GetAtlas" }) do
+        if cursorTex[m] then
+            parts[#parts + 1] = m:gsub("^Get", "") .. " " .. shown(call(cursorTex[m], cursorTex))
+        end
+    end
+    return table.concat(parts, ", ")
+end
+local cursorFrame = CreateFrame("Frame")
+cursorFrame:SetScript("OnEvent", function()
+    if not (cursorOn and report and UnitExists("mouseover")) then
+        return
+    end
+    local guid = UnitGUID("mouseover")
+    if type(issecretvalue) == "function" and issecretvalue(guid) then
+        note("cursor", "a secret unit", cursorOf(nil))
+        return
+    end
+    local kind, npc = tostring(guid or ""):match("^(%a+)%-%d+%-%d+%-%d+%-%d+%-(%d+)")
+    if not (kind == "Creature" or kind == "Vehicle") or cursorSeen[npc] then
+        return
+    end
+    cursorSeen[npc] = true
+    local line = cursorOf(nil) .. " | low priority: " .. cursorOf(true)
+    local key = npc .. " " .. shown(UnitName("mouseover"))
+    note("cursor", key, line)
+    say(key .. ": " .. line)
+end)
+COMMANDS.cursor = function()
+    cursorTex = cursorTex or frame:CreateTexture()
+    cursorTex:Hide()
+    cursorOn, cursorSeen = not cursorOn, cursorSeen or {}
+    if cursorOn then
+        cursorFrame:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
+    else
+        cursorFrame:UnregisterEvent("UPDATE_MOUSEOVER_UNIT")
+    end
+    note("cursor", "SetUnitCursorTexture", type(SetUnitCursorTexture))
+    say("cursor " .. (cursorOn and "on: hover NPCs (vendors, with talk or not, innkeepers, trainers, quest givers)" or "off"))
+end
+
 SLASH_KRPROBE1 = "/krprobe"
 SLASH_KRPROBE2 = "/kaliprobe"
 SlashCmdList.KRPROBE = function(input)
     local cmd, rest = (input or ""):match("^[ \t]*([^ \t]*)[ \t]*(.-)[ \t]*$")
     local fn = COMMANDS[cmd:lower()]
     if not fn then
-        say("/krprobe [window|spellbook|tooltip <item>|trainer|ah|bank|sounds|volume|show]")
+        say("/krprobe [window|spellbook|tooltip <item>|trainer|ah|bank|sounds|volume|cursor|show]")
         return
     end
     if not report then

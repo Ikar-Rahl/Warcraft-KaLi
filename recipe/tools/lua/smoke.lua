@@ -886,6 +886,33 @@ for _, fn in ipairs(F.postCalls[0]) do
     fn(ShoppingTooltip1, { type = 0, id = 728, lines = {} })
 end
 expect(#F.tooltip.lines == 0, "no lines on the comparison tooltips")
+
+-- ---------- A vendor, on hover (Ikar 2026-11-21: "vu (gray) or jamais visite) green") ----------
+do
+    local UNIT = Enum.TooltipDataType.Unit
+    local function hover(npc, file)
+        local guid = "Creature-0-1-0-1-" .. npc .. "-0001"
+        F.unitGUIDs.mouseover, F.cursorIcons.mouseover, F.tooltipUnit = guid, file, "mouseover"
+        GameTooltip:SetOwner(UIParent)
+        for _, fn in ipairs(F.postCalls[UNIT] or {}) do
+            fn(GameTooltip, { type = UNIT, guid = guid, lines = {} })
+        end
+        F.tooltipUnit = nil
+        return table.concat(F.tooltip.lines, "\n")
+    end
+    local seller = "Cursor\\Crosshair_UnablePickup_64"
+    expect(ns.db.visits[4223] and ns.db.visits[4223][ns.book.me], "the vendor opened is kept, by character")
+    expect(hover(4223, nil):find(string.format(L.VENDOR_MANY, 3), 1, true), "a vendor opened: its recipes")
+    expect(hover(9001, seller):find(L.VENDOR_NEVER, 1, true), "one never opened with the game's vendor icon, out of reach")
+    expect(hover(9001, "Cursor\\Crosshair_UnableInnkeeper_64"):find(L.VENDOR_NEVER, 1, true), "an innkeeper sells too")
+    expect(hover(9001, "Cursor\\Crosshair_UnableQuest_64") == "", "a quest giver: nothing")
+    ns.db.visits[9002] = { ["Player-1234-0A17"] = 1 }
+    expect(hover(9002, seller):find("|A:" .. ns.Widgets.ATLAS.friend, 1, true), "one another character opened: the friend icon")
+    ns.db.options.mAlt = false
+    expect(hover(9002, seller):find(L.VENDOR_NEVER, 1, true), "« Sur un autre personnage » off: never visited by this one")
+    ns.db.options.mAlt = nil
+    ns.db.visits[9002] = nil
+end
 expect(KaLiRecipeDevDB.reagentColor ~= nil, "the game's « Composant d'artisanat » colour read")
 
 -- ---------- The map ----------
@@ -937,6 +964,15 @@ F.combat = false
 F.Fire("PLAYER_REGEN_ENABLED")
 expect(F.pins[1] and F.pins[1].passThroughButtons and F.pins[1].passThroughButtons[1] == "RightButton",
     "the fight over, it lets right clicks through as the others")
+-- The notebook's X in a fight (Ikar 2026-11-22: "I waans't able to close kali receipe I opened during a fight"): the
+-- template's own click goes through HideUIPanel, which the game refuses an addon's window then; the notebook's own
+-- closes it.
+ns.Notebook.Show(185)
+F.combat = true
+local panelsRefused = #F.panelsRefused
+run(F.RunScript, ns.Notebook.Frame().CloseButton, "OnClick", "LeftButton", false)
+expect(not ns.Notebook.IsShown() and #F.panelsRefused == panelsRefused, "in a fight the notebook's X closes it")
+F.combat = false
 -- The map refreshes every provider in one loop: an error in the addon's stays there, kept like any other.
 local book = ns.book
 ns.book = setmetatable({}, { __index = function()

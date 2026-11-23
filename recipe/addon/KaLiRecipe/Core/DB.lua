@@ -214,7 +214,7 @@ local POINTS = { TOPLEFT = true, TOP = true, TOPRIGHT = true, LEFT = true, CENTE
 -- The tables the code reads, there and of the right kind, and options and window state it can use. Not an upgrade:
 -- it fills gaps, and sets aside a value it can't use.
 function DB.Shape(db, aside, now)
-    for _, key in ipairs({ "sightings", "chars", "reqs", "cats", "names", "forgotten", "options", "ui", "meta" }) do
+    for _, key in ipairs({ "sightings", "visits", "chars", "reqs", "cats", "names", "forgotten", "options", "ui", "meta" }) do
         if type(db[key]) ~= "table" then
             if db[key] ~= nil then
                 aside(key, "not a table", db[key])
@@ -367,6 +367,26 @@ function DB.Repair(db, aside)
         end
     end
     db.sightings = sightings
+    -- The vendors opened: { [npc] = { [character] = last visit } }. A record the game can't give back: what can't be
+    -- read is set aside.
+    local visits = {}
+    for npc, by in pairs(db.visits) do
+        local where = "visits." .. tostring(npc)
+        if not isID(npc) or type(by) ~= "table" then
+            aside(where, "not a vendor's visits", by)
+        else
+            local keep = {}
+            for key, t in pairs(by) do
+                if type(key) == "string" and finite(t) then
+                    keep[key] = t
+                else
+                    aside(where .. "." .. tostring(key), "not a visit", t)
+                end
+            end
+            visits[npc] = next(keep) ~= nil and keep or nil
+        end
+    end
+    db.visits = visits
     local chars = {}
     for key, c in pairs(db.chars) do
         if type(key) ~= "string" then
@@ -553,6 +573,18 @@ function DB.Merge(into, from, settings)
             into.sightings[spell] = #keep > 0 and keep or nil
         end
     end
+    -- Each character's latest visit of each vendor.
+    local visits = 0
+    for npc, by in pairs(from.visits) do
+        local mine = into.visits[npc] or {}
+        into.visits[npc] = mine
+        for key, t in pairs(by) do
+            if (mine[key] or 0) < t then
+                mine[key] = t
+                visits = visits + 1
+            end
+        end
+    end
     for key, c in pairs(from.chars) do
         local mine = into.chars[key]
         if not mine or (c.seen or 0) > (mine.seen or 0) then
@@ -586,7 +618,7 @@ function DB.Merge(into, from, settings)
             end
         end
     end
-    return sightings, chars
+    return sightings, chars, visits
 end
 
 -- What the current character's file keeps: the whole notebook as it is written, who keeps it and when.
@@ -622,10 +654,10 @@ function DB.Open(account, copy, now)
         DB.Event(data, now, "restored", { from = "copy", at = info.copy.at })
     elseif other then
         local startedOver = info.copy.at ~= nil and data.meta.created > info.copy.at
-        local s, c = DB.Merge(data, other, startedOver)
-        info.recovered = s + c
-        if s + c > 0 then
-            DB.Event(data, now, "merged", { from = "copy", sightings = s, chars = c })
+        local s, c, v = DB.Merge(data, other, startedOver)
+        info.recovered = s + c + v
+        if s + c + v > 0 then
+            DB.Event(data, now, "merged", { from = "copy", sightings = s, chars = c, visits = v > 0 and v or nil })
         end
     end
     info.firstRun = account == nil and not info.restored
@@ -657,10 +689,31 @@ end
 
 -- A per-language cache of names the game gave: NPCs and quests, which no function names again from their number
 -- alone. Keyed by number; a client in another language starts its own.
+-- A name met in another language stands in for one this language lacks, rather than « someone » (Ikar 2026-11-23,
+-- in an English client after months in French: "why do I see Taught by someone everywhere?"): most NPC names are
+-- proper names, the same in every language. This language's first, then English's, then the others' by language, so
+-- the same one shows each time.
 function DB.Name(db, kind, id)
-    local byLocale = db.names[ns.LOCALE]
-    local t = byLocale and byLocale[kind]
-    return t and t[id]
+    local best, name
+    for locale, kinds in pairs(db.names) do
+        local t = kinds[kind]
+        local n = t and t[id]
+        if n then
+            local rank = locale == ns.LOCALE and "0" or locale == "enUS" and "1" or "2" .. locale
+            if not best or rank < best then
+                best, name = rank, n
+            end
+        end
+    end
+    return name
+end
+
+-- A vendor opened by a character (Ikar 2026-11-21: "the list of the visited vendor"), its last time.
+function DB.Visit(db, npc, key, now)
+    if isID(npc) and type(key) == "string" then
+        db.visits[npc] = db.visits[npc] or {}
+        db.visits[npc][key] = now
+    end
 end
 
 function DB.SetName(db, kind, id, name)

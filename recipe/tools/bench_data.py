@@ -14,10 +14,10 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
-from kali.art import CASC, decode_blp, fetch, write_png  # noqa: E402
+from kali.art import BUILD, CASC, decode_blp, fetch, write_png  # noqa: E402
 from kali.paths import QUEST, RECIPE, REFERENCE  # noqa: E402
 
-DB2 = REFERENCE / "db2/1.60.1.70790"
+DB2 = REFERENCE / "db2" / BUILD
 QDB = REFERENCE / "QuestieDB"
 BENCH = RECIPE / "bench"
 ART = BENCH / "art"

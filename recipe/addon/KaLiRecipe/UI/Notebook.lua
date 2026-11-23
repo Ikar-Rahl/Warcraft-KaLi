@@ -314,6 +314,13 @@ local function build()
         end
     end)
     tinsert(UISpecialFrames, "KaLiRecipeNotebook")
+    -- The template's X hides through HideUIPanel, which this build refuses an addon's window in a fight (Ikar
+    -- 2026-11-22: "I waans't able to close kali receipe I opened during a fight"): the notebook closes itself.
+    if frame.CloseButton then
+        frame.CloseButton:SetScript("OnClick", function()
+            Notebook.Close()
+        end)
+    end
 
     -- The corner grip (Ikar, 2026-11-10: the options' sliders can't be watched, since the options panel closes the
     -- notebook, and Edit Mode takes no addon window): Blizzard's own, the chat windows' (PanelResizeButtonTemplate).

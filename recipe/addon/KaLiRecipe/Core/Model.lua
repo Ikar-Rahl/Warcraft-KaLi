@@ -275,6 +275,29 @@ function M:Seen(spell)
     return #self:Sightings(spell) > 0
 end
 
+-- A vendor as the notebook knows it (Ikar 2026-11-21): whether this character opened it, whether another did, and how
+-- many recipes were seen there. One known by its recipes alone was opened before visits were kept: by another, as far
+-- as can be told, until this character opens it.
+function M:Vendor(npc)
+    local counts = cached(self, "vendorRecipes", function()
+        local out = {}
+        for _, list in pairs(self.db.sightings) do
+            for _, s in ipairs(list) do
+                if s.k == "vendor" and s.npc then
+                    out[s.npc] = (out[s.npc] or 0) + 1
+                end
+            end
+        end
+        return out
+    end)
+    local by = self.db.visits[npc]
+    local other = by == nil and counts[npc] ~= nil
+    for key in pairs(by or EMPTY) do
+        other = other or key ~= self.me
+    end
+    return { mine = by ~= nil and by[self.me] ~= nil, other = other, recipes = counts[npc] or 0 }
+end
+
 -- One sighting per place (DB.PlaceKey): seen again, it keeps its first date and takes the new one.
 -- s = { k, npc, map, x, y, q, item, and at a vendor cost (copper), costs ({ n, item or currency, tex }) and stock (how
 -- many it had left, -1 for no limit) }; a quest reward's npc and place are its giver's, when its offer was seen. Returns

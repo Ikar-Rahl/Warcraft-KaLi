@@ -125,6 +125,7 @@ end
 
 on("MERCHANT_SHOW", function()
     local npc = npcOf("npc")
+    ns.DB.Visit(ns.db, npc, Game.Key(), time())
     local map, x, y = Game.Spot()
     merchant = { npc = npc, map = map, x = x, y = y }
     merchant.visit = ns.Chat.Visit({ k = "vendor", npc = npc, map = map })

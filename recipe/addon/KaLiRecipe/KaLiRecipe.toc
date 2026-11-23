@@ -1,12 +1,12 @@
 ## Interface: 16001
 ## Title: KaLi Recipe
 ## Notes: A notebook of the recipes you come across, without spoiling the ones you haven't met.
-## Notes-frFR: Un carnet des recettes que vous croisez, sans dévoiler celles que vous n'avez jamais vues.
+## Notes-frFR: Un carnet des recettes que vous croisez, sans dévoiler celles que vous n’avez jamais vues.
 ## Notes-deDE: Ein Buch der Rezepte, die Euch begegnen, ohne die zu verraten, die Ihr nie gesehen habt.
 ## Notes-esES: Un cuaderno de las recetas con las que te cruzas, sin desvelar las que nunca has visto.
 ## Notes-esMX: Un cuaderno de las recetas con las que te cruzas, sin revelar las que nunca has visto.
 ## Author: Ikar
-## Version: 0.1.0-dev
+## Version: 0.9.0
 ## Category: Professions
 ## Category-frFR: Métiers
 ## Category-deDE: Berufe
@@ -25,6 +25,11 @@ Core\Init.lua
 Shared\Core.lua
 Shared\Debug.lua
 Core\Locale.lua
+Locale\frFR.lua
+Locale\enUS.lua
+Locale\deDE.lua
+Locale\esES.lua
+Locale\esMX.lua
 Data\Recipes.lua
 Data\Needs.lua
 Core\Sounds.lua

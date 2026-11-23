@@ -17,13 +17,27 @@
 --   title       its title, the name unless given
 --   rows()      its rows, asked for when it first shows, so the saved data is in:
 --     { kind = "header", text }                          a section heading
---     { kind = "button", name, text, click(), tip }      a name, then the game's button
+--     { kind = "button", name, text, click(), tip, enabled() }   a name, then the game's button; with enabled(),
+--                                                        greyed with its name while it gives false
 --     { kind = "check", name, tip, get(), set(value) }   a name, then the game's check box
+--     { kind = "slider", name, tip, get(), set(value), min, max, step, format(value) }   the game's slider
+--     { kind = "choice", name, tip, get(), set(value), values, empty }   the game's dropdown, a radio for each of
+--                                                        { { value, label }, ... }, or of what a function gives;
+--                                                        { title = text } a group's title, { divider = true } a
+--                                                        rule; `empty` what it says while none is picked;
+--                                                        `play()` a button by it that plays what's picked, its
+--                                                        tooltip `playTip`, greyed while canPlay() gives false
+--     { kind = "buttons", buttons = { { text, click(), tip, enabled() }, ... }, perRow }   the game's buttons
+--                                                        under the control above, perRow (3) a line, each greyed
+--                                                        while its enabled() gives false (what a choice's pick
+--                                                        allows: Ikar 2026-11-19, "drop down with button in it
+--                                                        own section ? Grayed when innactive")
 --   frame       or a frame the addon made itself, shown as it is, in place of rows
 --   pages       pages listed under this one: { { name, title, rows or frame }, ... }; their handles are handle.pages
 -- handle:Open()      shows the page in the game's options. They don't open from an addon in a fight: false then, with
 --                    the game's own line saying why
 -- handle:Refresh()   the page's controls as their values are now, while it shows
+-- handle:Rebuild()   its rows asked for again and drawn anew, for a page whose rows change (a list that grows)
 local _, ns = ...
 
 local Page = {}
@@ -115,6 +129,18 @@ local function withTip(control, row)
     control:SetScript("OnLeave", hideTip)
 end
 
+-- A button greyed while what it does can't be done, its tooltip still showing, to say what it would do.
+local function enable(button, row)
+    local on = not row.enabled or row.enabled() and true or false
+    button:SetEnabled(on)
+    return on
+end
+local function showWhileDisabled(button)
+    if button.SetMotionScriptsWhileDisabled then
+        button:SetMotionScriptsWhileDisabled(true)
+    end
+end
+
 local function makeButton(self, row)
     local f = newRow(self, row)
     f.Button = newFrame("Button", f, "UIPanelButtonTemplate")
@@ -126,6 +152,44 @@ local function makeButton(self, row)
         ns.SafeCall(self.Refresh, self)
     end)
     withTip(f.Button, row)
+    showWhileDisabled(f.Button)
+    if row.enabled then
+        -- greyed with its name, as Blizzard's rows that can't be set
+        function f:Update()
+            self.Text:SetFontObject(enable(self.Button, row) and "GameFontNormal" or "GameFontDisable")
+        end
+    end
+    return f
+end
+
+-- Several buttons under the control above, from where it starts, so many a line.
+local BUTTONS_WIDTH, BUTTONS_GAP, BUTTONS_LINE = 120, 6, 26
+local function makeButtons(self, row)
+    local f = newFrame("Frame", self.frame)
+    f.row = row
+    local per = row.perRow or 3
+    local lines = math.ceil(#row.buttons / per)
+    f:SetHeight(lines * BUTTONS_LINE)
+    f.Buttons = {}
+    for i, spec in ipairs(row.buttons) do
+        local b = newFrame("Button", f, "UIPanelButtonTemplate")
+        b:SetWidth(BUTTONS_WIDTH)
+        local column, line = (i - 1) % per, math.floor((i - 1) / per)
+        b:SetPoint("TOPLEFT", f, "TOP", -BUTTON_START + column * (BUTTONS_WIDTH + BUTTONS_GAP), -line * BUTTONS_LINE)
+        b:SetText(spec.text)
+        b:SetScript("OnClick", function()
+            ns.SafeCall(spec.click)
+            ns.SafeCall(self.Refresh, self)
+        end)
+        withTip(b, spec)
+        showWhileDisabled(b)
+        f.Buttons[i] = b
+    end
+    function f:Update()
+        for i, spec in ipairs(row.buttons) do
+            enable(self.Buttons[i], spec)
+        end
+    end
     return f
 end
 
@@ -161,7 +225,111 @@ local function makeCheck(self, row)
     return f
 end
 
-local MAKERS = { header = makeHeading, button = makeButton, check = makeCheck }
+-- Blizzard's slider with its steppers (MinimalSliderWithSteppersTemplate, as its own options' sliders), the value on
+-- its right as the row words it.
+local SLIDER_WIDTH, DROPDOWN_WIDTH = 250, 225
+local PLAY_SIZE, PLAY_GAP = 25, 4
+local function makeSlider(self, row)
+    local f = newRow(self, row)
+    f.Slider = newFrame("Frame", f, "MinimalSliderWithSteppersTemplate")
+    f.Slider:SetSize(SLIDER_WIDTH, ROW_HEIGHT)
+    f.Slider:SetPoint("LEFT", f, "CENTER", -CHECK_START, 0)
+    f.Slider:RegisterCallback(MinimalSliderWithSteppersMixin.Event.OnValueChanged, function(_, value)
+        if not f.initializing then
+            ns.SafeCall(row.set, value)
+        end
+    end, f)
+    f.formatters = { [MinimalSliderWithSteppersMixin.Label.Right] = CreateMinimalSliderFormatter(
+        MinimalSliderWithSteppersMixin.Label.Right, row.format) }
+    function f:Update()
+        if not (self.Slider.Slider and self.Slider.Slider:IsDraggingThumb()) then
+            self.initializing = true
+            self.Slider:Init(row.get(), row.min, row.max, (row.max - row.min) / (row.step or 1), self.formatters)
+            self.initializing = false
+        end
+    end
+    return f
+end
+
+-- Blizzard's dropdown (WowStyle1DropdownTemplate), a radio for each value.
+local function makeChoice(self, row)
+    local f = newRow(self, row)
+    f.Dropdown = newFrame("DropdownButton", f, "WowStyle1DropdownTemplate")
+    f.Dropdown:SetWidth(DROPDOWN_WIDTH)
+    f.Dropdown:SetPoint("LEFT", f, "CENTER", -BUTTON_START, 0)
+    f.Dropdown:SetupMenu(function(_, root)
+        local values = row.values
+        if type(values) == "function" then
+            values = values()
+        end
+        for _, v in ipairs(values) do
+            if v.title then
+                root:CreateTitle(v.title)
+            elseif v.divider then
+                root:CreateDivider()
+            else
+                root:CreateRadio(v[2], function()
+                    return row.get() == v[1]
+                end, function()
+                    ns.SafeCall(row.set, v[1])
+                    ns.SafeCall(self.Refresh, self)
+                end, v[1])
+            end
+        end
+    end)
+    if row.empty and f.Dropdown.SetDefaultText then
+        f.Dropdown:SetDefaultText(row.empty)
+    end
+    -- a sound's: the button that plays it, by the dropdown, as Blizzard's Cooldown Viewer's sound alerts have one
+    -- (CooldownViewerAlert_SetupTypeButton: common-icon-sound, its pressed and disabled states, its highlight at 0.4;
+    -- 25 across, MenuTemplates.AttachBasicButton's)
+    local play
+    if row.play then
+        local b = newFrame("Button", f)
+        b:SetSize(PLAY_SIZE, PLAY_SIZE)
+        b:SetPoint("LEFT", f.Dropdown, "RIGHT", PLAY_GAP, 0)
+        b:SetNormalAtlas("common-icon-sound")
+        b:SetPushedAtlas("common-icon-sound-pressed")
+        b:SetDisabledAtlas("common-icon-sound-disabled")
+        b:SetHighlightAtlas("common-icon-sound", "ADD")
+        local light = b:GetHighlightTexture()
+        if light then
+            light:SetAlpha(0.4)
+        end
+        b:SetScript("OnClick", function()
+            ns.SafeCall(row.play)
+        end)
+        withTip(b, { name = row.playTip or row.name })
+        showWhileDisabled(b)
+        play, f.PlayButton = b, b
+    end
+    function f:Update()
+        if self.Dropdown.GenerateMenu then
+            self.Dropdown:GenerateMenu()
+        end
+        if play then
+            play:SetEnabled(not row.canPlay or row.canPlay() and true or false)
+        end
+    end
+    return f
+end
+
+local MAKERS = { header = makeHeading, button = makeButton, check = makeCheck, slider = makeSlider,
+    choice = makeChoice, buttons = makeButtons }
+
+-- The page's rows, down from under its title.
+local function drawRows(self)
+    local frame = self.frame
+    frame.rows = {}
+    local y = ROWS_TOP
+    for _, row in ipairs(self.spec.rows()) do
+        local f = MAKERS[row.kind](self, row)
+        f:SetPoint("TOPLEFT", frame, "TOPLEFT", ROWS_LEFT, -y)
+        f:SetPoint("RIGHT", frame, "RIGHT", -ROWS_RIGHT, 0)
+        y = y + f:GetHeight() + ROW_GAP
+        frame.rows[#frame.rows + 1] = f
+    end
+end
 
 -- Drawn once, when the page first shows.
 function Handle:Build()
@@ -177,15 +345,22 @@ function Handle:Build()
     local divider = frame:CreateTexture(nil, "ARTWORK")
     divider:SetAtlas("Options_HorizontalDivider", true)
     divider:SetPoint("TOP", 0, -DIVIDER_TOP)
-    frame.rows = {}
-    local y = ROWS_TOP
-    for _, row in ipairs(spec.rows()) do
-        local f = MAKERS[row.kind](self, row)
-        f:SetPoint("TOPLEFT", frame, "TOPLEFT", ROWS_LEFT, -y)
-        f:SetPoint("RIGHT", frame, "RIGHT", -ROWS_RIGHT, 0)
-        y = y + f:GetHeight() + ROW_GAP
-        frame.rows[#frame.rows + 1] = f
+    drawRows(self)
+end
+
+-- Its rows asked for again and drawn anew, once it has been drawn: those it had are hidden and let go (a frame of the
+-- game's never goes; a page's rows change seldom, a list a name longer).
+function Handle:Rebuild()
+    local frame = self.frame
+    if not (frame and self.built and frame.rows) then
+        return
     end
+    for _, f in ipairs(frame.rows) do
+        f:Hide()
+        f:ClearAllPoints()
+    end
+    drawRows(self)
+    self:Refresh()
 end
 
 function Handle:Refresh()

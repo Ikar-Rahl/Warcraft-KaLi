@@ -1,7 +1,7 @@
 """Give the bench the addon's sounds, to be heard before choosing (Ikar, 2026-11-10).
 
 Reads the choices from the addon itself (KaLiRecipe/Core/Sounds.lua) and their French and English labels
-(Core/Locale.lua), finds each kit's files and volume in this build's tables (SoundKit, SoundKitEntry), downloads the
+(Locale/), finds each kit's files and volume in this build's tables (SoundKit, SoundKitEntry), downloads the
 files from this build's game data on wago.tools (cached, as the benches' art is), and writes
 recipe/bench/js/sounds.js with each sound's length, read from its Ogg pages. The files land in
 recipe/bench/art/sounds/: Blizzard's, for local development only, like the rest of art/.
@@ -46,7 +46,9 @@ def addon_lists():
         lua = lupa.LuaRuntime(unpack_returned_tuples=True)
         lua.execute(f'function GetLocale() return "{locale}" end')
         ns = lua.table()
-        for name in ("Core/Locale.lua", "Core/Sounds.lua"):
+        # Core/Locale.lua, then each language's file as the TOC loads them (one language a file since 2026-11-21)
+        for name in ("Core/Locale.lua", "Locale/frFR.lua", "Locale/enUS.lua", "Locale/deDE.lua", "Locale/esES.lua",
+                     "Locale/esMX.lua", "Core/Sounds.lua"):
             chunk = lua.eval("loadstring")((ADDON / name).read_text(encoding="utf-8"), "@" + name)
             chunk("KaLiRecipe", ns)
         L, S = ns.L, ns.Sounds

@@ -23,6 +23,11 @@
 --   snapshotOnOpen what « Annuler les modifications » goes back to is taken each time it opens
 --   place(frame)   where it opens
 --   extra          the rest of a snapshot, beyond the rows' values: { take(), same(held), put(held) }
+--   sectionButtons each open section ends in a line of two buttons, its own « Annuler » and « Par défaut », asking
+--                  nothing (Ikar 2026-11-16: "add 2 button per section, cancel and default, no warning ... in one
+--                  line"): { revert = { text, tip }, defaults = { text, tip } }. A section may hold an extra of its own,
+--                  as the window's (section.extra), which its « Annuler » puts back, and the window's too
+--   batch(run)     runs run(), which changes many values (a section's buttons), so the addon draws once after it
 --   look           "dialog", Edit Mode's (the default), or "window": a window of the game's, as KaLi Recipe's notebook
 --                  in its « Épuré » style (Ikar, 2026-11-13: "similaire a celle des recette ... style minimaliste"): the
 --                  title bar and close button of ButtonFrameTemplate, its dark inset under the rows, the notebook's own
@@ -62,10 +67,12 @@ function Dialog.New(spec)
     return setmetatable({ spec = spec, openSection = spec.open }, Handle)
 end
 
--- Frames start without a parent: SmartNavigationMixin hooks CreateFrame and rebuilds the caller's button groups.
-local function newFrame(kind, parent, template, name)
-    local f = CreateFrame(kind, name, nil, template)
-    if parent then
+-- Frames start without a parent: SmartNavigationMixin hooks CreateFrame and rebuilds the caller's button groups. A
+-- nine-slice border made from its template reads its parent as it loads (NineSlicePanelMixin:OnLoad, its texture kit):
+-- it gets its parent at once (`atOnce`), else "NineSlice.lua:310: attempt to index a nil value" (Ikar 2026-11-16).
+local function newFrame(kind, parent, template, name, atOnce)
+    local f = CreateFrame(kind, name, atOnce and parent or nil, template)
+    if parent and not atOnce then
         f:SetParent(parent)
     end
     return f
@@ -143,14 +150,20 @@ function Handle:Set(row, value)
     end
 end
 
--- The values as they are, and the rest the addon holds, for « Annuler les modifications ».
+-- The values as they are, and the rest the addon holds, for « Annuler les modifications »; each section's own extra,
+-- for its « Annuler ».
 function Handle:Snapshot()
-    local values = {}
+    local values, extras = {}, {}
     for _, row in ipairs(self:Rows()) do
         values[row] = { self:Table(row)[row.key] }
     end
+    for _, section in ipairs(self:Sections()) do
+        if section.extra then
+            extras[section] = section.extra.take()
+        end
+    end
     local extra = self.spec.extra
-    self.snapshot = { values = values, extra = extra and extra.take() }
+    self.snapshot = { values = values, extra = extra and extra.take(), extras = extras }
     self:Changed()
 end
 
@@ -161,6 +174,11 @@ function Handle:HasChanges()
     end
     for row, held in pairs(snapshot.values) do
         if self:Table(row)[row.key] ~= held[1] then
+            return true
+        end
+    end
+    for section, held in pairs(snapshot.extras) do
+        if not section.extra.same(held) then
             return true
         end
     end
@@ -177,6 +195,11 @@ function Handle:Revert()
         if t[row.key] ~= held[1] then
             t[row.key] = held[1]
             applied(self, row, held[1], "revert")
+        end
+    end
+    for section, held in pairs(self.snapshot.extras) do
+        if not section.extra.same(held) then
+            section.extra.put(held)
         end
     end
     if self.spec.extra then
@@ -196,6 +219,88 @@ function Handle:Defaults()
         end
     end
     self:Changed()
+end
+
+-- ---------- One section's own « Annuler » and « Par défaut » ----------
+
+-- A section's rows that hold a value.
+local function valued(section)
+    local rows = {}
+    for _, row in ipairs(section.rows) do
+        if row.kind ~= "button" then
+            rows[#rows + 1] = row
+        end
+    end
+    return rows
+end
+
+-- What changes many values at once, drawn once after it when the addon says how (spec.batch).
+local function many(self, run)
+    if self.spec.batch then
+        ns.SafeCall(self.spec.batch, run)
+    else
+        ns.SafeCall(run)
+    end
+    self:Changed()
+end
+
+-- Whether the section's values, or its own extra, differ from the last snapshot.
+function Handle:SectionHasChanges(section)
+    local snapshot = self.snapshot
+    if not snapshot then
+        return false
+    end
+    for _, row in ipairs(valued(section)) do
+        local held = snapshot.values[row]
+        if held and self:Table(row)[row.key] ~= held[1] then
+            return true
+        end
+    end
+    return section.extra ~= nil and snapshot.extras[section] ~= nil and not section.extra.same(snapshot.extras[section])
+end
+
+-- Whether every value of the section is its default.
+function Handle:SectionAtDefaults(section)
+    for _, row in ipairs(valued(section)) do
+        if self:Table(row)[row.key] ~= self:Default(row) then
+            return false
+        end
+    end
+    return true
+end
+
+-- The section's values, and its own extra, as the last snapshot held them; the other sections' stay.
+function Handle:RevertSection(section)
+    if not self:SectionHasChanges(section) then
+        return
+    end
+    local snapshot = self.snapshot
+    many(self, function()
+        for _, row in ipairs(valued(section)) do
+            local held, t = snapshot.values[row], self:Table(row)
+            if held and t[row.key] ~= held[1] then
+                t[row.key] = held[1]
+                applied(self, row, held[1], "revert")
+            end
+        end
+        local extra = snapshot.extras[section]
+        if section.extra and extra ~= nil and not section.extra.same(extra) then
+            section.extra.put(extra)
+        end
+    end)
+end
+
+-- The section's values back to their defaults; the other sections' stay.
+function Handle:DefaultsSection(section)
+    many(self, function()
+        for _, row in ipairs(valued(section)) do
+            local default, t = self:Default(row), self:Table(row)
+            if t[row.key] ~= default then
+                t[row.key] = default
+                applied(self, row, default, "defaults")
+            end
+        end
+    end)
 end
 
 local function tooltip(owner, title, text)
@@ -363,6 +468,37 @@ local function makeRowButton(self, row)
     return f
 end
 
+-- A section's own line under its rows: its « Annuler » on the left, its « Par défaut » on the right, the game's buttons,
+-- each half the row; « Annuler » lit when the section changed since the snapshot, « Par défaut » when a value isn't its
+-- default. Its row says only that it's this line (kind "buttons"), holding no value.
+local PAIR_GAP = 8
+local function makeSectionButtons(self, section)
+    local f = newFrame("Frame", self.frame)
+    f:SetSize(ROW_WIDTH, ROW_HEIGHT)
+    f.row = { kind = "buttons" }
+    local width = (ROW_WIDTH - PAIR_GAP) / 2
+    local function button(spec, point, click)
+        local b = newFrame("Button", f, "UIPanelButtonTemplate")
+        b:SetSize(width, ROW_BUTTON_HEIGHT)
+        b:SetPoint(point)
+        b:SetText(spec.text)
+        b:SetMotionScriptsWhileDisabled(true)
+        b:SetScript("OnClick", function()
+            ns.SafeCall(click, self, section)
+        end)
+        withTooltip(b, spec.text, spec.tip)
+        return b
+    end
+    f.Revert = button(self.spec.sectionButtons.revert, "LEFT", self.RevertSection)
+    f.Defaults = button(self.spec.sectionButtons.defaults, "RIGHT", self.DefaultsSection)
+    local handle = self
+    function f:Update(enabled)
+        self.Revert:SetEnabled(enabled and handle:SectionHasChanges(section))
+        self.Defaults:SetEnabled(enabled and not handle:SectionAtDefaults(section))
+    end
+    return f
+end
+
 local function toggle(self, section)
     PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
     self.openSection = self.openSection ~= section.id and section.id or nil
@@ -506,7 +642,7 @@ local function build(self)
     if window then
         windowFrame(frame, spec.title)
     else
-        frame.Border = newFrame("Frame", frame, "DialogBorderTranslucentTemplate")
+        frame.Border = newFrame("Frame", frame, "DialogBorderTranslucentTemplate", nil, true)
         frame.Border:SetAllPoints()
         frame.Title = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
         frame.Title:SetPoint("TOP", 0, -TITLE_TOP)
@@ -527,6 +663,11 @@ local function build(self)
         frame.sections[#frame.sections + 1] = makeSection(self, section)
         for _, row in ipairs(section.rows) do
             local f = makers[row.kind](self, row)
+            f.section = section
+            frame.rows[#frame.rows + 1] = f
+        end
+        if spec.sectionButtons then
+            local f = makeSectionButtons(self, section)
             f.section = section
             frame.rows[#frame.rows + 1] = f
         end
@@ -645,7 +786,7 @@ function Handle:Layout()
     self:UpdateButtons()
 end
 
--- Each button enabled as its own test says, none in a fight when the rows are greyed.
+-- Each button enabled as its own test says, none in a fight when the rows are greyed; the open section's own line too.
 function Handle:UpdateButtons()
     local frame = self.frame
     if not frame then
@@ -655,6 +796,11 @@ function Handle:UpdateButtons()
     for _, b in ipairs(self.spec.buttons or {}) do
         if not b.divider then
             frame[b.key]:SetEnabled(enabled and (not b.enabled or b.enabled(self)) and true or false)
+        end
+    end
+    for _, f in ipairs(frame.rows) do
+        if f.row.kind == "buttons" and f:IsShown() then
+            f:Update(enabled)
         end
     end
 end
