@@ -50,11 +50,28 @@ English client's (« Retirer » is **Remove**, « Suite » **More**, « Nouvelle
 
 ## Gallery and video
 
-Two videos by Ikar, put on YouTube, first in the Gallery: `KaLiHUD-video-1-the-plate.mp4` (2 min 15 s), then
-`KaLiHUD-video-2-info-bar-folders-stats.mp4` (3 min 42 s). In `release/KaLiHUD-0.9.0/gallery/`.
+Taken on 2026-11-23. The files, outside the repository, are in `release/KaLiHUD-0.9.0/gallery/`, in the Gallery's
+order. In the style strips (01, 13 to 21) the Trade chat's text is blurred: other players' names. 02 is put together
+from the nine strips: each style's middle, under its name.
 
-No screenshot yet. One under the opening lines (the plate with the minimap's dome and the info bar), then one after
-each section it shows: an open folder's list, an attribute's card kept open, the presets.
+| # | In the Gallery | In the description |
+| --- | --- | --- |
+| 1 | `KaLiHUD-video-1-the-plate.mp4`, 2 min 15 s, put on YouTube | |
+| 2 | `KaLiHUD-video-2-info-bar-folders-stats.mp4`, 3 min 42 s, put on YouTube | |
+| 3 | `01-the-plate.png`: the whole foot of the screen, in the default style | Under the opening lines |
+| 4 | `02-nine-styles.png`: the nine styles, each under its name | After « The plate » |
+| 5 | `03-chat-and-meter-folded.png`: the chat and the damage meter folded into their cartouches, the info bar whole | After « The info bar » |
+| 6 | `04-attribute-cards.png`: cards kept open over the attributes' folder | After « The character sheet, on a hover » |
+| 7 | `05-a-folder.png`: a folder of your own, with a named separator | |
+| 8 | `06-a-macro.png`: the macro editor and the macro's tooltip | After « Folders, macros and notes » |
+| 9 | `07-a-note.png` | |
+| 10 | `08-experience-bar.png`: the experience bar's tooltip | |
+| 11 | `09-edit-mode.png`: Edit Mode and KaLi HUD's dialog beside it | |
+| 12 | `10-minimap-rings.png`, `11-window-cartouches.png`: the rings' and the cartouches' lists | |
+| 13 | `12-damage-meter-and-bags.png` | |
+| 14 | `13-style-…` to `21-style-…`: each style whole | |
+
+« Presets and sharing » has no picture yet.
 
 ## How the description was written
 
