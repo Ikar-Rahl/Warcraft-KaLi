@@ -49,8 +49,14 @@ error saved, the API check 0 failing at 20:20, and no KaLi Quest line in the gam
 ## Gallery and video
 
 The Gallery (the « Images » tab until 2025) holds the screenshots and the YouTube videos, in the order of the carousel
-at the top of the page; CurseForge hosts no video file of its own. A picture shows in the description through the
-editor's image button. The best pages put one under the opening lines, then one after the section it shows.
+at the top of the page; CurseForge hosts no video file of its own. The best pages put a picture under the opening
+lines, then one after the section it shows.
+
+The description's pictures are in the repository, `<addon>/docs/images/` (JPEG, at most 1920 wide), and each README
+links them through github.com (Ikar 2026-11-24: "I would want the images to be in github, so the description get auto
+updated"): a picture pushed to `main` under the same name shows on CurseForge without touching the page. The text is
+pasted by hand when it changes: CurseForge's upload API sends files and their changelogs, never a project's
+description. The Gallery's pictures are uploaded to CurseForge itself.
 
 Taken in game, in an English client, as the quest names are the game's, on 2026-11-23. The files, outside the
 repository, are in `release/KaLiQuest-0.9.0/gallery/`, in the Gallery's order.

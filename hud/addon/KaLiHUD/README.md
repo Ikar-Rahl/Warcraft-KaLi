@@ -6,6 +6,8 @@ Install it and the plate is there. Shape it in **Edit Mode**: click the KaLi HUD
 
 > **Beta:** every feature is in. If something doesn't work, `/kh report` gives you a ready-made bug report.
 
+![KaLi HUD along the foot of the screen: the plate, the minimap's dome and the info bar](https://github.com/Ikar-Rahl/Warcraft-KaLi/raw/main/hud/docs/images/01-the-plate.jpg)
+
 ---
 
 ## The plate
@@ -17,6 +19,8 @@ Install it and the plate is there. Shape it in **Edit Mode**: click the KaLi HUD
 - **The chat and the damage meter fold away** into a cartouche on the plate, with an animation and a sound. Typing unfolds the chat.
 - **Two progress bars** under the action bars: experience, the watched reputation or honor. Their tooltips list what raises what you gain: rest, a meal, an elixir, Diplomacy, Cenarion Favor.
 
+![The nine styles](https://github.com/Ikar-Rahl/Warcraft-KaLi/raw/main/hud/docs/images/02-nine-styles.jpg)
+
 ## The info bar
 
 - **Its own items:** the zone, the clock, bags, gold, repairs, experience, performance, speed and volume. The session item counts gold, experience, deaths and time; **New measure** starts it again, at a dungeon's door for instance.
@@ -26,12 +30,16 @@ Install it and the plate is there. Shape it in **Edit Mode**: click the KaLi HUD
 - **Undo and redo** for the bar's last ten changes, from its menu or two keys to bind.
 - **Fishing's tooltip** says where a cast lands in this zone; a skill's bonus says where it comes from.
 
+![The info bar whole, the chat and the damage meter folded into their cartouches](https://github.com/Ikar-Rahl/Warcraft-KaLi/raw/main/hud/docs/images/03-chat-and-meter-folded.jpg)
+
 ## Folders, macros and notes
 
 - **Folders** hold what you drag into them, and gather other addons' minimap buttons.
 - **Ready-made folders:** the attributes, the emotes and the group's markers, statistics, reputations, skills and reagents. They're locked: KaLi HUD keeps them up to date, in your game's language. Drag something out of one and a copy lands where you drop it.
 - **Lists your way:** icons, text or both, values aligned, in rows or columns, with named separators as section titles.
 - **Macro buttons,** with a right-click and a tooltip of their own, and **notes** that open with a click.
+
+![A macro's editor, and the macro's tooltip on the bar](https://github.com/Ikar-Rahl/Warcraft-KaLi/raw/main/hud/docs/images/06-a-macro.jpg)
 
 ## The character sheet, on a hover
 
@@ -40,6 +48,8 @@ Install it and the plate is there. Shape it in **Edit Mode**: click the KaLi HUD
 - **Try before you wear it:** with a card kept open, hover an item, a talent, an elixir or a meal to see what the value would become.
 - **Mana and health regeneration** as tables: casting or not, standing, seated or in a fight, with what the game's own figure doesn't count.
 - **Honest figures:** what a card works out rather than reads from the game wears a question mark, and its foot says why.
+
+![Attribute cards kept open over the character sheet's folder](https://github.com/Ikar-Rahl/Warcraft-KaLi/raw/main/hud/docs/images/04-attribute-cards.jpg)
 
 ## Presets and sharing
 

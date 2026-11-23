@@ -6,6 +6,8 @@ Install it and play: recipes are noted as you meet them. The notebook opens from
 
 > **Beta:** every feature is in. If something doesn't work, `/kr report` gives you a ready-made bug report.
 
+![The notebook docked beside the professions window](https://github.com/Ikar-Rahl/Warcraft-KaLi/raw/main/recipe/docs/images/01-notebook-beside-the-professions-window.jpg)
+
 ---
 
 ## Noted where you meet them
@@ -18,6 +20,8 @@ Install it and play: recipes are noted as you meet them. The notebook opens from
 - **One chat line per visit**, in the professions color, and a sound: the quest log's quill for a recipe new to your notebook, a short stroke of it for a new place of one already in it. Both are the game's own sounds; pick others, or none, and their volume in the options.
 - **Every profession**, even those this character doesn't have.
 
+![Note the recipes at the auction house, and the chat line it writes](https://github.com/Ikar-Rahl/Warcraft-KaLi/raw/main/recipe/docs/images/02-noted-at-the-auction-house.jpg)
+
 ## The notebook
 
 - **"Notebook: 7 to learn · 4 seen"** under the rank bar of the professions window, and under each profession in the professions book: the recipes you can learn at your rank, and those seen whose required rank is higher. A click opens the notebook.
@@ -25,6 +29,8 @@ Install it and play: recipes are noted as you meet them. The notebook opens from
 - **A recipe's detail:** what it makes, its reagents with how many you have, where it was seen with a waypoint, its required rank, which of your characters hold it and which know it.
 - **Two styles:** **Clean**, a game window, and **Book**, the profession's quest page, each with the profession's art. Resize it from its corner.
 - **Follow the professions window:** the notebook opens with it, docks against it and follows the profession open there.
+
+![A profession's recipes by category, and a recipe's detail below](https://github.com/Ikar-Rahl/Warcraft-KaLi/raw/main/recipe/docs/images/03-the-notebook.jpg)
 
 ## Marks and tooltips
 
@@ -34,6 +40,8 @@ Install it and play: recipes are noted as you meet them. The notebook opens from
 - **A reagent's tooltip** lists what it's **Used in**: the recipes your characters know, then those you came across, in gray. A crafted item's says who it's **Made by**.
 - **Hovering a vendor** says whether you visited it, and how many recipes you saw there. Your other characters' visits count.
 - **At the auction house,** no marks on the rows: the recipe's tooltip says it all, in Blizzard's list and in Auctionator's.
+
+![A recipe's tooltip: unknown to your characters, one in the bank, who sells it and for what](https://github.com/Ikar-Rahl/Warcraft-KaLi/raw/main/recipe/docs/images/07-a-recipe-tooltip.jpg)
 
 ## On the map
 

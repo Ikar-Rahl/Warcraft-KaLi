@@ -6,6 +6,8 @@ Install it and the tracker is there. Type `/kq options`, or open **Options > Add
 
 > **Beta:** every feature is in. If something doesn't work, `/kq report` gives you a ready-made bug report.
 
+![KaLi Quest's tracker: four groups of your own under Track, the Journal folded below](https://github.com/Ikar-Rahl/Warcraft-KaLi/raw/main/quest/docs/images/01-your-groups.jpg)
+
 ---
 
 ## Your groups
@@ -18,6 +20,8 @@ Install it and the tracker is there. Type `/kq options`, or open **Options > Add
 - **Past the game's 25 tracked quests**, a quest you placed by hand stays in its group, marked "Off list".
 - **Deleted a group by mistake?** Undo it from the gear's menu.
 
+![Three quests picked with Ctrl+click, to move them at once](https://github.com/Ikar-Rahl/Warcraft-KaLi/raw/main/quest/docs/images/02-several-quests-at-once.jpg)
+
 ## Find what you need
 
 - **Search and filters:** ten kinds of filters (type, group size, repetition, state, difficulty, classification, story, account and faction, party, place), each choice with its count.
@@ -25,12 +29,16 @@ Install it and the tracker is there. Type `/kq options`, or open **Options > Add
 - **Quests in the area you're in** get a gold arrow; a group or a bar shows how many it holds.
 - **A glow** on the quest that just progressed.
 
+![The filter menu, each choice with its count](https://github.com/Ikar-Rahl/Warcraft-KaLi/raw/main/quest/docs/images/03-filters-with-counts.jpg)
+
 ## Out of your way
 
 - **The padlock** freezes what's open and the order. A fight locks it until it ends.
 - **Key bindings**, unbound at first: lock, collapse, next and previous group.
 - **Edit Mode:** the tracker is a frame of its own, like Blizzard's. Drag it with snapping, keep a place for each layout, and set its size and look in one dialog, with a cancel.
 - **Nothing lost:** quest items, popups, timers, tracked recipes and achievements show as in Blizzard's tracker.
+
+![The tracker's Edit Mode dialog, beside the tracker](https://github.com/Ikar-Rahl/Warcraft-KaLi/raw/main/quest/docs/images/05-edit-mode.jpg)
 
 ## Safe with the game
 
