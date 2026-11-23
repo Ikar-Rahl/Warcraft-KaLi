@@ -23,7 +23,7 @@ with contextlib.redirect_stdout(io.TextIOWrapper(io.BytesIO(), encoding="utf-8")
     cats = runpy.run_path(str(HERE / "research/quest_categories_test.py"))
 
 ROOT = cats["ROOT"]
-DB2 = cats["REFERENCE"] / "db2/1.60.1.70790"
+DB2 = cats["db2"]
 OUT = ROOT / "quest/addon/KaLiQuest/Data/Sorts.lua"
 
 CLASS_SORTS, TRADE_SORTS, EVENT_SORTS = cats["CLASS_SORTS"], cats["TRADE_SORTS"], cats["EVENT_SORTS"]

@@ -74,6 +74,14 @@ local function apiText()
     for _, e in ipairs(history) do
         lines[#lines + 1] = string.format("  at login, build %s, %s, %s: %d missing, %d not as assumed", tostring(e.build),
             tostring(e.version), tostring(e.when), #(e.missing or {}), e.failing or 0)
+        -- What didn't hold when the chat said so, which the check as it stands may no longer find.
+        local told = type(e.told) == "table" and e.told
+        if told and type(told.what) == "table" then
+            lines[#lines + 1] = "    said in chat at " .. tostring(told.when) .. ", for:"
+            for _, w in ipairs(told.what) do
+                lines[#lines + 1] = "      " .. tostring(w)
+            end
+        end
     end
     -- What a patch broke: the difference with the last other build seen.
     local _, build = GetBuildInfo()

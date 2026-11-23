@@ -14,7 +14,7 @@ local LANGUAGES = { "frFR", "enUS", "deDE", "esES", "esMX" }
 -- space isn't taken, so "Bei 100 % hat" holds no "% h".
 local function blanks(s)
     local out = {}
-    for spec in (s:gsub("%%%%", "")):gmatch("%%[-+#0-9.]*%a") do
+    for spec in (s:gsub("%%%%", "")):gmatch("%%[-+#0-9.]*[A-Za-z]") do
         out[#out + 1] = spec
     end
     return table.concat(out, " ")
@@ -87,6 +87,162 @@ T.Add("Locale", "a client language picks its strings, Mexican Spanish Castilian'
         end
     end
     T.Eq(table.concat(same, ", "), "", "each Mexican string says something Castilian's doesn't")
+end)
+
+-- Each language's own typography (Ikar 2026-11-21: "make the translation correct in each language, with each language
+-- it own rules"), as the player gets each string, its file's rules put in: French a no-break space before : ; ? ! and
+-- », after «, and before %, its apostrophe and quotes « »; English quotes " ", no space before %; German „ ", Spanish
+-- « » and an opening ¿ and ¡ for each ? and !, both a no-break space before %. Written in bytes: this file stays ASCII.
+local OPEN_FR, CLOSE_FR = "\194\171", "\194\187"
+local LOW, HIGH_OPEN, HIGH_CLOSE = "\226\128\158", "\226\128\156", "\226\128\157"
+
+local function count(s, mark)
+    local n, at = 0, 1
+    while true do
+        local i = s:find(mark, at, true)
+        if not i then
+            return n
+        end
+        n, at = n + 1, i + #mark
+    end
+end
+
+-- A plain space before a percent sign, in text ("100 %") or in a format ("%d %%").
+local function spaceBeforePercent(s)
+    return s:find("%d %%") or s:find("%%[%-%d%.]*[A-Za-z] %%%%")
+end
+
+local RULES = {
+    frFR = function(s)
+        for _, mark in ipairs({ " :", " ;", " ?", " !", " " .. CLOSE_FR, OPEN_FR .. " " }) do
+            if s:find(mark, 1, true) then
+                return "a plain space at \"" .. mark .. "\""
+            end
+        end
+        if spaceBeforePercent(s) then
+            return "a plain space before %"
+        elseif s:find("[A-Za-z]'[A-Za-z]") then
+            return "a straight apostrophe"
+        elseif s:find('"', 1, true) or count(s, OPEN_FR) ~= count(s, CLOSE_FR) then
+            return "quotes not in pairs of French ones"
+        end
+    end,
+    enUS = function(s)
+        if spaceBeforePercent(s) then
+            return "a space before %"
+        elseif s:find('"', 1, true) or s:find(LOW, 1, true) or s:find(OPEN_FR, 1, true)
+            or count(s, HIGH_OPEN) ~= count(s, HIGH_CLOSE) then
+            return "quotes not in pairs of English ones"
+        end
+    end,
+    deDE = function(s)
+        if spaceBeforePercent(s) then
+            return "a plain space before %"
+        elseif s:find('"', 1, true) or s:find(HIGH_CLOSE, 1, true) or count(s, LOW) ~= count(s, HIGH_OPEN) then
+            return "quotes not in pairs of German ones"
+        end
+    end,
+    esES = function(s)
+        if spaceBeforePercent(s) then
+            return "a plain space before %"
+        elseif s:find('"', 1, true) or s:find(HIGH_OPEN, 1, true) or count(s, OPEN_FR) ~= count(s, CLOSE_FR) then
+            return "quotes not in pairs of Spanish ones"
+        elseif count(s, "?") ~= count(s, "\194\191") or count(s, "!") ~= count(s, "\194\161") then
+            return "a ? or ! without its opening mark"
+        end
+    end,
+}
+RULES.esMX = RULES.esES
+
+T.Add("Locale", "each language follows its own typography, as the player gets its strings", function()
+    local problems = {}
+    local function walk(t, path, rule)
+        for key, value in pairs(t) do
+            if type(value) == "table" then
+                walk(value, path .. "." .. tostring(key), rule)
+            elseif type(value) == "string" then
+                local why = rule(value)
+                if why then
+                    problems[#problems + 1] = path .. "." .. tostring(key) .. ": " .. why
+                end
+            end
+        end
+    end
+    for _, locale in ipairs(LANGUAGES) do
+        if type(ns.STRINGS[locale]) == "table" then
+            walk(ns.STRINGS[locale], locale, RULES[locale])
+        end
+    end
+    table.sort(problems)
+    T.Eq(table.concat(problems, "\n"), "", "what breaks its language's typography")
+end)
+
+-- The mouse buttons as the house editor's icons, never in words (Ikar 2026-11-17 for KaLi HUD: "Replace all click
+-- gauche and droit text by the new icon"; 2026-11-21 for every addon: "About icons, yes. As much as possible."). The
+-- plain noun in a sentence ("un clic sur le suivi") stays.
+local CLICK_WORDS = {
+    frFR = { "[Cc]lic droit", "[Cc]lic gauche", "Clic :", "Clic\194\160:", "Cliquer pour" },
+    enUS = { "[Rr]ight%-click", "[Ll]eft%-click", "Click:", "Click to " },
+    deDE = { "Rechtsklick", "Linksklick", "Klick:", "Klicken zum", "Klicken, um" },
+    esES = { "[Cc]lic derecho", "[Cc]lic izquierdo", "Clic:", "Clic para" },
+}
+CLICK_WORDS.esMX = CLICK_WORDS.esES
+
+T.Add("Locale", "no language names a mouse button in words: the house editor's icons stand for them", function()
+    local problems = {}
+    local function walk(t, path, words)
+        for key, value in pairs(t) do
+            if type(value) == "table" then
+                walk(value, path .. "." .. tostring(key), words)
+            elseif type(value) == "string" then
+                for _, word in ipairs(words) do
+                    if value:find(word) then
+                        problems[#problems + 1] = path .. "." .. tostring(key) .. ": " .. word
+                    end
+                end
+            end
+        end
+    end
+    for _, locale in ipairs(LANGUAGES) do
+        if type(ns.STRINGS[locale]) == "table" then
+            walk(ns.STRINGS[locale], locale, CLICK_WORDS[locale])
+        end
+    end
+    table.sort(problems)
+    T.Eq(table.concat(problems, "\n"), "", "a mouse button in words")
+end)
+
+T.Add("Locale", "Mexican Spanish writes a decimal with a point, in every string a Mexican player gets", function()
+    local problems = {}
+    local mexican, castilian = ns.STRINGS.esMX, ns.STRINGS.esES
+    if type(mexican) == "table" and type(castilian) == "table" then
+        local keys = {}
+        for key in pairs(castilian) do
+            keys[key] = true
+        end
+        for key in pairs(mexican) do
+            keys[key] = true
+        end
+        for key in pairs(keys) do
+            local value = mexican[key]
+            if type(value) == "string" and value:find("%d,%d") then
+                problems[#problems + 1] = "esMX." .. tostring(key)
+            end
+        end
+    end
+    table.sort(problems)
+    T.Eq(table.concat(problems, ", "), "", "a decimal comma in Mexican Spanish")
+end)
+
+T.Add("Locale", "a chat line's colon is the game's, in the player's language", function()
+    local was = HEADER_COLON
+    HEADER_COLON = "\194\160:"
+    local french = ns.Colon()
+    HEADER_COLON = ":"
+    local other = ns.Colon()
+    HEADER_COLON = was
+    T.Eq(french, "\194\160:", "the French client's: after a no-break space")
+    T.Eq(other, ":", "the others': alone")
 end)
 
 T.Add("Locale", "the singular: 1 alone, in each language the addon speaks", function()

@@ -34,7 +34,7 @@ local function list(g)
 end
 local function printed(text)
     for _, line in ipairs(F.printed) do
-        if line:find(text, 1, true) then
+        if F.Plain(line):find(F.Plain(text), 1, true) then
             return true
         end
     end
@@ -226,19 +226,42 @@ expect(select(2, KaLiQuestTracker:GetPoint()) == KaLiQuestHolder and select(2, K
 ObjectiveTrackerFrame:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", -80, -200)
 ns.Host.Place(KaLiQuestTracker)
 do
-    local stand = select(2, KaLiQuestHolder:GetPoint())
+    local corner, stand, standCorner = KaLiQuestHolder:GetPoint()
     local point, rel, relPoint, x, y = stand:GetPoint()
     expect(stand ~= ObjectiveTrackerFrame and stand ~= RightManagedFrameContainer and stand:IsShown() and point == "TOPRIGHT"
-        and rel == UIParent and relPoint == "TOPRIGHT" and x == -80 and y == -200,
-        "one moved in Edit Mode already has its anchors, so a shown stand-in on them places the rows")
+        and rel == UIParent and relPoint == "TOPRIGHT" and x == -80 and y == -200
+        and corner == "TOPRIGHT" and standCorner == "TOPRIGHT",
+        "one moved in Edit Mode already has its anchors, so a shown stand-in on them places the rows, by the corner it's held by")
 end
 ObjectiveTrackerFrame:ClearAllPoints()
+-- Held as Blizzard's right-hand column holds it: LayoutFrame.lua anchors a right-aligned child by its top right.
+ObjectiveTrackerFrame:SetPoint("TOPRIGHT", RightManagedFrameContainer, "TOPRIGHT", 0, 0)
 ObjectiveTrackerFrame.top = 900
 F.entries[2].objectives = { { text = "Fermiers : 2/5", finished = false }, { text = "Gnolls : 10/10", finished = true } }
 ns.RequestRefresh()
 F.RunTimers()
-expect(select(2, KaLiQuestHolder:GetPoint()) == ObjectiveTrackerFrame and select(1, KaLiQuestHolder:GetPoint()) == "TOPLEFT",
-    "once it has one, the frame hangs from its top left")
+do
+    local corner, rel, relCorner = KaLiQuestHolder:GetPoint()
+    expect(rel == ObjectiveTrackerFrame and corner == "TOPRIGHT" and relCorner == "TOPRIGHT",
+        "once it has one, the frame stands on its top right, where Blizzard's column holds it, so it grows as that tracker "
+        .. "would: " .. tostring(corner) .. " " .. tostring(relCorner))
+    -- Held by another corner, as a tracker moved in Edit Mode may be: the frame grows from that one, or from its middle.
+    local wrong = {}
+    for _, case in ipairs({ { "TOPLEFT", "TOPLEFT" }, { "BOTTOMLEFT", "TOPLEFT" }, { "RIGHT", "TOPRIGHT" }, { "CENTER", "TOP" },
+        { "BOTTOM", "TOP" } }) do
+        ObjectiveTrackerFrame:ClearAllPoints()
+        ObjectiveTrackerFrame:SetPoint(case[1], UIParent, case[1], 0, 0)
+        ns.EditFrame.Apply()
+        local c, r, rc = KaLiQuestHolder:GetPoint()
+        if r ~= ObjectiveTrackerFrame or c ~= case[2] or rc ~= case[2] then
+            wrong[#wrong + 1] = case[1] .. " -> " .. tostring(c) .. " " .. tostring(rc)
+        end
+    end
+    expect(#wrong == 0, "held by another corner, the frame stands on the host's top corner on that side: " .. table.concat(wrong, ", "))
+    ObjectiveTrackerFrame:ClearAllPoints()
+    ObjectiveTrackerFrame:SetPoint("TOPRIGHT", RightManagedFrameContainer, "TOPRIGHT", 0, 0)
+    ns.EditFrame.Apply()
+end
 expect(tracker.IsActive() and ns.Host.IsParked(), "the tracker is on and Blizzard's sections are parked")
 expect(ObjectiveTrackerManager:GetContainerForModule(QuestObjectiveTracker) == ObjectiveTrackerFrame, "Blizzard's setup ran after login")
 expect(QuestObjectiveTracker:GetParent() ~= ObjectiveTrackerFrame and ObjectiveTrackerFrame.Header:GetParent() ~= ObjectiveTrackerFrame,
@@ -591,7 +614,7 @@ do
         .. holder:GetWidth() .. " " .. holder:GetHeight())
     -- Another addon scaling Blizzard's tracker, as FlareUI's minimap does to match its width, scaled the rows hanging
     -- from it too (Ikar, 2026-11-13: in Edit Mode "it use only a quarter of it"). Now they're scaled back, and fill their
-    -- box at the zoom; so does the host, and the "Temps" panel keeps the rows' size.
+    -- box at the zoom, Blizzard's tracker keeps its own width, and the "Temps" panel keeps the rows' size.
     ObjectiveTrackerFrame:SetScale(0.615)
     F.RunTimers()
     do
@@ -600,9 +623,9 @@ do
         expect(math.abs(onScreen - zoom) < 0.0001
             and math.abs((KaLiQuestTracker:GetWidth() + ns.Host.SCROLLBAR_ROOM) * onScreen - holder:GetWidth()) < 0.01
             and math.abs(KaLiQuestTracker:GetHeight() * onScreen - holder:GetHeight()) < 0.01
-            and math.abs(ObjectiveTrackerFrame:GetWidth() * 0.615 - holder:GetWidth()) < 0.01,
-            "with Blizzard's tracker scaled by another addon, the rows are scaled back and fill their box, as the host does: "
-            .. onScreen .. " " .. ObjectiveTrackerFrame:GetWidth())
+            and ObjectiveTrackerFrame:GetWidth() == 260,
+            "with Blizzard's tracker scaled by another addon, the rows are scaled back and fill their box, and that tracker "
+            .. "keeps its own width: " .. onScreen .. " " .. ObjectiveTrackerFrame:GetWidth())
         if QuestTimerFrame:GetParent() == ObjectiveTrackerFrame then
             expect(math.abs(QuestTimerFrame:GetEffectiveScale() / holder:GetEffectiveScale() - zoom) < 0.0001,
                 "and the \"Temps\" panel keeps the rows' size")
@@ -875,7 +898,7 @@ local groupsKept = db.groups
 db.groups = {}
 F.RunScript(rowOf(12), "OnEnter")
 fired = F.triggered[#F.triggered]
-expect(F.tooltip.lines[1] == "La milice du peuple" and F.tooltip.lines[2] == "Clic droit : Déplacer vers un groupe"
+expect(F.tooltip.lines[1] == "La milice du peuple" and F.tooltip.lines[2] == ns.RIGHT_CLICK .. " déplacer vers un groupe"
     and fired.args[3] == true, "before the first group, a row's tooltip says how to make one, and tells other addons it's up")
 F.RunScript(rowOf(12), "OnLeave")
 db.groups = groupsKept
@@ -884,7 +907,7 @@ local moved300 = shown("moved", function(line)
     return line.quest.id == 300
 end)
 F.RunScript(moved300, "OnEnter")
-expect(F.tooltip.lines[1] == "Dans le groupe « " .. db.groups[1].name .. " »", "a moved quest's line names its group")
+expect(F.Plain(F.tooltip.lines[1]) == "Dans le groupe « " .. db.groups[1].name .. " »", "a moved quest's line names its group")
 F.RunScript(moved300, "OnLeave")
 
 -- Holding Shift or Ctrl over a quest says what a click would then do in one plain word, Ikar's rulings: in a
@@ -944,7 +967,7 @@ do
     db.groups = {}
     F.RunScript(row, "OnEnter")
     press("QUESTWATCHTOGGLE")
-    expect(tip() == "La milice du peuple|Clic droit : Déplacer vers un groupe" and word() == "Suivre (1 1 1)"
+    expect(tip() == "La milice du peuple|" .. ns.RIGHT_CLICK .. " déplacer vers un groupe" and word() == "Suivre (1 1 1)"
         and under() == GameTooltip, "a row whose tooltip says something already gets the word under it")
     press(nil, nil)
     F.RunScript(row, "OnLeave")
@@ -952,7 +975,7 @@ do
     F.RunScript(moved300, "OnEnter")
     press("QUESTWATCHTOGGLE")
     local inGroup = "Dans le groupe « " .. db.groups[1].name .. " »"
-    expect(tip() == inGroup and word() == "Arrêter le suivi (1 1 1)" and under() == GameTooltip,
+    expect(F.Plain(tip()) == inGroup and word() == "Arrêter le suivi (1 1 1)" and under() == GameTooltip,
         "over a tracked quest's line, under its group, that it stops tracking it")
     F.combat = true
     press("QUESTWATCHTOGGLE")
@@ -1136,7 +1159,8 @@ for _, fs in ipairs(tipsPage.frame.fontStrings or {}) do
     tipTexts[#tipTexts + 1] = fs:GetText() or ""
 end
 tipTexts = table.concat(tipTexts, "\n")
-expect(tipTexts:find("Ctrl+clic", 1, true) and tipTexts:find("Maj+clic", 1, true) and tipTexts:find("Cadenas", 1, true)
+tipTexts = F.Plain(tipTexts)
+expect(tipTexts:find("Ctrl+" .. ns.LEFT_CLICK, 1, true) and tipTexts:find("Maj+" .. ns.LEFT_CLICK, 1, true) and tipTexts:find("Cadenas", 1, true)
     and tipTexts:find("dans Options > Raccourcis clavier > Add-ons.", 1, true), "the tips name the shortcuts, the rules, and where to bind the keys")
 F.combat = true
 F.settingsOpened = nil
@@ -1553,7 +1577,7 @@ do
     expect(db.spots[999] == nil, "a quest leaving the log forgets its spot")
 
     local panel = table.concat(ns.DebugPanel.Lines(), "\n")
-    expect(panel:find(L.DIAG_AREA, 1, true) and panel:find("Les masques rouges en soie : " .. L.AREA_BLOB, 1, true),
+    expect(panel:find(L.DIAG_AREA, 1, true) and panel:find("Les masques rouges en soie" .. ns.Colon() .. " " .. L.AREA_BLOB, 1, true),
         "the diagnostic panel lists the quests here with their signal")
 
     click(gear)
@@ -2085,13 +2109,13 @@ do
     local panel, buttons = ns.DebugPanel.Frames()
     expect(panel and panel:IsShown(), "/kq diag opens the debug panel")
     F.RunScript(panel, "OnUpdate", 1)
-    local body = panel and panel.Body:GetText() or ""
+    local body = F.Plain(panel and panel.Body:GetText() or "")
     expect(body:find("Suivi : affiché", 1, true) and body:find("Scénario : vide · vue 1 fois", 1, true)
         and body:find("Quêtes : dessinée par KaLi Quest", 1, true), "it shows the tracker's state and every section: " .. body)
-    expect(body:find("Les masques rouges en soie : ", 1, true), "and each quest item with what became of its button")
+    expect(body:find(F.Plain("Les masques rouges en soie" .. ns.Colon() .. " "), 1, true), "and each quest item with what became of its button")
     F.recipes[false], F.achievements = { 2000, 2001 }, { 500 }
     F.RunScript(panel, "OnUpdate", 1)
-    expect((panel.Body:GetText() or ""):find("Métier : 2 · hauts faits : 1", 1, true), "and how many recipes and achievements are tracked")
+    expect(F.Plain(panel.Body:GetText() or ""):find("Recettes : 2 · hauts faits : 1", 1, true), "and how many recipes and achievements are tracked")
     F.recipes[false], F.achievements = {}, {}
     click(buttons.debug)
     ns.Debug.Log("smoke", "une ligne")
@@ -2137,8 +2161,11 @@ do
 end
 setLook("width", 300)
 F.RunTimers()
-expect(KaLiQuestTracker:GetWidth() == 300 and ObjectiveTrackerFrame:GetWidth() == 300 + ns.Host.SCROLLBAR_ROOM,
-    "the width option widens the rows and the host")
+-- Never Blizzard's tracker: a new size runs its OnSizeChanged, and its next update then ran tainted by the addon for the
+-- session (Ikar's probe, 2026-11-22: "topModulePadding KaLiQuest").
+expect(KaLiQuestTracker:GetWidth() == 300 and KaLiQuestHolder:GetWidth() == 300 + ns.Host.SCROLLBAR_ROOM
+    and ObjectiveTrackerFrame:GetWidth() == 260,
+    "the width option widens the rows and the tracker's own frame, never Blizzard's tracker: " .. ObjectiveTrackerFrame:GetWidth())
 setLook("width", 260)
 setLook("height", 400)
 F.RunTimers()
@@ -2155,8 +2182,9 @@ expect(lookRow("textSize") == nil and ns.EditPanel.handle:Value(lookRow("zoom"))
 local heightBefore = KaLiQuestTracker:GetHeight()
 setLook("zoom", 150)
 F.RunTimers()
-expect(KaLiQuestTracker:GetScale() == 1.5 and ObjectiveTrackerFrame:GetWidth() == (260 + ns.Host.SCROLLBAR_ROOM) * 1.5,
-    "zoomed by half, the rows grow and Edit Mode's box with them")
+expect(KaLiQuestTracker:GetScale() == 1.5 and KaLiQuestHolder:GetWidth() == (260 + ns.Host.SCROLLBAR_ROOM) * 1.5
+    and ObjectiveTrackerFrame:GetWidth() == 260,
+    "zoomed by half, the rows grow and Edit Mode's box with them, Blizzard's tracker keeping its own width")
 expect(math.abs(KaLiQuestTracker:GetHeight() * 1.5 - heightBefore) < 0.01 and select(2, KaLiQuestLineFont:GetFont()) == 12,
     "the tracker keeps its height on screen, and the text Edit Mode's size")
 do
@@ -2179,7 +2207,8 @@ do
 end
 setLook("zoom", 100)
 F.RunTimers()
-expect(KaLiQuestTracker:GetScale() == 1 and ObjectiveTrackerFrame:GetWidth() == 260 + ns.Host.SCROLLBAR_ROOM, "and back to 100 %")
+expect(KaLiQuestTracker:GetScale() == 1 and KaLiQuestHolder:GetWidth() == 260 + ns.Host.SCROLLBAR_ROOM
+    and ObjectiveTrackerFrame:GetWidth() == 260, "and back to 100 %")
 ObjectiveTrackerManager:SetTextSize(16)
 F.RunTimers()
 expect(select(2, KaLiQuestLineFont:GetFont()) == 12 and select(2, KaLiQuestHeaderFont:GetFont()) == 14
@@ -2777,8 +2806,11 @@ do
             tips[row[1]] = row[2]
         end
     end
-    expect(not tips.Clic:find("lien", 1, true) and tips["Maj+clic"]:find("lien", 1, true),
+    -- the rows of the mouse buttons by the house editor's icons, as KaLi HUD (Ikar 2026-11-21: "About icons, yes")
+    local click, shiftClick = tips[ns.LEFT_CLICK], tips["Maj+" .. ns.LEFT_CLICK]
+    expect(click and shiftClick and not click:find("lien", 1, true) and shiftClick:find("lien", 1, true),
         "Astuces: a link goes into chat on Maj+clic, as ChatFrameUtil.TryInsertChatLink wants the link modifier")
+    expect(tips[ns.RIGHT_CLICK] and tips["Clic droit"] == nil, "Astuces: the right button's row in words, not its icon")
     expect(tips["Flèche dorée"] and not tips["Flèche dorée"]:find("fermé", 1, true), "Astuces: the area count shows on open headers too")
 end
 
@@ -2938,7 +2970,7 @@ do
     expect(atLogin and atLogin.build == select(2, GetBuildInfo()) and atLogin.checked > 200 and #wrong == 0,
         "at login, the addon looked for what it takes from the game and kept the result for this build: "
         .. table.concat(wrong, ", "))
-    expect(table.concat(ns.DebugPanel.Lines(), "\n"):find("API du jeu : ", 1, true), "the diagnostics panel says how that went")
+    expect(table.concat(ns.DebugPanel.Lines(), "\n"):find(ns.L.DIAG_API:match("^[^%%]*"), 1, true), "the diagnostics panel says how that went")
     local errNotInCombat = ERR_NOT_IN_COMBAT
     ERR_NOT_IN_COMBAT = nil
     local run = ns.SelfCheck.Run()
@@ -3089,7 +3121,7 @@ do
     F.RunScript(frame.Box, "OnKeyDown", "C")
     F.ctrl = false
     F.RunTimers()
-    expect(F.focus ~= frame.Box and frame.Hint:GetText() == "Copié : collez-le dans le ticket.",
+    expect(F.focus ~= frame.Box and F.Plain(frame.Hint:GetText()) == "Copié : collez-le dans le ticket.",
         "after Ctrl+C the box lets go of the keyboard and says what to do next")
 
     local url, shownLink = ns.Report.URL, frame.URL:GetText()
@@ -3126,7 +3158,8 @@ do
     F.notLoaded.Blizzard_AchievementUI = nil
     expect(text:find("missing: atlas communities-icon-lock", 1, true) and text:find("missing: event QUEST_LOG_UPDATE", 1, true)
         and text:find("missing: global C_SuperTrack.SetSuperTrackedQuestID", 1, true)
-        and not text:find("AchievementFrame_LoadUI", 1, true),
+        and not text:find("missing: global AchievementFrame_LoadUI", 1, true)
+        and not text:find("missing global AchievementFrame_LoadUI", 1, true),
         "the report names what the game no longer has, but not what a Blizzard addon not yet loaded holds")
     expect(text:find("blocked  x2  UseQuestLogSpecialItem()", 1, true) and text:find("Rows.lua:12", 1, true)
         and not text:find("CastSpellByName", 1, true) and not text:find("not the addon's", 1, true),
@@ -3180,11 +3213,12 @@ do
         end
         return n
     end
-    expect(told() == 1 and checks[#checks].told == true, "what doesn't hold on the fake was said once in chat, with how to report it: "
+    expect(told() == 1 and type(checks[#checks].told) == "table" and #checks[#checks].told.what > 0,
+        "what doesn't hold on the fake was said once in chat, with how to report it, and kept: "
         .. told())
     ns.SelfCheck.AtLogin()
     F.Fire("ZONE_CHANGED_NEW_AREA")
-    expect(told() == 1 and checks[#checks].told == true, "and not again at the next login of the same build and version")
+    expect(told() == 1 and type(checks[#checks].told) == "table", "and not again at the next login of the same build and version")
     local assumptions, entry = ns.SelfCheck.Assumptions, checks[#checks]
     local missing, failing = entry.missing, 0
     ns.SelfCheck.Assumptions = function()

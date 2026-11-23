@@ -1,19 +1,43 @@
 # Changelog
 
-## 0.1.0 (not released yet)
+## 0.9.0 (2026-11-23)
 
-First version.
+First public beta: every feature is in.
 
-- A rewritten objective tracker: Suivi holds your own groups, Journal the rest of your log, by category.
-- Journal sorts the log's headers by their IDs, so in any client language, and remembers which are open the same way.
+### Your groups
+
+- A rewritten objective tracker: **Track** holds your own groups, the **Journal** the rest of your log, by category.
 - Groups: create, rename, delete with undo, reorder, open one and close the others.
-- Drag and drop for quests, groups and the Journal's bars; Ctrl+click to act on several quests at once.
-- Shift+click tracks or untracks; the game's tracking and your groups follow each other. Holding Shift or Ctrl over a quest says what a click will do.
-- Padlock, locked by combat; four key bindings.
-- Search and filters; markers; the quests of your area; a glow on progress.
-- Quest items, popups, timers, recipes and achievements, as in Blizzard's tracker.
-- Options under AddOns in the game's settings, on a page of the addon's own: the tracker's switch, automatic tracking and their reset, with a Tips page under it; the addon compartment; `/kq`.
-- In Edit Mode, the tracker is a frame of its own, as Blizzard's frames are: picked, dragged with snapping or moved with the arrows, with a place for each layout. Its one dialog holds all of its size and look in folding sections, with « Annuler les modifications », « Revenir à la position par défaut » and « Par défaut ». The zoom alone sizes it, and the background's opacity is the addon's. Its size and look are set there only: the options page keeps the rest, with a « Mode Édition » button that opens Edit Mode with the tracker picked, as the gear's menu does.
-- A bug report, from the gear's menu or `/kq report`: a link that opens a new issue, then the report to copy and paste into it, with a check that the game still has all the addon uses and still answers as the addon assumes. When it doesn't, a line in chat says so, once per game version.
+- Drag and drop for quests, groups and the Journal's bars; Ctrl+click acts on several quests at once.
+- Shift+click tracks or untracks a quest; the game's tracking and your groups follow each other. Holding Shift or Ctrl over a quest says what a click will do.
+- The Journal sorts your log's headers by their IDs, so the same way in any client language, and remembers which are open the same way.
+
+### Find what you need
+
+- Search and filters; markers; the quests of the area you're in; a glow on progress.
+
+### Out of your way
+
+- A padlock, locked by combat; four key bindings.
+- Quest items, popups, timers, tracked recipes and achievements, as in Blizzard's tracker.
+- Options in **Options > AddOns > KaLi Quest**, on a page of the addon's own: the tracker's switch, automatic tracking and its reset, and a **Tips** page under it. Also in the addon compartment, and with `/kq`.
+- In **Edit Mode** the tracker is a frame of its own, as Blizzard's frames are: picked, dragged with snapping or moved with the arrow keys, with a place for each layout. One dialog holds all of its size and look, in folding sections, with **Revert Changes**, **Reset To Default Position** and **Defaults**. Its zoom alone sizes it, and its background's opacity is its own. Its size and look are set there only; the options page keeps the rest, with an **Edit Mode** button that opens Edit Mode with the tracker picked, as the gear's menu does.
+
+### Safe with the game
+
 - Blizzard's tracker comes back on an error, or when a section the addon doesn't draw fills.
-- In French, English, German and Spanish (Spain's, and Mexico's with the game's own Mexican words); other clients get English.
+- Blizzard's tracker keeps its own size, so its updates never run tainted by the addon, in a fight or out of one. KaLi Quest's tracker grows from the corner Blizzard's is held by.
+
+### Bug reports
+
+- **Report a bug** in the gear's menu, or `/kq report`: a link that opens a new issue, then the report to copy and paste into it, with a check that the game still has everything the addon uses and still answers as the addon expects. When it doesn't, a line in chat says so, once per game version, and the report keeps what it found.
+
+### Languages
+
+- French, English, German and Spanish (Spain's, and Mexico's with the game's own Mexican words); other clients get English.
+- Each language reviewed:
+  - The game's own words where the game has them: German calls the tracker « Questverfolgung » and Blizzard's « Questzielverfolgung », as the game does; French says « Recettes » for tracked recipes in the diagnostics; Spanish says « Recuadro » for the quest boxes' opacity.
+  - The tips quote the menus they name.
+  - Each language's own typography: French's no-break spaces before : ; ? !, its ’ and « »; English “ ”; German „ “; Spanish « » and ¿ ¡. The chat lines' colon follows your language.
+  - The mouse buttons are drawn as the house editor's icons in the hints and the tips.
+  - One language to a file, under `Locale/`.

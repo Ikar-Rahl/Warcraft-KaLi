@@ -3,17 +3,21 @@
 -- and sections parked under a hidden frame. Blizzard's code keeps running on them unseen. In Edit Mode its selection
 -- is see-through and lets the mouse through, so only the addon's own frame (UI/EditFrame.lua) can be picked. Nothing
 -- is written into Blizzard's tables but secure hooks, and nothing of Blizzard's is shown or updated from here.
+--
+-- Its size is never set. A new size runs its OnSizeChanged, which marks it for an update, and that update then ran
+-- under the addon's taint for the rest of the session (Ikar's probe, 2026-11-22: "topModulePadding KaLiQuest"); in a
+-- fight its aura read failed, "Auras cannot be accessed when secret while tainted by 'KaLiQuest'" (General.log,
+-- 2026-11-21). The addon's frame stands on the host instead, from the corner the host is held by (Host.Anchor).
 local _, ns = ...
 
 local Host = {}
 ns.Host = Host
 
--- The scrollbar's room right of the rows. The host is that much wider than the rows.
+-- The scrollbar's room right of the rows, in the addon's frame.
 Host.SCROLLBAR_ROOM = 12
 
 local hidden
 local parked -- { frame, parent } pairs, while parked
-local originalWidth
 
 -- Every section of Blizzard's tracker: the ones the addon draws and the ones it watches, listed in Coverage.lua.
 local function sections()
@@ -80,8 +84,8 @@ local function followAddedSections(host)
     end)
 end
 
--- Moves Blizzard's title, background and sections under a hidden frame, and widens the host for the scrollbar.
-function Host.Park(width, zoom)
+-- Moves Blizzard's title, background and sections under a hidden frame.
+function Host.Park()
     local host = ObjectiveTrackerFrame
     if parked or not host then
         return
@@ -100,11 +104,8 @@ function Host.Park(width, zoom)
             parkFrame(section, container)
         end
     end
-    originalWidth = host:GetWidth()
-    Host.width = nil
-    Host.SetWidth(width, zoom)
     Host.HideSelection(true)
-    log("parked %d frames, host width %s", #parked, tostring(Host.width))
+    log("parked %d frames", #parked)
 end
 
 -- Blizzard's selection box for its tracker in Edit Mode: see-through and deaf to the mouse while the addon draws the
@@ -125,10 +126,10 @@ function Host.HideSelection(hide)
 end
 
 -- How much smaller than the addon's frame a frame draws what hangs from it, or itself: 1 unless another addon scales
--- Blizzard's tracker. FlareUI's minimap matches the tracker's width to the minimap's, so in Ikar's game it draws at
+-- Blizzard's tracker. FlareUI's minimap matches the tracker's width to the minimap's, so it may draw at
 -- 0.61, and the rows hanging from it did too (Ikar, 2026-11-13: in Edit Mode they filled "only a quarter" of their
--- box, and the zoom took 140 % to look right). The rows, the "Temps" panel and the host's width are scaled back by it,
--- so the zoom alone sizes the tracker.
+-- box, and the zoom took 140 % to look right). The rows and the "Temps" panel are scaled back by it, so the zoom alone
+-- sizes the tracker.
 function Host.Unscale(frame)
     local own = ns.EditFrame.Holder():GetEffectiveScale()
     local theirs = frame and frame:GetEffectiveScale()
@@ -136,17 +137,6 @@ function Host.Unscale(frame)
         return 1
     end
     return own / theirs
-end
-
--- The rows' width option plus the scrollbar's room, zoomed as the rows are, so the host spans the rows on screen where
--- they follow it, and ForeverCore's column under it spans them too. Only while parked: unparked, the host is Blizzard's.
-function Host.SetWidth(width, zoom)
-    local w = (width + Host.SCROLLBAR_ROOM) * (zoom or 1) * Host.Unscale(ObjectiveTrackerFrame)
-    if not parked or Host.width and math.abs(Host.width - w) < 0.01 then
-        return
-    end
-    Host.width = w
-    pcall(ObjectiveTrackerFrame.SetWidth, ObjectiveTrackerFrame, w)
 end
 
 -- Blizzard's "Temps" panel of timed quests sits 10 under the host's top and leaves its own height plus 18 above the
@@ -204,11 +194,7 @@ function Host.Unpark()
         pcall(p.frame.SetParent, p.frame, p.parent)
     end
     parked = nil
-    Host.width = nil
     Host.HideSelection(false)
-    if originalWidth then
-        pcall(ObjectiveTrackerFrame.SetWidth, ObjectiveTrackerFrame, originalWidth)
-    end
     pcall(resetTimer)
     log("unparked")
 end
@@ -231,8 +217,24 @@ local function shadowOf(host)
     return shadow
 end
 
+-- The host's top corner on the side it's held by, or the middle of its top: the addon's frame, wider or narrower than
+-- the host, grows from there as the host itself would. Blizzard's right-hand column holds it by its top right
+-- (LayoutFrame.lua, a right-aligned child), so there the rows end at the column's edge.
+local function heldBy(host)
+    local point = host:GetPoint(1)
+    if type(point) ~= "string" then
+        return "TOPLEFT"
+    elseif point:find("RIGHT") then
+        return "TOPRIGHT"
+    elseif point:find("LEFT") then
+        return "TOPLEFT"
+    end
+    return "TOP"
+end
+
 -- Where the addon's frame stands while it follows Blizzard's tracker, as the rows did before it had a frame of its
--- own: on the host's top left, on its stand-in, or where a host never shown since login would be.
+-- own: on the host's top corner on the side it's held by, on its stand-in's, or where a host never shown since login
+-- would be.
 function Host.Anchor(frame)
     local host = ObjectiveTrackerFrame
     if shadow then
@@ -240,9 +242,11 @@ function Host.Anchor(frame)
     end
     local moved = host.IsInDefaultPosition and not host:IsInDefaultPosition()
     if host:GetTop() then
-        frame:SetPoint("TOPLEFT", host, "TOPLEFT", 0, 0)
+        local corner = heldBy(host)
+        frame:SetPoint(corner, host, corner, 0, 0)
     elseif moved and host:GetPoint(1) then
-        frame:SetPoint("TOPLEFT", shadowOf(host), "TOPLEFT", 0, 0)
+        local corner = heldBy(host)
+        frame:SetPoint(corner, shadowOf(host), corner, 0, 0)
     elseif RightManagedFrameContainer then
         -- At its default place it would top this container.
         frame:SetPoint("TOPRIGHT", RightManagedFrameContainer, "TOPRIGHT", 0, 0)

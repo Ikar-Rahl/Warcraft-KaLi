@@ -276,7 +276,7 @@ A manual move into one of the player's groups always wins and stays.
 ## Sources
 
 - Local: `Blizzard_FrameXMLUtil/Camelot/QuestUtilsOverrides.lua`, `Blizzard_FrameXMLUtil/Mainline/QuestUtils.lua`, `Blizzard_FrameXMLBase/Constants.lua`, `QuestLogDocumentation.lua`, `QuestConstantsDocumentation.lua`, `QuestInfoSharedDocumentation.lua`, `docs/quest-api-inventory.md`
-- Local: `reference/db2/1.60.1.70790/QuestInfo*.csv`, `QuestSort*.csv`, `QuestLine.csv`, `QuestLineXQuest.csv`, `QuestLabel.csv`, `QuestV2.csv`, `ChrClasses*.csv`, `Map.csv`, `AreaTable*.csv`
+- Local: `reference/db2/1.60.1.71037/QuestInfo*.csv`, `QuestSort*.csv`, `QuestLine.csv`, `QuestLineXQuest.csv`, `QuestLabel.csv`, `QuestV2.csv`, `ChrClasses*.csv`, `Map.csv`, `AreaTable*.csv`
 - Local: `reference/Questie/Database/Corrections/questTagInfoCorrections.lua`, `reference/QuestieDB/data/Forever/foreverQuestDB.lua`
 - Local: `QuestSectionsForever.lua` in the game's `Interface\AddOns`
 - `reference/BlizzardInterfaceResources/Resources/GlobalStrings/frFR.lua`, `AtlasInfo.lua`, `LuaEnum.lua`, one build behind

@@ -1,7 +1,7 @@
-// Real screenshots from Ikar's client behind the trackers. They hold the game's own tracker and frozen tooltips, so
+// Real screenshots from the game behind the trackers. They hold the game's own tracker and frozen tooltips, so
 // each lists the rectangles to paint over and where to copy clean ground from, in the image's pixels.
 window.Worlds = (function () {
-  // The game's screen is 1200 UI units tall at Ikar's UI scale, whatever the resolution.
+  // The game's screen is 1200 UI units tall at the UI scale they were taken at, whatever the resolution.
   const SCREEN_UNITS = 1200;
 
   const LIST = {

@@ -1,6 +1,6 @@
 # Letting other addons add to the tracker
 
-Researched 2026-11-06 against build 1.60.1.70790 and the addons installed on Ikar's client. Nothing here has been built or run in-game.
+Researched 2026-11-06 against build 1.60.1.70790 and the addons then installed on the test client. Nothing here has been built or run in-game.
 
 ## Summary
 

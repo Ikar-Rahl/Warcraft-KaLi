@@ -137,7 +137,7 @@ print("Their headers:", dict(Counter(area_label.get(field(QDB[i], ZONE_OR_SORT),
 print("Corrections for quests in this data, by tag:", dict(Counter(n for i, (_, n) in tags.items() if i in QDB)))
 
 print("\n=== French class names: quest category against a character's class name ===")
-db2 = REFERENCE / "db2/1.60.1.70790"
+db2 = poc["DB2"]
 with open(db2 / "QuestSort.frFR.csv", encoding="utf-8", newline="") as f:
     sort_fr = {int(r["ID"]): r["SortName_lang"] for r in csv.DictReader(f)}
 with open(db2 / "ChrClasses.frFR.csv", encoding="utf-8", newline="") as f:

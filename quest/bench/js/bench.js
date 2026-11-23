@@ -10,7 +10,7 @@ window.Bench = (function () {
     headerSaturation: 50, blockRest: 15, blockCombat: 15, blockHover: 40, opacityRest: 90, opacityCombat: 50,
   };
   const DEFAULT_TOKENS = { titleGap: -4, groupIndent: 0, questIndent: 40, groupGap: 5, barGap: 5, markerSize: 13 };
-  // Ikar's game draws one UI unit on 1.8 screen pixels: 2160 pixels for a screen 1200 units tall.
+  // The screenshots' game drew one UI unit on 1.8 screen pixels: 2160 pixels for a screen 1200 units tall.
   const GAME_PIXELS = 1.8;
   // The tracker's bottom at the default height. "Game size" shrinks if the window can't show that much.
   const UNITS_TO_SHOW = 1000;

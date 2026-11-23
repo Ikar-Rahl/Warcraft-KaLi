@@ -256,7 +256,6 @@ local function drawAll()
     Shared.ApplyOptions()
     ns.Fonts.Apply()
     local width = layout.width
-    ns.Host.SetWidth(width, layout.zoom)
     -- The tracker's own frame, which Edit Mode shows and the rows sit on: as wide as they are with the scrollbar's
     -- room, and as tall as set, on screen. It keeps its size while the rows hide, so Edit Mode still shows its box.
     local height = db.options.height or ns.Host.Height()
@@ -515,7 +514,7 @@ function Tracker.Refresh()
         Tracker.failed = err
         ns.Debug.Error(err, stack)
         ns.SafeCall(Tracker.SetEnabled, false)
-        print("|cffff5555" .. ns.TITLE .. " :|r " .. L.TRACKER_FAILED)
+        print("|cffff5555" .. ns.TITLE .. ns.Colon() .. "|r " .. L.TRACKER_FAILED)
     end
 end
 
@@ -631,7 +630,7 @@ function Tracker.SetEnabled(on)
         end
         Tracker.failed = nil
         hookOnce()
-        ns.Host.Park(layout.width, layout.zoom)
+        ns.Host.Park()
         -- What changed while Blizzard's tracker showed was shown there, so nothing of it replays here.
         if not active then
             ns.Motion.Reset()

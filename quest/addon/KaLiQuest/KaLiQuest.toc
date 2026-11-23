@@ -6,7 +6,7 @@
 ## Notes-esES: Tus propios grupos de misiones, en un rastreador de objetivos reescrito.
 ## Notes-esMX: Tus propios grupos de misiones, en un rastreador de objetivos reescrito.
 ## Author: Ikar
-## Version: 0.1.0-dev
+## Version: 0.9.0
 ## Category: Quests
 ## Category-frFR: Quêtes
 ## Category-deDE: Quests
@@ -25,6 +25,11 @@ Core\Init.lua
 Shared\Core.lua
 Shared\Debug.lua
 Core\Locale.lua
+Locale\frFR.lua
+Locale\enUS.lua
+Locale\deDE.lua
+Locale\esES.lua
+Locale\esMX.lua
 Data\Sorts.lua
 Data\Maps.lua
 Data\Needs.lua

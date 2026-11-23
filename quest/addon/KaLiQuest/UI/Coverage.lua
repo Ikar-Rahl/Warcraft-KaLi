@@ -133,7 +133,7 @@ end
 
 local function alert(text)
     if UIErrorsFrame and UIErrorsFrame.AddExternalWarningMessage then
-        UIErrorsFrame:AddExternalWarningMessage(ns.TITLE .. " : " .. text)
+        UIErrorsFrame:AddExternalWarningMessage(ns.TITLE .. ns.Colon() .. " " .. text)
     end
     ns.Say(text)
 end

@@ -153,6 +153,12 @@ function Tracker.Binding(action)
         BINDINGS[action]()
     end
 end
+-- The Key Bindings panel reads these globals for Bindings.xml, named once the languages have loaded.
+BINDING_HEADER_KALIQUEST = ns.TITLE
+BINDING_NAME_KALIQUEST_LOCK = ns.L.BINDING_LOCK
+BINDING_NAME_KALIQUEST_COLLAPSE = ns.L.BINDING_COLLAPSE
+BINDING_NAME_KALIQUEST_NEXT = ns.L.BINDING_NEXT
+BINDING_NAME_KALIQUEST_PREVIOUS = ns.L.BINDING_PREVIOUS
 
 function KaLiQuest_Binding(action)
     ns.SafeCall(Tracker.Binding, action)

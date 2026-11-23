@@ -13,8 +13,9 @@ from itertools import combinations
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools"))
+from kali.art import BUILD  # noqa: E402
 from kali.paths import GAME, REFERENCE, ROOT  # noqa: E402
-DB2 = REFERENCE / "db2/1.60.1.70790"
+DB2 = REFERENCE / "db2" / BUILD
 ADDONS = GAME / "Interface/AddOns"
 LAYER_W, LAYER_H = 1002, 668  # UiMapArtStyleLayer row 1, the style zone maps use
 
@@ -230,7 +231,10 @@ def objective_centre(q):
     return m, statistics.median(p[1] for p in on), statistics.median(p[2] for p in on)
 
 
-text = (ADDONS / "FieldJournal/Lore/QuestDB.lua").read_text(encoding="utf-8", errors="replace")
+# FieldJournal's sub-region labels, the scores' reference, when it's installed (gone from Ikar's client by 2026-11-22):
+# without it the scores below are empty, and nothing else changes (gen_addon_data.py needs none of them).
+journal = ADDONS / "FieldJournal/Lore/QuestDB.lua"
+text = journal.read_text(encoding="utf-8", errors="replace") if journal.exists() else ""
 labels = {}
 starts = list(re.finditer(r"FieldJournal_QuestDB\[(\d+)\]\s*=\s*\{", text))
 for i, m in enumerate(starts):

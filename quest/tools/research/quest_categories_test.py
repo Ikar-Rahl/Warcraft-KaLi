@@ -39,7 +39,7 @@ CATEGORY_NAMES = {
     "misc": "Divers",
 }
 
-db2 = REFERENCE / "db2/1.60.1.70790"
+db2 = poc["DB2"]
 with open(db2 / "QuestSort.frFR.csv", encoding="utf-8", newline="") as f:
     sort_fr = {int(r["ID"]): r["SortName_lang"] for r in csv.DictReader(f)}
 with open(db2 / "AreaTable.frFR.csv", encoding="utf-8", newline="") as f:

@@ -142,7 +142,7 @@ window.UI = (function () {
     return `[${q.level}${q.elite ? "+" : ""}] ${q.title}${tag}`;
   }
 
-  // Other addons on Ikar's client. Spoken has no voice lines for quests new to Forever, the ones Forever Quest Tint marks.
+  // Other addons a client may have. Spoken has no voice lines for quests new to Forever, the ones Forever Quest Tint marks.
   const hasSpoken = (q) => Bench.settings.spoken && !q.forever;
 
   // As Spoken_Quests/Compatibility.lua builds it: 14 by 14, the quest log's box on black at 60%.

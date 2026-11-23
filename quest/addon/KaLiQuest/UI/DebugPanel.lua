@@ -69,7 +69,7 @@ end
 local function sectionLines(add)
     local seen = KaLiQuestDevDB and KaLiQuestDevDB.sectionsSeen or {}
     for _, s in ipairs(ns.Coverage.DRAWN) do
-        add("  " .. ns.Coverage.Label(s) .. " : " .. L.DIAG_DRAWN)
+        add("  " .. ns.Coverage.Label(s) .. ns.Colon() .. " " .. L.DIAG_DRAWN)
     end
     for _, s in ipairs(ns.Coverage.List()) do
         local state = ns.Coverage.State(s.frame)
@@ -84,7 +84,7 @@ local function sectionLines(add)
         if not (s.module or _G[s.frame]) then
             text = text .. " (" .. L.DIAG_ABSENT .. ")"
         end
-        add("  " .. ns.Coverage.Label(s) .. " : " .. text)
+        add("  " .. ns.Coverage.Label(s) .. ns.Colon() .. " " .. text)
     end
 end
 
@@ -136,16 +136,16 @@ function Panel.Lines()
     add(string.format(HEAD, L.DIAG_ITEMS))
     local items = ns.Items.Status()
     for _, it in ipairs(items) do
-        add("  " .. it.title .. " : " .. L["ITEM_" .. it.state:upper()])
+        add("  " .. it.title .. ns.Colon() .. " " .. L["ITEM_" .. it.state:upper()])
     end
     if #items == 0 then
         add("  " .. L.DIAG_NONE)
     end
     add("")
     local area, running = ns.Area.Status()
-    add(string.format(HEAD, L.DIAG_AREA) .. (running and "" or " : " .. L.DIAG_AREA_OFF))
+    add(string.format(HEAD, L.DIAG_AREA) .. (running and "" or ns.Colon() .. " " .. L.DIAG_AREA_OFF))
     for _, a in ipairs(area) do
-        add("  " .. a.title .. " : " .. a.signal)
+        add("  " .. a.title .. ns.Colon() .. " " .. a.signal)
     end
     if running and #area == 0 then
         add("  " .. L.DIAG_NONE)
@@ -183,8 +183,8 @@ function Panel.Update()
     frame.Content:SetHeight(math.max(1, frame.Body:GetStringHeight()))
     buttons.tracker:SetText(ns.Tracker.IsActive() and L.DIAG_TO_BLIZZARD or L.DIAG_TO_KALI)
     local d = KaLiQuestDevDB or {}
-    buttons.debug:SetText(L.DIAG_DEBUG_BUTTON .. " : " .. yesNo(d.debug))
-    buttons.alert:SetText(L.DIAG_TEST_ALERT .. " : " .. yesNo(ns.Coverage.Simulating()))
+    buttons.debug:SetText(L.DIAG_DEBUG_BUTTON .. ns.Colon() .. " " .. yesNo(d.debug))
+    buttons.alert:SetText(L.DIAG_TEST_ALERT .. ns.Colon() .. " " .. yesNo(ns.Coverage.Simulating()))
 end
 
 local function toggleTracker()
