@@ -450,6 +450,29 @@ ns.Report.Open()
 expect(frame.NoURL:IsShown() and not frame.URL:IsShown() and not frame.LinkCopy:IsShown() and ns.Report.Link() == nil,
     "with no address, the report's window doesn't say so")
 ns.Report.URL = url
+-- The mailbox, for a player without a GitHub account (2026-11-24): its address under the link, a click selecting it
+-- for Ctrl+C, the report's button under it; no line for it without one.
+local mail = ns.Report.MAIL
+ns.Report.MAIL = "reports@example.invalid"
+ns.Report.Open()
+expect(frame.MailText:IsShown() and frame.MailText:GetText() == L.REPORT_MAIL and frame.Mail:IsShown()
+    and frame.Mail:GetText() == "reports@example.invalid" and select(2, frame.Copy:GetPoint(1)) == frame.Mail,
+    "the report's window doesn't give the address to mail the report to, above the report's button")
+F.RunScript(frame.Mail, "OnEditFocusGained")
+expect(frame.Mail.highlighted and frame.MailHint:GetText() == L.REPORT_PRESS_COPY,
+    "a click on the mailbox's address doesn't select it for Ctrl+C")
+F.focus = frame.Mail
+F.ctrl = true
+F.RunScript(frame.Mail, "OnKeyDown", "C")
+F.ctrl = false
+F.RunTimers()
+expect(F.focus ~= frame.Mail and frame.MailHint:GetText() == L.REPORT_MAIL_COPIED,
+    "after Ctrl+C the mailbox's address doesn't let go of the keyboard, or say what to do next")
+ns.Report.MAIL = nil
+ns.Report.Open()
+expect(not frame.MailText:IsShown() and not frame.Mail:IsShown() and select(2, frame.Copy:GetPoint(1)) == frame.LinkCopy,
+    "with no mailbox, its lines still show, or the report's button isn't under the link's")
+ns.Report.MAIL = mail
 frame:Hide()
 
 -- ---------- Commands ----------

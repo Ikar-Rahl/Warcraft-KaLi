@@ -497,6 +497,9 @@ BREAKS = [
     ("styles: one's border colour not in its list", "hud/addon/KaLiHUD/UI/Border.lua",
      '"c9a08f", "a0b4a8", "9a8b74", "b4544a" }', '"c9a08f", "9a8b74", "b4544a" }'),
     ("styles: a saved one that can't be kept", "hud/addon/KaLiHUD/Core/DB.lua", "    preset = ns.PRESET_BY_ID,\n", ""),
+    # Each colour of the lists named (Ikar 2026-11-24: "fix the color names for firez they use a code right now")
+    ("styles: a colour added to the background's list without a name", "hud/addon/KaLiHUD/UI/Border.lua",
+     '"1a1714", "2e1f1c" }', '"1a1714", "2e1f1c", "2f2f2f" }'),
     # Every source of an attribute (Ikar 2026-11-17: "Can we extend to include all sources?")
     ("all sources: a talent valued at its first rank, whatever its rank", STATS,
      "            local v = list[min(max(rank, 1), #list)]\n", "            local v = list[1]\n"),

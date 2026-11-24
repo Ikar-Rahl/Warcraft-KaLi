@@ -1597,6 +1597,10 @@
   "at": "/kh status with the saved data refused raises an error, or doesn't say why: addon/KaLiHUD/UI/Hub/Fol",
   "part": "smoke"
  },
+ "styles: a colour added to the background's list without a name": {
+  "at": "a colour of the border's or the background's list has no name, its code shows instead",
+  "part": "smoke"
+ },
  "styles: a saved one that can't be kept": {
   "part": "smoke"
  },

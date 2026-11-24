@@ -6,6 +6,8 @@ local Report = ns.Report
 
 -- Where reports are posted: a new issue on the KaLi family's GitHub repository.
 Report.URL = "https://github.com/Ikar-Rahl/Warcraft-KaLi/issues/new"
+-- KaLi's mailbox, filing each mail as an issue (tools/mail).
+Report.MAIL = "warcraft.kali.addons@gmail.com"
 
 function Report.StatusLines()
     local _, classFile = UnitClass("player")

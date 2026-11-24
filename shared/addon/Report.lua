@@ -4,9 +4,10 @@
 -- the link: a real one runs well past what a link carries, and a link holding only its start passes for the whole
 -- (Ikar, 2026-11-11). No character or realm name goes in it.
 --
--- The addon's UI/Report.lua sets Report.URL (where reports are posted, or nil), Report.StatusLines (more lines for
--- the status, after Commands.StatusText()) and Report.Sections ({ name, fn } in order, between the game's warnings and
--- the list of addons). Opened with Report.Open().
+-- The addon's UI/Report.lua sets Report.URL (where reports are posted, or nil), Report.MAIL (the address reports can
+-- be mailed to, or nil), Report.StatusLines (more lines for the status, after Commands.StatusText()) and
+-- Report.Sections ({ name, fn } in order, between the game's warnings and the list of addons). Opened with
+-- Report.Open().
 local _, ns = ...
 local L = ns.L
 
@@ -14,6 +15,9 @@ local Report = {}
 ns.Report = Report
 
 Report.URL = nil
+-- For a player without a GitHub account: KaLi's mailbox, which files each report as an issue without the sender's
+-- address (Ikar 2026-11-24: "Can we have a mail maybe instead? Can it be processed? A gmail for kali?"; tools/mail).
+Report.MAIL = nil
 Report.Sections = {}
 
 -- GitHub takes 65,536 characters in an issue.
@@ -194,6 +198,8 @@ end
 
 local frame
 local current, link = "", ""
+-- The window's height, and what the mailbox's lines add to it.
+local HEIGHT, MAIL_HEIGHT = 540, 90
 
 -- What the player types is undone, so the text stays whole for Ctrl+C.
 local function readOnly(edit, text)
@@ -230,6 +236,20 @@ local function fill()
     frame.NoURL:SetShown(address == nil)
     frame.URL:SetText(link)
     frame.URL:SetCursorPosition(0)
+    -- The mailbox's lines when there's one, the report's button under them; the window taller by as much.
+    local mail = Report.MAIL
+    frame.MailText:SetShown(mail ~= nil)
+    frame.Mail:SetShown(mail ~= nil)
+    frame.MailHint:SetText("")
+    frame.Mail:SetText(mail or "")
+    frame.Mail:SetCursorPosition(0)
+    frame.Copy:ClearAllPoints()
+    if mail then
+        frame.Copy:SetPoint("TOPLEFT", frame.Mail, "BOTTOMLEFT", -6, -14)
+    else
+        frame.Copy:SetPoint("TOPLEFT", frame.LinkCopy, "BOTTOMLEFT", 0, -10)
+    end
+    frame:SetHeight(mail and HEIGHT + MAIL_HEIGHT or HEIGHT)
 end
 
 local function build()
@@ -242,7 +262,7 @@ local function build()
     frame = CreateFrame("Frame", name, nil, "DefaultPanelFlatTemplate")
     frame:SetParent(UIParent)
     frame:SetFrameStrata("DIALOG")
-    frame:SetSize(560, 540)
+    frame:SetSize(560, HEIGHT)
     frame:SetPoint("CENTER")
     frame:SetTitle(L.REPORT_TITLE)
     ns.Movable(frame)
@@ -284,6 +304,34 @@ local function build()
     frame.LinkHint = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     frame.LinkHint:SetPoint("LEFT", frame.LinkCopy, "RIGHT", 12, 0)
     onCopy(frame.URL, frame.LinkHint, L.REPORT_LINK_COPIED)
+
+    -- Or, without a GitHub account, the mailbox's address: a click selects it for Ctrl+C.
+    frame.MailText = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    frame.MailText:SetPoint("TOPLEFT", frame.LinkCopy, "BOTTOMLEFT", 0, -14)
+    frame.MailText:SetPoint("RIGHT", frame, "RIGHT", -20, 0)
+    frame.MailText:SetJustifyH("LEFT")
+    frame.MailText:SetText(L.REPORT_MAIL)
+    frame.Mail = child("EditBox", "InputBoxTemplate")
+    frame.Mail:SetAutoFocus(false)
+    -- Room for the address, the rest of the line for the hint beside it.
+    frame.Mail:SetSize(230, 20)
+    frame.Mail:SetPoint("TOPLEFT", frame.MailText, "BOTTOMLEFT", 6, -8)
+    readOnly(frame.Mail, function()
+        return Report.MAIL or ""
+    end)
+    frame.Mail:SetScript("OnEscapePressed", frame.Mail.ClearFocus)
+    frame.MailHint = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    frame.MailHint:SetPoint("LEFT", frame.Mail, "RIGHT", 12, 0)
+    -- Up to the window's edge, a longer language's hint on two lines rather than past it.
+    frame.MailHint:SetPoint("RIGHT", frame, "RIGHT", -20, 0)
+    frame.MailHint:SetJustifyH("LEFT")
+    local function selectMail(self)
+        self:HighlightText()
+        frame.MailHint:SetText(L.REPORT_PRESS_COPY)
+    end
+    frame.Mail:SetScript("OnEditFocusGained", selectMail)
+    frame.Mail:SetScript("OnMouseUp", selectMail)
+    onCopy(frame.Mail, frame.MailHint, L.REPORT_MAIL_COPIED)
 
     -- Then the report, to paste into the issue.
     frame.Copy = child("Button", "UIPanelButtonTemplate")

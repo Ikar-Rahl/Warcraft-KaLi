@@ -7961,6 +7961,19 @@ do
             "the style " .. preset.id .. " sets a value the options don't take, a colour its list doesn't name, or has no"
             .. " name: " .. table.concat(wrong, ","))
     end
+    -- Each colour of the two lists named: one without showed its string's key (L gives a missing one back), as the
+    -- « Feu - rouge » style's two did until 2026-11-24 (Ikar: "fix the color names for firez they use a code right
+    -- now, looks bad").
+    local unnamed = {}
+    for _, list in ipairs({ ns.Border.COLORS, ns.Border.BG_COLORS }) do
+        for _, hex in ipairs(list) do
+            if L["COLOR_" .. hex] == "COLOR_" .. hex then
+                unnamed[#unnamed + 1] = hex
+            end
+        end
+    end
+    expect(#unnamed == 0, "a colour of the border's or the background's list has no name, its code shows instead: "
+        .. table.concat(unnamed, ","))
     local notFirst = {}
     for _, key in ipairs(ns.PRESET_KEYS) do
         if ns.DB.DEFAULTS[key] ~= ns.PRESETS[1][key] then

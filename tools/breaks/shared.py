@@ -63,6 +63,14 @@ BREAKS = [
     ("report: colour codes kept", REPORT, ':gsub("|c%x%x%x%x%x%x%x%x", "")', ""),
     ("report: one failing part fails it all", REPORT, "        local ok, text = pcall(s[2])", "        local ok, text = true, s[2]()"),
     ("report: the address never shown", REPORT, "    frame.URL:SetShown(address ~= nil)", "    frame.URL:SetShown(false)"),
+    # The mailbox, for a player without a GitHub account (2026-11-24); the shared smoke is the same in each addon
+    ("report: the mailbox's lines shown with no address", REPORT, "    frame.Mail:SetShown(mail ~= nil)",
+     "    frame.Mail:SetShown(true)", ("quest",), "test:smoke"),
+    ("report: the mailbox's address not selected by a click", REPORT,
+     '    frame.Mail:SetScript("OnEditFocusGained", selectMail)', "", ("quest",), "test:smoke"),
+    ("report: the report's button left under the link, over the mailbox's lines", REPORT,
+     'frame.Copy:SetPoint("TOPLEFT", frame.Mail, "BOTTOMLEFT", -6, -14)',
+     'frame.Copy:SetPoint("TOPLEFT", frame.LinkCopy, "BOTTOMLEFT", 0, -10)', ("quest",), "test:smoke"),
     ("report: its ``` closes the issue's block early", REPORT, """gsub("```", "'''")""", """gsub("````", "'''")"""),
     # Commands
     ("commands: the ones for any time wait for the saved data", COMMANDS,

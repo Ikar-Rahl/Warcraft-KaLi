@@ -3121,7 +3121,8 @@ do
     F.RunScript(frame.Box, "OnKeyDown", "C")
     F.ctrl = false
     F.RunTimers()
-    expect(F.focus ~= frame.Box and F.Plain(frame.Hint:GetText()) == "Copié : collez-le dans le ticket.",
+    expect(F.focus ~= frame.Box
+        and F.Plain(frame.Hint:GetText()) == "Copié : collez-le dans le ticket, ou dans votre e-mail.",
         "after Ctrl+C the box lets go of the keyboard and says what to do next")
 
     local url, shownLink = ns.Report.URL, frame.URL:GetText()

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.1 (not released yet)
+
+- **No GitHub account?** The bug report's window gives KaLi's mail address under the GitHub link; a click selects it, to copy. A mail with the report becomes an issue, published without your address: you get its link, and the answers come back by mail, in your language. Once the report is copied, the window says to paste it into the issue or into your mail.
+- The Fire - red style's two colors have names in the lists, **Ember red** and **Charred stone**, instead of a code.
+- The description: « Bugs and ideas » gives both ways to report, « Compatibility » says what KaLi HUD leaves alone, « Credits » honors the modders it owes (FlareUI, Titan Panel, SexyMap, SpartanUI, SinStats), and a note has its picture.
+
 ## 0.9.0 (2026-11-23)
 
 First public beta: every feature is in.
