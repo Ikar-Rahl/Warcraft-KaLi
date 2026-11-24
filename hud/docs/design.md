@@ -2998,3 +2998,62 @@ card no longer says what its level gave and what the next will. Gone with those 
 `Stats.LevelLines`, `Stats.LevelGain`, `Stats.TableBase` (read by nothing already), the level-up's record and
 `db.levelGains`, and their three strings. The base's split (the race, the class at level 1, the levels since,
 « Ajustements de Forever ») stays. Checked offline: the static checks, the smoke, the scenarios. Not seen in game.
+
+## Issue #5 and the requests of 2026-11-24
+
+Ikar's mail of that evening, [issue #5](https://github.com/Ikar-Rahl/Warcraft-KaLi/issues/5) (« Bug puissance des
+sorts », its subject alone: what was wrong with the spell power isn't said, asked), and in the session: "why mana and
+health are not broken by race, class and profession like the rest", "KaLi hud need an option and report bug in the
+right click menu, like the kali quests", "Healing power is missing, add a category bellow defense for healing related
+stats, investigate if there is other healing related stats to count".
+
+- **The attack power's class part below 0** (the report's first card, a level 26 night elf druid: « Erreur de
+  l'add-on -20 »): LEVEL_AP's own figure for a class whose level adds nothing (a druid's -20, a mage's, priest's and
+  warlock's -10) was a base row, and every base row below 0 is renamed the addon's mistake. It is the table's figure,
+  never a rest: `measured`, as « Ajustements de Forever » is. Every druid, mage, priest and warlock had it.
+- **The block value without a shield** (the second card: strength 33, the game's 1, « Autres 1 »): the point taken
+  off the shield's and the strength's together (the screenshot of 2026-11-23: 7 and 3, the game's 9) is taken off with
+  a shield alone. Two readings, one each way: a third, a shield and a strength just past a multiple of 20, would tell
+  a cut from a rounding.
+- Both cards are cases in `hud/tools/lua/scenarios/cards.lua`, held to no gap; the block value's `freshParts`, its
+  parts worked out again from the state kept, the fix being in them.
+- **Health and mana split** as the attributes' are: the class's at level 1, then what levels 2 to N have given. The
+  mana's from Forever's own table (BASE_MANA, PlayerExpectedStat), the health's from the original game's
+  (`player_classlevelstats`, `Data/BaseStats.lua`'s `health`, by `hud/tools/make_basestats.py`): Forever's data has
+  none of the health's. No race row: neither table has one, a race giving its stamina and intellect, which their own
+  cards split. Checked: Ikar's level 26 dwarf shaman, 767 health of which 510 its stamina's, leaves 257, the table's;
+  Forever's mana table is the original's for druids, warriors and rogues at every level, all but level 1 for hunters,
+  paladins and warlocks, 55 of 60 levels for shamans, and below it for priests and mages. What the game's figure
+  leaves of either is « Autres », below 0 the addon's mistake. The fake's level 23 warrior has 1013 health now, the
+  table's 243 and its stamina's 770 (a made-up 1520 until then).
+- **Options and Report a bug** in the info bar's menu, between what can be made and undo and redo, which stay last.
+  « Options » is the game's word (`OPTIONS`).
+- **Healing** (the damage meter's word, `DAMAGE_METER_CATEGORY_HEALING`) under the defence's four, in its column:
+  the sheet's « Soins des sorts » moved there from the modifiers. Looked into for more: Forever's `GetSpellCritChance`
+  takes no school (one figure, already the critical strike's spells part); the healing taken (auras 115 and 118:
+  Mortal Strike's -50 %, Amplify Magic's +45, Tree of Life's +10 %), and the healing done by a share (136: Power
+  Infusion's +20 %) are in the data, but the healing talents (Spiritual Healing, Gift of Nature, Purification, Healing
+  Light) change some spells only (spell modifiers, 108), which no card reads: a healing done that left them out would
+  mislead. Asked which to build.
+- Ruled then: "add the healing taken", and of the talents "I don't understand why we can't take into account the
+  talents", "heal power should count only when it affect all spels. Or the main spells at least. Simple to check no ?".
+  Built: **Healing Taken** (118, by a share, the shares multiplied, the original server's), **Healing Taken per Heal**
+  (115, points on each heal) and **Healing Done** (136, by a share). A healing talent is aura 108 on the spells its
+  codes take in (SpellClassOptions, now fetched): `make_effects.py`'s `heal_talents` writes it as 136 when its codes
+  take in all its class's main heals (`MAIN_HEALS`: the priest's Lesser Heal, Heal, Greater Heal, Flash Heal, Renew,
+  Prayer of Healing; the druid's Healing Touch, Regrowth, Rejuvenation, Tranquility; the shaman's Healing Wave, Lesser
+  Healing Wave, Chain Heal; the paladin's Holy Light, Flash of Light). Kept so: Spiritual Healing (3, 7, 10 %),
+  Purification and Gift of Nature (2 to 10 %), Healing Light (4, 8, 12 %); left out: Improved Renew, Improved
+  Rejuvenation, Healing Way, Twin Disciplines, Genesis. None of the three has a game figure: no « Autres ».
+- **The attack power's base** in two rows (Ikar: "why it is not just base = -20 for everyone, isn't the chaman getting
+  attack power that a druit do not ?", "base shoudl come before level", "Level 26 (x2)"): « Base » (-20, or -10 for
+  the casters and every ranged), then « Niveau 26 (x2) » for a class its level raises. LEVEL_AP itself unchanged
+  since 2026-11-21: checked in game on the shaman at 24 and the druid at 26, the other classes not.
+- **A source's name cut short** on a card (« … » where its figure starts): two lines at most now (`SetMaxLines`); one
+  still cut shows whole in a tooltip on the card kept open (`IsTruncated`; Ikar: "when there is an elipssis, there
+  shoudl be a tooltip with the full data, better, write it in 2 lines").
+- `tools/breaks.py` holds the five minutes itself (Ikar: "did you screw the 5min rule again ?", eight minutes for seven
+  breaks that day): a link to the whole smoke is refused, the break skipped with what to do; a run stops at BUDGET;
+  `--link` says its breaks were run. The health's and mana's breaks link to the scenario `bases`.
+
+Checked offline: the static checks, the smoke, the scenarios, the new breaks. Not seen in game.

@@ -26,6 +26,7 @@ from kali.paths import REFERENCE  # noqa: E402
 
 TARGET = ROOT / "hud/addon/KaLiHUD/Data/BaseStats.lua"
 SOURCE = REFERENCE / "basestats" / "player_levelstats.sql"
+HEALTH_SOURCE = REFERENCE / "basestats" / "player_classlevelstats.sql"
 # The races by their IDs, UnitRace's third (the two Skyborne share one token, UnitRace's second), and the classes by the
 # token UnitClass gives.
 RACES = {1: "Human", 2: "Orc", 3: "Dwarf", 4: "Night Elf", 5: "Undead", 6: "Tauren", 7: "Gnome", 8: "Troll",
@@ -62,6 +63,22 @@ def curves():
     return out
 
 
+def health():
+    """Each class's base health at levels 1 to 60, the original game's own (MaNGOS Zero's `player_classlevelstats`,
+    kept beside the attributes' as basestats/player_classlevelstats.sql): a class's alone, no race's (Ikar 2026-11-24:
+    "why mana and health are not broken by race, class and profession like the rest"). Checked against Forever: a
+    level 26 dwarf shaman's 767 with 510 of its stamina leaves 257, the table's (Ikar's card of 2026-11-23). Forever's
+    data has the mana's own table (Data/Effects.lua's BASE_MANA), not the health's."""
+    rows = {}
+    pattern = r"\((\d+),\s*(\d+),\s*(\d+),\s*(\d+)\)"
+    for m in re.finditer(pattern, HEALTH_SOURCE.read_text(encoding="utf-8")):
+        cls, level, hp, _ = map(int, m.groups())
+        rows.setdefault(CLASSES[cls], {})[level] = hp
+    for cls, levels in rows.items():
+        assert sorted(levels) == list(range(1, LEVELS + 1)), cls
+    return {cls: [levels[n] for n in range(1, LEVELS + 1)] for cls, levels in rows.items()}
+
+
 def build():
     """The file's text, and how many classes it holds."""
     classes = curves()
@@ -82,6 +99,10 @@ def build():
     for cls in sorted(classes):
         text = ";".join(",".join(map(str, five)) for five in classes[cls])
         out.append(f'        {cls} = "{text}",')
+    out += ["    },", "    -- each class's base health at levels 1 to 60, the original game's (player_classlevelstats)",
+            "    health = {"]
+    for cls, levels in sorted(health().items()):
+        out.append(f'        {cls} = "{",".join(map(str, levels))}",')
     out += ["    },", "}", ""]
     return "\n".join(out), len(classes)
 

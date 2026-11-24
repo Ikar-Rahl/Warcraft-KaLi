@@ -1193,7 +1193,17 @@ expect(page:Open() and SettingsPanel:IsShown() and F.settingsPage == page.catego
     "it opens in the game's options")
 local pageOpen = F.PageRow(page.category, L.OPTIONS)
 expect(pageOpen and pageOpen.Button:GetText() == L.OPTIONS_OPEN and page.frame.Title:GetText() == ns.TITLE,
-    "its title, and one row: a button to the window")
+    "its title, and a button to the window")
+local pageReport = F.PageRow(page.category, L.REPORT_TITLE)
+expect(pageReport and pageReport.Button:GetText() == L.REPORT_OPEN, "and one to report a bug, as KaLi Quest's page has")
+if pageReport then
+    F.RunScript(pageReport.Button, "OnClick")
+    local report = ns.Report.Frame()
+    expect(report and report:IsShown(), "which opens the bug report")
+    if report then
+        report:Hide()
+    end
+end
 if pageOpen then
     F.RunScript(pageOpen.Hover, "OnEnter")
     expect(tooltipHas(L.OPTIONS) and tooltipHas(L.OPTIONS_OPEN_TIP) and pageOpen.Light:IsShown(),

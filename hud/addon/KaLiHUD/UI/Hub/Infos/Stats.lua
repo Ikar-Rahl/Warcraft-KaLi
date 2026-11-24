@@ -200,22 +200,27 @@ local LEVEL_AP = {
     SHAMAN = { 2, -20, 0, 0 }, DRUID = { 0, -20, 0, 0 }, MAGE = { 0, -10, 0, 0 }, PRIEST = { 0, -10, 0, 0 },
     WARLOCK = { 0, -10, 0, 0 },
 }
--- What the level and the class give, and how, « 2 x 24 - 20 » (Ikar 2026-11-21, of « Base 5 »: "where do this come
--- from ?"; then "lvl can be a source on it own, like intel"): named the level, or the class where the level adds
--- nothing (a mage's -10).
+-- What the level and the class give, their sum, then each as a row of its own (Ikar 2026-11-21, of « Base 5 »: "where
+-- do this come from ?"; then "lvl can be a source on it own, like intel"; 2026-11-24: "why it is not just base = -20
+-- for everyone, isn't the chaman getting attack power that a druit do not ?"): « Base » first, the -20 or -10 every
+-- class of its kind has, then the level's for a class it raises, « Niveau 26 (x2) » (the same day: "base shoudl come
+-- before level, and level shoudl note level x 2, not 26 x 2. clearer", then "for level, even better: Level 26 (x2)").
 local function levelAP(ranged)
-    local name, class = UnitClass("player")
+    local _, class = UnitClass("player")
     local f, level = LEVEL_AP[class], ns.Plain(UnitLevel("player"))
     if not (f and type(level) == "number") then
         return nil
     end
     local per, own = f[ranged and 3 or 1], f[ranged and 4 or 2]
-    local how = (own < 0 and "-" or "+") .. " " .. math.abs(own)
-    if per ~= 0 then
-        name = string.format(G("UNIT_LEVEL_TEMPLATE", "Level %d"), level)
-        how = per .. " x " .. level .. (own ~= 0 and " " .. how or "")
+    local rows = {}
+    if own ~= 0 then
+        rows[#rows + 1] = { name = L.STAT_BASE, points = own }
     end
-    return per * level + own, string.format("%s (%s)", name or L.STAT_BASE, how)
+    if per ~= 0 then
+        rows[#rows + 1] = { name = string.format(G("UNIT_LEVEL_TEMPLATE", "Level %d"), level) .. " (x" .. per .. ")",
+            points = per * level }
+    end
+    return per * level + own, rows
 end
 -- Where a value's base comes from, its row named after it as the game's unit tooltip names a character (Ikar
 -- 2026-11-21: "each base need to be explained"): the class's own (a chance: « Chaman »), the class's at its level
@@ -259,9 +264,26 @@ do
         end
         return list[level]
     end
-    -- A value's base as one row (baseRow), whole: an attribute's the base the game gives, « Niveau 26 Nain Chaman »; the
-    -- mana's the class's at the character's level, Forever's table, what the game's figure leaves of it returned second
-    -- (« Autres », a source not named). No split by race, class and levels (Ikar 2026-11-23, of « Niveau 26
+    -- A class's base health at a level, the original game's table (Data/BaseStats.lua's health): Forever's data has
+    -- none, and a level 26 dwarf shaman's is the table's to the point (Ikar's card of 2026-11-23: 767, 510 of it the
+    -- stamina's, 257 the table's)
+    local healthByLevel = {}
+    local function baseHealth(class, level)
+        local list = healthByLevel[class]
+        if not list then
+            list = {}
+            for v in ((ns.BASE_STATS and ns.BASE_STATS.health or {})[class] or ""):gmatch("%d+") do
+                list[#list + 1] = tonumber(v)
+            end
+            healthByLevel[class] = list
+        end
+        return list[level]
+    end
+    -- A value's base as rows (baseRow): an attribute's split by the original table, below; the health's and the
+    -- mana's by their tables, the class's at level 1 and what the levels since have given, no race's (theirs is a
+    -- class's alone: a race gives its stamina and its intellect, whose own cards split them; Ikar 2026-11-24: "why mana
+    -- and health are not broken by race, class and profession like the rest"), what the game's figure leaves of them
+    -- returned second (« Autres », a source not named). No split worked backwards (Ikar 2026-11-23, of « Niveau 26
     -- (49 - 23 - 1) »: "Were does 49-23-1 come from ? and if you just backwardly calculate, then this is a useless
     -- information", "same for every single stat", "Nobody give a shit about the remainder, what, each, level, give.
     -- Period."): the game gives the whole alone. A base that is what the game's figure leaves (`left`: the
@@ -296,11 +318,18 @@ do
             end
             return rows, 0
         end
-        local now = spec.mana and spec.mana() and type(level) == "number" and baseMana(classFile, level)
-        if now and className then
-            local row = baseRow(spec, now, false)
-            row.tip = { lines = { string.format(L.STAT_MANA_TIP, number(baseMana(classFile, 1) or now), number(now), level) } }
-            return { row }, points - now
+        local byLevel = type(level) == "number"
+            and (spec.mana and spec.mana() and baseMana or spec.healthTable and baseHealth) or nil
+        local now, first = byLevel and byLevel(classFile, level), byLevel and byLevel(classFile, 1)
+        if now and first and className then
+            local health = byLevel == baseHealth
+            local rows = { baseRow(spec, first, false, className) }
+            rows[1].tip = { lines = { health and L.STAT_HEALTH_CLASS_TIP or L.STAT_MANA_CLASS_TIP } }
+            if now ~= first then
+                rows[2] = baseRow(spec, now - first, false, string.format(G("UNIT_LEVEL_TEMPLATE", "Level %d"), level))
+                rows[2].tip = { lines = { string.format(health and L.STAT_LEVELS_TIP or L.STAT_MANA_LEVELS_TIP, level) } }
+            end
+            return rows, points - now
         end
         local row = baseRow(spec, points, percent)
         if left then
@@ -417,6 +446,7 @@ SOURCES.POWER.baseOf = function()
     return manaShown() and "classLevel" or "class"
 end
 SOURCES.POWER.mana = manaShown
+SOURCES.HEALTH.healthTable = true
 SOURCES.ARMOR.noBase, SOURCES.REGEN.noBase = true, true
 -- What an enemy of the character's level gets against it (Ikar 2026-11-23, of the defence's column: "add the 4"),
 -- worked out of the game's own figures: its parts are its sum (PARTS), nothing else changes it.
@@ -426,6 +456,15 @@ end
 -- Values whose changes multiply each other, not add up: what their sources leave isn't a figure of anything, and
 -- none is said (a curse's -50 % of haste beside a buff's +10 % had left « Autres +55 % »)
 SOURCES.HASTE.multiplies, SOURCES.MOVESPEED.multiplies = true, true
+-- The healing taken (Ikar 2026-11-24: "add the healing taken"), the effects on the character: 118 by a share of each
+-- heal, the shares multiplying each other (the original server's), and 115 by points on each heal. The game gives no
+-- figure of either: the value is their own (Stats.HealTaken), nothing left beside them.
+SOURCES.HEALTAKEN = { gear = {}, flat = { [118] = true }, percent = true, noBase = true, multiplies = true }
+-- the healing done by a share, 136: the effects on the character (Power Infusion) and the healing talents that take in
+-- all their class's main heals, which hud/tools/make_effects.py writes so (Ikar 2026-11-24: "heal power should count
+-- only when it affect all spels. Or the main spells at least")
+SOURCES.HEALDONE = { gear = {}, flat = { [136] = true }, percent = true, noBase = true, multiplies = true }
+SOURCES.HEALTAKEN_FLAT = { gear = {}, flat = { [115] = true }, noBase = true }
 
 -- How fast the character goes, as the sheet's (MovementSpeed_OnUpdate): running, or swimming or flying while it does,
 -- a fall out of the water still swimming; a share of the base speed (BASE_MOVEMENT_SPEED, 7 yards a second).
@@ -686,6 +725,22 @@ local LIST = {
         local t = Stats.Taken()
         return t and t.crit
     end },
+    -- the healing done and taken by a share of each heal, and taken by points on each (Stats.HealShare): raised green,
+    -- lowered red
+    { key = "HEALDONE", name = function() return L.STAT_HEALDONE end, value = function()
+        return Stats.ShareText(Stats.HealShare("HEALDONE"))
+    end },
+    { key = "HEALTAKEN", name = function() return L.STAT_HEALTAKEN end, value = function()
+        return Stats.ShareText(Stats.HealShare("HEALTAKEN"))
+    end },
+    { key = "HEALTAKEN_FLAT", name = function() return L.STAT_HEALTAKEN_FLAT end, value = function()
+        local v = Stats.HealShare("HEALTAKEN_FLAT")
+        if not v then
+            return nil
+        end
+        return v > 0 and Infos.Color("+" .. number(v), Infos.GOOD) or v < 0 and Infos.Color(number(v), Infos.BAD)
+            or number(v)
+    end },
 }
 for _, s in ipairs(LIST) do
     s.sources = SOURCES[s.key]
@@ -851,7 +906,7 @@ local ORDER = {
     title("STAT_CATEGORY_WEAPONS", "Weapons", true),
     "MAINHAND_DAMAGE", "OFFHAND_DAMAGE", "RANGED_DAMAGE", "ATTACK_AP", "RANGED_ATTACK_AP",
     title("STAT_CATEGORY_MODIFIERS", "Modifiers"),
-    "HITCHANCE", "CRITCHANCE", "HASTE", "EXPERTISE", "ARMORPEN", "SPELLHEALING", "SPELLPENETRATION",
+    "HITCHANCE", "CRITCHANCE", "HASTE", "EXPERTISE", "ARMORPEN", "SPELLPENETRATION",
     "HEALTH_REGEN", "REGEN",
     -- the defence a column of its own, with what an enemy of the character's level gets against it (Ikar 2026-11-23:
     -- "add the 4"); each school's spell power under the sheet's word for it (the review of that day), the resistances
@@ -859,6 +914,9 @@ local ORDER = {
     -- column", "spell and resistance last column")
     title("STAT_CATEGORY_DEFENSE", "Defense", true), "DEFENSE", "DODGE", "BLOCK", "BLOCKVALUE", "PARRY", "ARMOR",
     "ARMORCUT", "MISSED", "AVOIDANCE", "CRITTAKEN",
+    -- the healing under it, the sheet's spell healing out of its modifiers, under the game's own word (the damage
+    -- meter's) (Ikar 2026-11-24: "Healing power is missing, add a category bellow defense for healing related stats")
+    title("DAMAGE_METER_CATEGORY_HEALING", "Healing"), "SPELLHEALING", "HEALDONE", "HEALTAKEN", "HEALTAKEN_FLAT",
     title("STAT_SPELLPOWER", "Spell Power", true), "SPELLPOWER_ARCANE", "SPELLPOWER_FIRE", "SPELLPOWER_FROST",
     "SPELLPOWER_NATURE", "SPELLPOWER_SHADOW", "SPELLPOWER_HOLY",
     title("STAT_CATEGORY_RESISTANCE", "Resistance"), "ARCANE", "FIRE", "FROST", "NATURE", "SHADOW",
@@ -1670,7 +1728,9 @@ local PARTS = {
                 list[#list + 1] = { name = G("SPELL_STAT1_NAME", "Strength"), points = v }
             end
         end
-        if #list > 0 then
+        -- (with a shield alone: Ikar's druid of issue #5, 2026-11-24, no shield and 33 strength, the game's 1, the
+        -- strength's point; « Autres 1 » while it was taken off there too)
+        if block and block > 0 then
             list[#list + 1] = { name = L.STAT_BASE, points = -1, tip = { lines = { L.STAT_BLOCK_BASE_TIP } } }
         end
         return list
@@ -2116,13 +2176,22 @@ local function sourcesOf(s, withNext, full)
                     named = named + e.points
                 end
             end
-            local own, how = spec.levelPart()
+            local own, parts = spec.levelPart()
             local mistake = own and base - own - named or 0
-            own = floor((own or base - named) + 0.5)
-            if own ~= 0 then
-                local row = baseRow(spec, own)
-                row.name = how or row.name
-                table.insert(list, 1, row)
+            if own then
+                -- (LEVEL_AP's own figures are no rest: « Base » below 0 stays itself, never « Erreur de l'add-on »;
+                -- Ikar's druid, issue #5 of 2026-11-24: its -20 had read as a mistake, as every mage's, priest's and
+                -- warlock's -10)
+                for i = #parts, 1, -1 do
+                    local row = baseRow(spec, parts[i].points)
+                    row.name, row.measured = parts[i].name, true
+                    table.insert(list, 1, row)
+                end
+            else
+                own = floor(base - named + 0.5)
+                if own ~= 0 then
+                    table.insert(list, 1, baseRow(spec, own))
+                end
             end
             if mistake >= 0.5 or mistake <= -0.5 then
                 list[#list + 1] = { name = L.STAT_ADDON_ERROR, points = floor(mistake + 0.5), percent = false,
@@ -2602,8 +2671,8 @@ for i, key in ipairs(ATTRIBUTE_KEYS) do
         return { attributeText(i) }
     end
 end
--- the defence's column's four: what each is, against an enemy of the character's level
-for _, key in ipairs({ "ARMORCUT", "MISSED", "AVOIDANCE", "CRITTAKEN" }) do
+-- the defence's column's four: what each is, against an enemy of the character's level; the healing taken's two
+for _, key in ipairs({ "ARMORCUT", "MISSED", "AVOIDANCE", "CRITTAKEN", "HEALDONE", "HEALTAKEN", "HEALTAKEN_FLAT" }) do
     TEXTS[key] = function()
         return { L["STAT_" .. key .. "_TIP"] }
     end
@@ -5038,3 +5107,32 @@ function Stats.ReadValue(s, channel)
 end
 -- (the values, and what their sources come to: StatCheck.lua's /kh stats, the scenario's cards read again)
 Stats.LIST, Stats.SourcesOf = LIST, sourcesOf
+
+-- The healing done or taken by a share of each heal, in percent, its sources' shares multiplied, or taken by points
+-- on each heal (HEALTAKEN_FLAT, their sum); 0 with none; nil in a fight, as every source.
+function Stats.HealShare(key)
+    if ns.InCombat() then
+        return nil
+    end
+    local share = key ~= "HEALTAKEN_FLAT"
+    for _, s in ipairs(LIST) do
+        if s.key == key then
+            local v = share and 1 or 0
+            for _, e in ipairs(sourcesOf(s) or {}) do
+                if type(e.points) == "number" then
+                    v = share and v * (1 + e.points / 100) or v + e.points
+                end
+            end
+            -- (to a tenth: 0.5 x 1.1 is 0.55 less a hair)
+            return share and floor((v - 1) * 1000 + 0.5) / 10 or v
+        end
+    end
+end
+-- A share in percent as the bar writes it: raised green with its sign, lowered red, whole without decimals.
+function Stats.ShareText(v)
+    if not v then
+        return nil
+    end
+    local text = v == floor(v) and Format.Percent(v / 100) or Format.PercentOf(v, 1)
+    return v > 0 and Infos.Color("+" .. text, Infos.GOOD) or v < 0 and Infos.Color(text, Infos.BAD) or text
+end

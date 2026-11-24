@@ -1591,8 +1591,10 @@ function UnitStat(_, i)
     local v = F.attributes[i] or 0
     return stat(v, v, i == 1 and 5 or 0, 0)
 end
+-- a level 23 warrior's: the original table's 243 and its stamina's 770 (it had been 1520, its base a made-up 750, until
+-- the card read the table, 2026-11-24)
 function UnitHealthMax()
-    return stat(1520)
+    return stat(1013)
 end
 function UnitPowerMax(_, kind)
     return stat(kind == Enum.PowerType.Mana and 0 or 100)

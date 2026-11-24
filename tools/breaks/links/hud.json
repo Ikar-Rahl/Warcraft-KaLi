@@ -132,6 +132,20 @@
   "at": "the card doesn't say what never missing a raid boss takes, reached or not, or each kind's hit: Hit",
   "part": "smoke"
  },
+ "bar menu: no bug report in it": {
+  "at": "the bar's menu has no Options then Report a bug, above undo and redo",
+  "part": "smoke"
+ },
+ "bar menu: no options in it": {
+  "at": "the bar's menu has no Options then Report a bug, above undo and redo",
+  "part": "smoke"
+ },
+ "base: the health's what's left, not the table's": {
+  "part": "smoke"
+ },
+ "base: the mana's one row, the class's at its level": {
+  "part": "smoke"
+ },
  "best of three: a buff's melee haste and its ranged haste added up": {
   "at": "a source of the weapons' hit is named under the spells', or one of both counts twice: Hit",
   "part": "smoke"
@@ -470,6 +484,10 @@
  },
  "groups: what the gear adds among the rest, not with the gear": {
   "at": "the gear's rows aren't under one name with their sum, an item's own spell on its row, its enchantmen",
+  "part": "smoke"
+ },
+ "healing: no heading of its own, the spell healing gone from the folder": {
+  "at": "the attributes' folder: | Attr_HEALTH Attr_POWER Attr_MOVESPEED | Attr_STRENGTH Attr_AGILITY Attr_ST",
   "part": "smoke"
  },
  "hints: Mexican Spanish's help in words again": {

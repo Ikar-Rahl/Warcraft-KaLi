@@ -6,7 +6,7 @@
 ## Notes-esES: Tus propios grupos de misiones, en un rastreador de objetivos reescrito.
 ## Notes-esMX: Tus propios grupos de misiones, en un rastreador de objetivos reescrito.
 ## Author: Ikar
-## Version: 0.9.0
+## Version: 0.9.1
 ## Category: Quests
 ## Category-frFR: Quêtes
 ## Category-deDE: Quests

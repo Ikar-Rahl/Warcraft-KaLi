@@ -1,9 +1,19 @@
 # Changelog
 
-## 0.9.1 (not released yet)
+## 0.9.1 (2026-11-24)
 
 - **No GitHub account?** The bug report's window gives KaLi's mail address under the GitHub link; a click selects it, to copy. A mail with the report becomes an issue, published without your address: you get its link, and the answers come back by mail, in your language. Once the report is copied, the window says to paste it into the issue or into your mail.
 - The Fire - red style's two colors have names in the lists, **Ember red** and **Charred stone**, instead of a code.
+- **Options** and **Report a bug** in the info bar's right-click menu, as in KaLi Quest's gear menu.
+- A **Healing** heading in the attributes' folder, under the defense's: **Spell Healing** moved there from the modifiers, then three new values, each source named on its card:
+  - **Healing Done**: how much more your heals restore. It counts the talents that raise all your class's main heals (Spiritual Healing, Purification, Gift of Nature, Healing Light) and the buffs on you (Power Infusion). A talent that raises only some heals isn't counted.
+  - **Healing Taken**: how much more or less every heal on you restores, whoever casts it (Mortal Strike's -50%).
+  - **Healing Taken per Heal**: the points added to or taken from every heal on you (Amplify Magic's +45, Dampen Magic's -30).
+- A source's name too long for its row on an attribute's card goes on two lines instead of being cut short; one still too long shows whole in a tooltip, on the card kept open.
+- Health and mana show their base as the attributes do: your class's at level 1, then what the levels since have given. The health's comes from the original game's table, the mana's from Forever's own. Neither has a part of your race: your race gives health and mana through its Stamina and Intellect.
+- The attack power's base in two rows: **Base**, the -20 or -10 your class has, then what your level gives, for the classes it raises ("Level 26 (x2)" for a shaman).
+- Fixed: a druid's attack power showed its class's -20 as an **Addon mistake**, and a mage's, priest's or warlock's its -10.
+- Fixed: without a shield, the block value took off the point a shield's has, and showed **Others +1**.
 - The description: « Bugs and ideas » gives both ways to report, « Compatibility » says what KaLi HUD leaves alone, « Credits » honors the modders it owes (FlareUI, Titan Panel, SexyMap, SpartanUI, SinStats), and a note has its picture.
 
 ## 0.9.0 (2026-11-23)

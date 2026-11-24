@@ -110,7 +110,7 @@ The CurseForge app installs and updates it. By hand: put the `KaLiHUD` folder in
 
 ## Bugs and ideas
 
-`/kh report`, or **Help** on the options page, opens a window with a report of what the addon sees, to copy. It holds no character or realm name. Please say what you were doing and what happened. A figure looks wrong somewhere particular (at a camp, after a level-up, in a form)? Type `/kh stats` there first.
+`/kh report`, **Report a bug** in the info bar's right-click menu, or **Help** on the options page opens a window with a report of what the addon sees, to copy. It holds no character or realm name. Please say what you were doing and what happened. A figure looks wrong somewhere particular (at a camp, after a level-up, in a form)? Type `/kh stats` there first.
 
 - **With a GitHub account:** **Select the link**, copy it (Ctrl+C) and open it in your browser: a new issue opens, its questions in it. Then **Select the report**, copy it and paste it in. You can also open an issue directly: [github.com/Ikar-Rahl/Warcraft-KaLi/issues](https://github.com/Ikar-Rahl/Warcraft-KaLi/issues).
 - **Without one, by mail:** click the address under the link, copy it, and write to [warcraft.kali.addons@gmail.com](mailto:warcraft.kali.addons@gmail.com) with the report pasted in. Within a few minutes your mail becomes an issue and you get its link: what you write is published there, your address never is. The answers come back to you by mail; reply to them to add to the issue.

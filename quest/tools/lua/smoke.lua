@@ -1132,12 +1132,10 @@ diagPanel:Hide()
 local optionsPage, tipsPage = ns.Options.page, ns.Options.tips
 expect(F.settingsLayout == nil and F.settingsCategory == nil and F.settingsRegistered == optionsPage.category
     and #F.settingsPages == 2, "the options page and its tips are frames of the addon's own: nothing in the game's lists of settings")
-local diagButton = pageRow(nil, "Ouvrir le diagnostic")
-if diagButton then
-    click(diagButton.Button)
-end
-expect(diagButton and diagPanel:IsShown(), "and so does a button on the options page")
-diagPanel:Hide()
+-- Nor has the options page (Ikar 2026-11-24: "kali quest still has the diagnose button, to be removed"): /kq diag
+-- alone opens the panel; the page keeps the report's button.
+expect(not pageRow(ns.L.DIAG_TITLE) and pageRow(ns.L.REPORT_TITLE),
+    "the options page has no diagnostics button, and keeps the bug report's")
 F.settingsOpened = nil
 SettingsPanel:Hide()
 SlashCmdList.KALIQUEST("options")

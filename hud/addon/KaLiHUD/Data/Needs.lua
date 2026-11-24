@@ -714,6 +714,7 @@ ns.NEEDS = {
         "NO",
         "NONE",
         "OFF",
+        "OPTIONS",
         "QUIT",
         "READY_CHECK",
         "RELOADUI",

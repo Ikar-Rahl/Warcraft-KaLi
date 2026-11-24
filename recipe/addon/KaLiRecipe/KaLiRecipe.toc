@@ -6,7 +6,7 @@
 ## Notes-esES: Un cuaderno de las recetas con las que te cruzas, sin desvelar las que nunca has visto.
 ## Notes-esMX: Un cuaderno de las recetas con las que te cruzas, sin revelar las que nunca has visto.
 ## Author: Ikar
-## Version: 0.9.0
+## Version: 0.9.1
 ## Category: Professions
 ## Category-frFR: Métiers
 ## Category-deDE: Berufe

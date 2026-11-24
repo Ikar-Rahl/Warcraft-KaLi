@@ -1,8 +1,9 @@
 # Changelog
 
-## 0.9.1 (not released yet)
+## 0.9.1 (2026-11-24)
 
 - **No GitHub account?** The bug report's window gives KaLi's mail address under the GitHub link; a click selects it, to copy. A mail with the report becomes an issue, published without your address: you get its link, and the answers come back by mail, in your language. Once the report is copied, the window says to paste it into the issue or into your mail.
+- **Report a bug** on KaLi Recipe's page in the game's options (**Options > AddOns > KaLi Recipe**), under the button to its own options.
 - The description: « Bugs and ideas » gives both ways to report, and « Compatibility » names Auctionator, Baganator and Titan Panel.
 
 ## 0.9.0 (2026-11-23)

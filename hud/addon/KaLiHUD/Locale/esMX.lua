@@ -10,6 +10,7 @@ OWN.esMX = setmetatable({
     DECIMAL = ".",
     REPAIR_COST = "Costo de la reparación",
     STAT_CAMP_PART = "Hoguera: %s",
+    STAT_MANA_CLASS_TIP = "El maná base de la clase en el nivel 1, según la tabla de Forever. La raza no da maná propio, solo por su intelecto.",
     OPT_MARGIN_BARS_TIP = "Margen de la placa alrededor de todas las barras de acción, de posturas, de mascota y de tótems. En lo más ajustado, su borde las toca sin montarse nunca sobre ellas.",
     FOLDER_SOUND_waypoint = "Marcador de mapa",
     STATUS_PUT_BACK_TIP = "En el modo de edición, arrastra la barra para dejarla en otro sitio: la placa la toma si está a su alcance. Recolocar la devuelve junto a la barra de información, contra el anillo del minimapa.",

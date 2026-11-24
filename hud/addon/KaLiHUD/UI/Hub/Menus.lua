@@ -463,6 +463,15 @@ function Menus.Bar(_, root)
             end))
         end
     end
+    -- The options and a bug report, as KaLi Quest's gear's menu has them (Ikar 2026-11-24: "KaLi hud need an option
+    -- and report bug in the right click menu, like the kali quests"); in a fight the options page says it can't open
+    root:CreateDivider()
+    Menus.Hold(root:CreateButton(ns.G("OPTIONS", "Options"), function()
+        ns.SafeCall(ns.Options.Open)
+    end))
+    Menus.Hold(root:CreateButton(L.REPORT_TITLE, function()
+        ns.SafeCall(ns.Report.Open)
+    end))
     root:CreateDivider()
     historyEntries(root)
 end

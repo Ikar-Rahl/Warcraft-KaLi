@@ -123,14 +123,26 @@ DEFENSE = 95
 ARMOR_AND_SCHOOLS = 1 | 2 | 4 | 8 | 16 | 32 | 64
 MAGIC = 2 | 4 | 8 | 16 | 32 | 64
 ANY = {133, 135, 34, 230, 250, 54, 55, 52, 57, 290, 49, 47, 51, 319, 192, 140, 342, 65, 216, 193, 31, 129, 33, 171,
-       32, 130, 172, 58, 240, 317, 9, 557, 466, 178, 161, 88, 116, 272, 274}
+       32, 130, 172, 58, 240, 317, 9, 557, 466, 178, 161, 88, 116, 272, 274,
+       # the healing taken, 118 by a share, 115 by points on each heal (Ikar 2026-11-24: "add the healing taken"); the
+       # healing done by a share, 136 (Power Infusion), with the talents of HEAL_TALENTS
+       118, 115, 136}
+# The classes' main heals, by their first rank, under their class's number in SpellClassOptions (6 the priest's, 7 the
+# druid's, 11 the shaman's, 10 the paladin's): a talent that raises healing by a share (108, on the amount, misc 0, or
+# over time, 22) counts as healing done (136) when its effects' spell codes take in every one of them (Ikar 2026-11-24:
+# "heal power should count only when it affect all spels. Or the main spells at least"): Spiritual Healing,
+# Purification, Gift of Nature, Healing Light; not those of one spell (Improved Renew) or some (Twin Disciplines).
+MAIN_HEALS = {6: (2050, 2054, 2060, 2061, 139, 596), 7: (5185, 8936, 774, 740), 11: (331, 8004, 1064),
+              10: (635, 19750)}
+HEAL_SHARE, HEALING_DONE = 108, 136
 # The combat ratings the sheet shows a value of, as aura 189's mask has them: the bit of the game's CR_ number less
 # one (defence 2, dodge 3, parry 4, block 5, hit 6 to 8, critical strike 9 to 11, haste 18 to 20, expertise 24: the
 # tier 1 sets' four pieces of a tank).
 RATINGS = sum(1 << (cr - 1) for cr in (2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 18, 19, 20, 24))
 # The tables this needs from wago.tools, beyond those the family's tools already keep.
 FETCHED = ("SpellItemEnchantment", "ItemSetSpell", "SpellMisc", "SpellEquippedItems", "SpellShapeshift",
-           "TraitDefinition", "TraitDefinitionEffectPoints", "CurvePoint", "SpellLevels", "PlayerExpectedStat")
+           "TraitDefinition", "TraitDefinitionEffectPoints", "CurvePoint", "SpellLevels", "PlayerExpectedStat",
+           "SpellClassOptions")
 # The classes by the game's number (ChrClasses), as UnitClass names them.
 CLASS_FILES = {1: "WARRIOR", 2: "PALADIN", 3: "HUNTER", 4: "ROGUE", 5: "PRIEST", 7: "SHAMAN", 8: "MAGE", 9: "WARLOCK",
                11: "DRUID"}
@@ -265,6 +277,33 @@ def number(v):
     return "" if v == 0 else (str(int(v)) if v == int(v) else repr(v))
 
 
+def heal_talents():
+    """The talents whose healing share takes in all their class's main heals (MAIN_HEALS): each one's effect kept as
+    the healing done's, its share on the amount first."""
+    def masks(r, prefix):
+        return [int(r[f"{prefix}{i}"] or 0) & 0xFFFFFFFF for i in range(4)]
+    options = {int(r["SpellID"]): (int(r["SpellClassSet"]), masks(r, "SpellClassMask_"))
+               for r in rows("SpellClassOptions")}
+    talents = {int(d["SpellID"] or 0) for d in rows("TraitDefinition")}
+    shares = defaultdict(list)
+    for r in rows("SpellEffect"):
+        if (r["DifficultyID"] == "0" and r["EffectAura"] == str(HEAL_SHARE) and r["EffectMiscValue_0"] in ("0", "22")
+                and int(r["SpellID"]) in talents):
+            shares[int(r["SpellID"])].append(r)
+    out = {}
+    for spell, found in sorted(shares.items()):
+        main = MAIN_HEALS.get(options.get(spell, (None,))[0])
+        codes = [masks(r, "EffectSpellClassMask_") for r in found]
+
+        def covered(heal, codes=codes):
+            own = options.get(heal)
+            return own is not None and any(any(a & b for a, b in zip(code, own[1])) for code in codes)
+        if main and all(covered(heal) for heal in main):
+            first = min(found, key=lambda r: (r["EffectMiscValue_0"] != "0", int(r["EffectIndex"])))
+            out[spell] = int(first["EffectIndex"])
+    return out
+
+
 def effects():
     """Each spell with an effect kept: its effects' count, its auras' count, and those effects."""
     skills = {row["ID"]: row["DisplayName_lang"] for row in rows("SkillLine.frFR")}
@@ -274,6 +313,7 @@ def effects():
         if row["DifficultyID"] == "0":
             spells.setdefault(int(row["SpellID"]), []).append(row)
     out = {}
+    healers = heal_talents()
     for spell, found in sorted(spells.items()):
         found.sort(key=lambda r: int(r["EffectIndex"]))
         auras = [r for r in found if r["EffectAura"] != "0"]
@@ -281,6 +321,10 @@ def effects():
         for place, r in enumerate(auras):
             aura, misc = int(r["EffectAura"]), int(r["EffectMiscValue_0"] or 0)
             second = int(r["EffectMiscValue_1"] or 0)
+            if aura == HEAL_SHARE and healers.get(spell) == int(r["EffectIndex"]):
+                # (a healing talent that takes in its class's main heals: as the healing done's, on every school)
+                parts.append(f"{HEALING_DONE}:127:{r['EffectIndex']}:{place}:{fixed(r)}")
+                continue
             # (466 beside a 142 of the same spell its twin, the same share: the forms', Toughness'; alone on two
             # debuffs only)
             twin = aura == 466 and any(x["EffectAura"] == "142" for x in auras)

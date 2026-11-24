@@ -122,8 +122,9 @@ local function rows()
     list[#list + 1] = { kind = "header", text = L.OPTIONS_LOOK }
     list[#list + 1] = { kind = "button", name = L.OPTION_EDIT_MODE, text = ns.G("HUD_EDIT_MODE_MENU", "Mode Édition"),
         tip = L.OPTION_EDIT_MODE_TIP, click = ns.EditFrame.OpenEditMode }
-    list[#list + 1] = { kind = "header", text = L.DIAG_TITLE }
-    list[#list + 1] = { kind = "button", name = L.DIAG_TITLE, text = L.DIAG_OPEN, tip = L.DIAG_OPEN_TIP, click = ns.DebugPanel.Open }
+    -- The report alone: the diagnostics panel stays with developers, /kq diag (Ikar 2026-11-24: "kali quest still has
+    -- the diagnose button, to be removed"; the gear's menu lost it 2026-11-11)
+    list[#list + 1] = { kind = "header", text = L.REPORT_TITLE }
     list[#list + 1] = { kind = "button", name = L.REPORT_TITLE, text = L.REPORT_OPEN, tip = L.REPORT_OPEN_TIP, click = ns.Report.Open }
     return list
 end

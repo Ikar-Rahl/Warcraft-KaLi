@@ -235,12 +235,21 @@ local function text(font, value, color, width)
     t:ClearAllPoints()
     t:SetJustifyH("LEFT")
     t:SetWordWrap(width ~= nil)
+    t:SetMaxLines(0)
     t:SetWidth(width or 0)
     t:SetText(value or "")
     color = color or WHITE
     t:SetTextColor(color[1], color[2], color[3])
     t:Show()
     return t
+end
+
+-- A source's name on two lines at most, rather than cut short with « … » on one (Ikar 2026-11-24: "when there is an
+-- elipssis, there shoudl be a tooltip with the full data, better, write it in 2 lines then, if possible"); what two
+-- lines can't hold gets its tooltip (sources).
+local function twoLines(t)
+    t:SetWordWrap(true)
+    t:SetMaxLines(2)
 end
 
 -- A thin line across: under the head, over the foot, between a value's base and its changes, between columns.
@@ -386,6 +395,7 @@ local function sources(rows, label, x, y, width, columns, cell)
                     tall = max(tall, heightOf(c))
                 end
                 left:SetWidth(width - (inX - x) - n * cell - 6)
+                twoLines(left)
                 height = max(heightOf(left), tall)
             else
                 local right = text("GameFontHighlight", row.right, row.rightColor)
@@ -394,10 +404,13 @@ local function sources(rows, label, x, y, width, columns, cell)
                 -- the name cut where its figure starts, a figure wider than its room (a share, what it comes to and
                 -- the question mark: « +10 % (+123) ? ») having run over it (the review of 2026-11-19)
                 left:SetWidth(width - (inX - x) - max(FIGURE, math.ceil(right:GetStringWidth() or 0) + 6))
+                twoLines(left)
                 height = max(heightOf(left), heightOf(right))
             end
-            if row.tip and frame ~= hover then
-                tipFor(row, x, y, width, height)
+            -- (a name two lines can't hold, whole in a tooltip, on the card kept open, the hover's taking no mouse)
+            local tip = row.tip or (left:IsTruncated() and { lines = {} }) or nil
+            if tip and frame ~= hover then
+                tipFor({ tip = tip, left = row.left }, x, y, width, height)
             end
             y = y - height - ROW
         end

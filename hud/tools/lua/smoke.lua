@@ -3042,7 +3042,7 @@ do
     local sheet = "^| Attr_HEALTH Attr_POWER Attr_MOVESPEED | Attr_STRENGTH Attr_AGILITY Attr_STAMINA Attr_INTELLECT "
         .. "Attr_SPIRIT | Attr_MAINHAND_DAMAGE"
     local sheetEnd = "Attr_REGEN | Attr_DEFENSE Attr_DODGE Attr_BLOCK Attr_BLOCKVALUE Attr_PARRY Attr_ARMOR "
-        .. "Attr_ARMORCUT Attr_MISSED Attr_AVOIDANCE Attr_CRITTAKEN | Attr_SPELLPOWER_ARCANE Attr_SPELLPOWER_FIRE "
+        .. "Attr_ARMORCUT Attr_MISSED Attr_AVOIDANCE Attr_CRITTAKEN | Attr_SPELLHEALING Attr_HEALDONE Attr_HEALTAKEN Attr_HEALTAKEN_FLAT | Attr_SPELLPOWER_ARCANE Attr_SPELLPOWER_FIRE "
         .. "Attr_SPELLPOWER_FROST Attr_SPELLPOWER_NATURE Attr_SPELLPOWER_SHADOW Attr_SPELLPOWER_HOLY | Attr_ARCANE "
         .. "Attr_FIRE Attr_FROST Attr_NATURE Attr_SHADOW$"
     expect(names(stats):find(sheet) and names(stats):find(sheetEnd), "the attributes' folder: " .. names(stats))
@@ -3464,14 +3464,15 @@ do
         end
         F.itemStats[5] = nil
         -- the attack power 289 (269+20): its strength's 220 (2 a point), the level's 49 (3 a level less 20); health
-        -- 1520, its stamina's 770 (the first 20 one each, 10 a point after), the game giving no sum of it, what's left
-        -- the class's at its level, 750 (the review of 2026-11-19: its rows came short of it); the critical strike, the
-        -- agility's 4 % and the intellect's 0.5 %, the rest the class's own
-        ok, t = has("ATTACK_AP", stat(1), Number(220), F.BASE.level("3 x 23 - 20"), Number(49))
+        -- 1013, its stamina's 770 (the first 20 one each, 10 a point after), the game giving no sum of it; its base the
+        -- original table's, the class's 20 at level 1 and the 223 levels 2 to 23 have given, before the stamina, nothing
+        -- left (the review of 2026-11-19: its rows came short of it; Ikar 2026-11-24, the base split as the
+        -- attributes'); the critical strike, the agility's 4 % and the intellect's 0.5 %, the rest the class's own
+        ok, t = has("ATTACK_AP", stat(1), Number(220), (F.BASE.levelName .. " (x3)"), Number(69), L.STAT_BASE, Number(-20))
         expect(ok, "the attack power's base isn't its strength's and the level's: " .. t)
-        ok, t = has("HEALTH", F.BASE.classLevel, Number(750), stat(3), Number(770))
-        expect(ok and t:find(F.BASE.classLevel, 1, true) < t:find(stat(3), 1, true),
-            "health isn't its stamina's and the rest, the rest first: " .. t)
+        ok, t = has("HEALTH", F.BASE.class, Number(20), F.BASE.levelName, Number(223), stat(3), Number(770))
+        expect(ok and t:find(F.BASE.class, 1, true) < t:find(stat(3), 1, true) and not t:find(L.STAT_OTHER, 1, true),
+            "health isn't the class's, the levels' and its stamina's, the base first: " .. t)
         -- (the sources' column alone: the column of what there is to know names the attributes too, by what a point
         -- of each gives)
         local function sourcesPart(text)
@@ -3491,7 +3492,7 @@ do
             "the critical strike isn't its agility's, its intellect's and the rest: " .. t .. " / " .. spells)
         -- a value nothing changes still shows what it stands on: the ranged attack power 53, its agility's 40 and the
         -- level's 13, no rest, no mistake
-        ok, t = has("RANGED_ATTACK_AP", stat(2), Number(40), F.BASE.level("1 x 23 - 10"), Number(13))
+        ok, t = has("RANGED_ATTACK_AP", stat(2), Number(40), (F.BASE.levelName .. " (x1)"), Number(23), L.STAT_BASE, Number(-10))
         expect(ok and not t:find(L.STAT_OTHER, 1, true) and not t:find(L.STAT_ADDON_ERROR, 1, true),
             "an unchanged value's base isn't shown, or has a rest: " .. t)
         -- what a point of an attribute gives, with what there is to know (Ikar 2026-11-19: "show the ratio"):
@@ -3605,7 +3606,7 @@ do
         -- which had been read as a figure missing, a question mark and nothing left said (the audit of 2026-11-19)
         F.known[7381], F.spellNames[7381] = true, "Posture berserker (passif)"
         changed()
-        ok, t = has("ATTACK_AP", F.BASE.level("3 x 23 - 20"))
+        ok, t = has("ATTACK_AP", (F.BASE.levelName .. " (x3)"))
         expect(ns.EFFECTS[7381]:find(";166:0:3:3:0", 1, true) and ok and not t:find("Posture berserker", 1, true)
             and not t:find(ns.Stats.UNKNOWN, 1, true), "an effect of 0 points is named, marked as unknown: " .. t)
         F.known[7381], F.spellNames[7381] = nil, nil
@@ -3838,7 +3839,7 @@ do
         -- (the level's part drawn as a source, as an attribute's: white, not the grey of what's left)
         local levelColor
         for i = 1, KaLiHUDStatCard.used do
-            if KaLiHUDStatCard.texts[i]:GetText() == F.BASE.level("3 x 23 - 20") then
+            if KaLiHUDStatCard.texts[i]:GetText() == (F.BASE.levelName .. " (x3)") then
                 levelColor = KaLiHUDStatCard.texts[i].textColor
             end
         end
@@ -3873,15 +3874,15 @@ do
         local mistake = L.STAT_ADDON_ERROR .. "\n" .. Color(Number(-20), BAD)
         -- (Cat Form's own attack power by level, +46, named; its agility's 80 not, on either)
         expect(melee:find(talent, 1, true) and ranged:find(talent, 1, true)
-            and melee:find(F.BASE.level("3 x 23 - 20") .. "\n" .. Number(49) .. "\n", 1, true) and levelColor
+            and melee:find(L.STAT_BASE .. "\n" .. Number(-20) .. "\n" .. (F.BASE.levelName .. " (x3)") .. "\n" .. Number(69) .. "\n", 1, true) and levelColor
             and levelColor[1] == 1
-            and ranged:find(F.BASE.level("1 x 23 - 10") .. "\n" .. Number(13) .. "\n", 1, true)
+            and ranged:find(L.STAT_BASE .. "\n" .. Number(-10) .. "\n" .. (F.BASE.levelName .. " (x1)") .. "\n" .. Number(23) .. "\n", 1, true)
             and melee:find(mistake, 1, true) and ranged:find(mistake, 1, true)
             and meleeFoot:find(L.STAT_ADDON_ERROR_TIP, 1, true)
             and melee:find("Forme de félin (Passive)\n" .. Color("+46", GOOD), 1, true)
             and not ranged:find("Forme de félin", 1, true)
             and inBase:find(talent, 1, true)
-            and inBase:find(F.BASE.level("3 x 23 - 20") .. "\n" .. Number(49) .. "\n", 1, true)
+            and inBase:find(L.STAT_BASE .. "\n" .. Number(-20) .. "\n" .. (F.BASE.levelName .. " (x3)") .. "\n" .. Number(69) .. "\n", 1, true)
             and not inBase:find(L.STAT_ADDON_ERROR, 1, true) and not inBase:find(L.STAT_OTHER, 1, true)
             and not inBase:find(L.STAT_BONUS, 1, true),
             "the attack power's base isn't the level's, a share of the intellect and what the card can't account for: "
@@ -3967,21 +3968,23 @@ do
         end
         t = card("POWER")
         UnitClass, UnitPowerType, UnitPowerMax = unitClass, powerType, powerMax
-        expect(levels[1] == 100 and levels[23] == 431
-            and after(string.format(ns.G("UNIT_TYPE_LEVEL_TEMPLATE", "Level %d %s"), 23, "Mage"), Number(431))
-            and after(L.STAT_OTHER, Color("+7", GOOD)),
-            "the mana's base isn't the class's at its level, and what's left: " .. t)
-        -- a share of the whole health (the tauren's Endurance, 133: 5 %) worked out, what it comes to (76 of 1 596),
-        -- the base still the class's at its level (the review of 2026-11-21: every tauren's had lost its base)
+        -- (split as the attributes' since 2026-11-24, Ikar: "why mana and health are not broken by race, class and
+        -- profession like the rest": the class's 100 at level 1, the 331 levels 2 to 23 have given)
+        expect(levels[1] == 100 and levels[23] == 431 and after("Mage", Number(100))
+            and after(F.BASE.levelName, Number(331)) and after(L.STAT_OTHER, Color("+7", GOOD)),
+            "the mana's base isn't the class's at level 1 and the levels', and what's left: " .. t)
+        -- a share of the whole health (the tauren's Endurance, 133: 5 %) worked out, what it comes to (51 of 1 064),
+        -- the base still the class's and the levels' (the review of 2026-11-21: every tauren's had lost its base)
         local healthMax = UnitHealthMax
         UnitHealthMax = function()
-            return 1596
+            return 1064
         end
         F.known[20550], F.spellNames[20550] = true, "Endurance"
         changed()
         t = card("HEALTH")
-        local tauren = after(F.BASE.classLevel, F.BASE.asks(Number(750))) and t:find("Endurance", 1, true)
-            and t:find(Color("+" .. ns.Format.Percent(0.05), GOOD) .. " (" .. Color("+76", GOOD) .. ")", 1, true)
+        local tauren = after(F.BASE.class, Number(20)) and after(F.BASE.levelName, Number(223))
+            and t:find("Endurance", 1, true)
+            and t:find(Color("+" .. ns.Format.Percent(0.05), GOOD) .. " (" .. Color("+51", GOOD) .. ")", 1, true)
             and not t:find(L.STAT_OTHER, 1, true)
         UnitHealthMax, F.known[20550], F.spellNames[20550] = healthMax, nil, nil
         changed()
@@ -6365,6 +6368,18 @@ run(function()
         local last = items[#items] and items[#items].text or ""
         expect(at(L.CAT_folders) and at(L.FOLDER_CREATE) and at(L.CAT_folders) < at(L.FOLDER_CREATE)
             and last:find(L.REDO, 1, true) == 1, "the bar's menu doesn't list what it shows first, and undo and redo last")
+        -- the options and a bug report, above undo and redo, as KaLi Quest's gear's menu (Ikar 2026-11-24)
+        local options, report = at(ns.G("OPTIONS", "Options")), at(L.REPORT_TITLE)
+        expect(options and report and at(L.FOLDER_CREATE) < options and options + 1 == report and report < #items - 1,
+            "the bar's menu has no Options then Report a bug, above undo and redo")
+        if report then
+            choose(items[report])
+            local frame = ns.Report.Frame()
+            expect(frame and frame:IsShown(), "the bar's menu's Report a bug doesn't open the report")
+            if frame then
+                frame:Hide()
+            end
+        end
     end
     expect(#F.blocked == blocked, "the game blocked the hub: " .. table.concat(F.blocked, ", ", blocked + 1))
 end)

@@ -203,8 +203,15 @@ function Options.Register()
     end
     page = ns.Page.New({
         name = ns.TITLE,
+        -- and a bug report from it, as KaLi Quest's page has (Ikar 2026-11-24: "we need the report a bug button in
+        -- kali receipe blizzard options menu, not just it own")
         rows = function()
-            return { { kind = "button", name = L.OPTIONS, text = L.OPTIONS_OPEN, tip = L.OPTIONS_OPEN_TIP, click = fromPage } }
+            return {
+                { kind = "button", name = L.OPTIONS, text = L.OPTIONS_OPEN, tip = L.OPTIONS_OPEN_TIP, click = fromPage },
+                { kind = "button", name = L.REPORT_TITLE, text = L.REPORT_OPEN, tip = L.REPORT_OPEN_TIP, click = function()
+                    ns.Report.Open()
+                end },
+            }
         end,
     })
     Options.page = page

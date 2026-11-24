@@ -432,7 +432,8 @@ function Menus.Gear(owner)
         button(description, L.OPTIONS, function()
             ns.Options.Open()
         end)
-        -- No Diagnostic here (Ikar, 2026-11-11: "they won't run diagnose on their own"): it stays on the options page.
+        -- No Diagnostic here (Ikar, 2026-11-11: "they won't run diagnose on their own"), nor on the options page since
+        -- 2026-11-24: /kq diag alone.
         button(description, L.REPORT_TITLE, function()
             ns.Report.Open()
         end)

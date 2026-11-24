@@ -35,8 +35,12 @@ BREAKS = [
     ("gear: opens nothing", NOTEBOOK, "        ns.SafeCall(ns.Options.Toggle)", "        local _ = ns.Options"),
     ("gear: a second click doesn't close them", OPTIONS, "    if handle:IsShown() then\n        handle:Close()\n    else",
      "    if false then\n        handle:Close()\n    else"),
-    ("options window: no bug report in it", OPTIONS, "            { kind = \"button\", name = L.REPORT_TITLE,",
-     "            { kind = \"button\", name = L.REPORT_OPEN_TIP,"),
+    ("options window: no bug report in it", OPTIONS,
+     "rows = {\n            { kind = \"button\", name = L.REPORT_TITLE,",
+     "rows = {\n            { kind = \"button\", name = L.REPORT_OPEN_TIP,"),
+    # and on the page under AddOns too (Ikar 2026-11-24: "not just it own")
+    ("options page: no bug report on it", OPTIONS, "                { kind = \"button\", name = L.REPORT_TITLE,",
+     "                { kind = \"button\", name = L.REPORT_OPEN_TIP,"),
     # The window in the notebook's « Épuré » look (Ikar, 2026-11-13: "similaire a celle des recette")
     ("options window: Edit Mode's look", OPTIONS, "    look = \"window\",\n", ""),
     # The icon (F2, 2026-11-11): the minimap button and the bars' launcher name a file the package must hold
