@@ -49,6 +49,8 @@ The zip holds a folder entry for every folder, as `zip -r` writes it. The first 
 Checked before it was built: the offline tests ALL PASS; in game on build 71037, `/kq test` 108/108 at 13:40 with no
 error saved, the API check 0 failing at 20:20, and no KaLi Quest line in the game's taint log.
 
+From 0.9.1 (2026-11-24) the files go up as **Release**, from their tag (Ikar: "Still beta, but the file release shoudl not be beta anymore. So that it is more visible to everyone"): the app shows the project and offers its files to every player. The addon still calls itself a beta, in its README.
+
 ## Gallery and video
 
 The Gallery (the « Images » tab until 2025) holds the screenshots and the YouTube videos, in the order of the carousel

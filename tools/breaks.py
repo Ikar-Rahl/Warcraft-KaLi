@@ -21,6 +21,8 @@ break may name its own as a further item, "test:<part>" (a scenario's name is on
 alone on the code as it is, or a failure of its own would pass for the break caught: tried once for each block met, the
 whole part run in its place when it doesn't (--blocks-stand: not tried, for a run made just after the runner's own
 `--only blocks` passed, which tries them all). A break with no link runs the whole runner, as all did.
+A link to the whole smoke is never kept: the break is skipped, and says to put its check into a scenario. A run stops
+once its breaks have taken BUDGET seconds, five minutes, and names those it left (--no-budget for a whole sweep).
 --slice i/n takes each nth break from the ith, for several runs side by side; each keeps its links in a file of its
 own, and --merge gathers them.
 
@@ -53,6 +55,12 @@ PARTS = {"hud": ("smoke", "tests", "scenarios", "alone", "static")}
 # Files whose breaks the unit tests catch more often than not: tried first there.
 UNIT_FIRST = ("Core/DB.lua", "Core/Geometry.lua", "Core/Format.lua")
 LINKS = ROOT / "tools/breaks/links"
+# A change's tests and breaks stay under five minutes (Ikar 2026-11-23: "Tests for an addon shoudl be 5min max total";
+# AGENTS.md): a run stops once its breaks have taken that long, and says which it left. --no-budget, for a sweep Ikar
+# asks for.
+BUDGET = 300
+WHOLE_SMOKE = ("caught by the whole smoke alone, about a minute a run: link refused. Put the check that catches it "
+               "into a scenario (hud/tools/lua/scenarios/), name it as the break's \"test:<scenario>\", run it again")
 BLOCK = re.compile(r"\(the block at line ([\d, ]+) alone\)|\((no block), what stands between them\)")
 
 
@@ -168,13 +176,29 @@ def stands(key, link, output):
     return alone[(key, block)]
 
 
+def whole(link):
+    """Whether a link runs a whole suite: none (the whole runner), or the whole smoke. Never allowed (Ikar 2026-11-24:
+    "If a break run the whole suite, abort instatly, you have faield and fix it")."""
+    return not link or link.get("part") in (None, "all") or (link.get("part") == "smoke" and not link.get("at"))
+
+
+def abort(names, why):
+    print(f"\nABORTED, nothing more run: {len(names)} break(s) {why}:")
+    for name in names[:20]:
+        print(f"  {name}")
+    if len(names) > 20:
+        print(f"  ... and {len(names) - 20} more")
+    print("Fix: put the check that catches each one into a scenario (hud/tools/lua/scenarios/), and name it as the "
+          "break's test, \"test:<scenario>\".")
+    sys.exit(1)
+
+
 def linked(key, inside, old, new, link):
-    """A break against its link: (caught, why, the link used). A link to a block that doesn't stand alone falls back
-    on its whole part."""
+    """A break against its link: (caught, why, the link used). A link to a block that doesn't stand alone would fall
+    back on the whole smoke: aborted instead."""
     caught, why, output = run(key, inside, old, new, link)
     if caught and link and link.get("at") and not stands(key, link, output):
-        link = {"part": link["part"]}
-        caught, why, output = run(key, inside, old, new, link)
+        abort([why], "linked to a smoke block that no longer runs alone (the whole smoke would run)")
     return caught, why, link
 
 
@@ -201,7 +225,25 @@ def find_link(key, inside, old, new):
             again, _, output = run(key, inside, old, new, link)
             if again and BLOCK.search(output) and stands(key, link, output):
                 return link, why
+        if part == "smoke":
+            # never kept: the whole smoke is a minute a run, twice (Ikar 2026-11-24: "did you screw the 5min rule
+            # again ?", two breaks linked so that day)
+            return None, WHOLE_SMOKE
         return {"part": part}, why
+    return None, "no part of its runner catches it"
+
+
+def find_link_alone(key, inside, old, new):
+    """The link of a break that has none, found without running a whole suite: the scenarios, the unit tests, the
+    static checks and the fresh install, each part alone, never the smoke whole. (link, why); link None when none of
+    them catches it, the break then needing a scenario of its own."""
+    for part in ("scenarios", "tests", "static", "alone"):
+        caught, why, _ = run(key, inside, old, new, {"part": part})
+        if caught is None:
+            return None, why
+        if caught:
+            named = re.match(r"scenario (\S+):", why) if part == "scenarios" else None
+            return {"part": named.group(1) if named else part}, why
     return None, "no part of its runner catches it"
 
 
@@ -225,7 +267,7 @@ def write_links(stem, links, cut=None):
 
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
-    flags = {"--link", "--merge", "--blocks-stand"}
+    flags = {"--link", "--merge", "--blocks-stand", "--no-budget"}
     args = [a for a in sys.argv[1:] if a not in flags]
     cut = None
     if "--slice" in args:
@@ -255,21 +297,46 @@ def main():
         # only those that have none: one linked, or naming its own test, was run when it got it
         chosen = [b for b in chosen if b[0] not in links and not extras(b[4:])[1]
                   and Path(b[1]).parts[0] in PARTS]
+    # Before anything runs: a break that would run a whole suite aborts the run, named (Ikar 2026-11-24: "If a break
+    # run the whole suite, abort instatly, you have faield and fix it"). A runner without parts (KaLi Quest's, KaLi
+    # Recipe's) can only run whole; a HUD break with no link and no test of its own would run the whole runner, one
+    # linked to the whole smoke, the whole smoke. With --link, a break without one is linked by its parts alone.
+    heavy = []
+    for name, path, old, new, *rest in chosen:
+        only, test = extras(rest)
+        for key, inside in targets(path, only):
+            link = {"part": test} if test else links.get(name) if key in PARTS and path.startswith(key) else None
+            if link is None and "--link" in sys.argv and key in PARTS and path.startswith(key):
+                continue
+            if whole(link):
+                heavy.append(f"{name} ({key}: {'its runner has no parts' if key not in PARTS else 'no link' if not link else 'the whole smoke'})")
+                break
+    if heavy:
+        abort(heavy, "would run a whole suite")
     found = {}
     missed = skipped = 0
-    for name, path, old, new, *rest in chosen:
+    began = time.time()
+    for at, (name, path, old, new, *rest) in enumerate(chosen):
+        if time.time() - began > BUDGET and "--no-budget" not in sys.argv:
+            left = [b[0] for b in chosen[at:]]
+            print(f"\nBUDGET: {BUDGET} s spent, {len(left)} breaks not run: {'; '.join(left)}. Their links are too slow"
+                  " (the whole smoke, or a block that doesn't stand alone): move their checks into scenarios.")
+            sys.exit(1)
         only, test = extras(rest)
         started = time.time()
         results, used = [], None
         for key, inside in targets(path, only):
             link = {"part": test} if test else links.get(name) if key in PARTS and path.startswith(key) else None
             if link is None and key in PARTS and path.startswith(key) and "--link" in sys.argv:
-                link, why = find_link(key, inside, old, new)
+                link, why = find_link_alone(key, inside, old, new)
+                if not link and not why.startswith("found "):
+                    abort([name], "caught by no part alone, the scenarios, the unit tests, the static checks, the "
+                          "fresh install")
                 if link:
                     # kept at once: a run stopped half way has lost nothing
                     found[name] = link
                     write_links(stem, found if cut else {**links, **found}, cut)
-                results.append((key, link is not None, why))
+                results.append((key, None if not link else True, why))
             else:
                 caught, why, link = linked(key, inside, old, new, link)
                 results.append((key, caught, why))
@@ -284,7 +351,9 @@ def main():
         by = f"  [{used['part']}{', its block' if used.get('at') else ''}, {time.time() - started:.0f} s]" if used else ""
         print(f"{'MISSED by ' + ', '.join(gaps) if gaps else 'caught'}: {name}  {how}{by}", flush=True)
     print(f"\n{len(chosen) - missed - skipped}/{len(chosen)} caught" + (f", {skipped} skipped" if skipped else "")
-          + (f"; {len(found)} linked" if found else ""))
+          + (f"; {len(found)} linked" if found else "") + f" in {time.time() - began:.0f} s")
+    if "--link" in sys.argv and found:
+        print("Each break linked was run as it was linked: caught above. Don't run them again.")
     sys.exit(1 if missed or skipped else 0)
 
 

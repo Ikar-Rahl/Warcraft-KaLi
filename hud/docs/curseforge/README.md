@@ -50,6 +50,8 @@ The changelog's 0.9.0 section is the former « 0.1.0 (not released yet) » one w
 English client's (« Retirer » is **Remove**, « Suite » **More**, « Nouvelle mesure » **New measure**, « Préréglages »
 **Presets**).
 
+From 0.9.1 (2026-11-24) the files go up as **Release**, from their tag (Ikar: "Still beta, but the file release shoudl not be beta anymore. So that it is more visible to everyone"): the app shows the project and offers its files to every player. The addon still calls itself a beta, in its README.
+
 ## Gallery and video
 
 Taken on 2026-11-23, prepared outside the repository in `release/KaLiHUD-0.9.0/gallery/` (PNG), and in

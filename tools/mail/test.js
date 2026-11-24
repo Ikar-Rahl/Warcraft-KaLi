@@ -158,9 +158,14 @@ function makeWorld() {
     ScriptApp: {
       getProjectTriggers: () => triggers.slice(),
       deleteTrigger: (t) => triggers.splice(triggers.indexOf(t), 1),
-      newTrigger: (fn) => ({ timeBased: () => ({ everyMinutes: (n) => ({ create: () => {
-        triggers.push({ fn, n, getHandlerFunction: () => fn });
-      } }) }) }),
+      newTrigger: (fn) => ({ timeBased: () => ({
+        everyMinutes: (n) => ({ create: () => {
+          triggers.push({ fn, n, getHandlerFunction: () => fn });
+        } }),
+        everyHours: (h) => ({ create: () => {
+          triggers.push({ fn, n: h * 60, getHandlerFunction: () => fn });
+        } }),
+      }) }),
     },
     UrlFetchApp: { fetch },
     Logger: { log: () => {} },
@@ -199,7 +204,7 @@ const minutesAgo = (n) => new Date(Date.now() - n * 60000);
 const gmail = (thread) => [...thread.labels].sort();
 const filed = (...tags) => ['GitHub', ...tags.map((tag) => `GitHub/${tag}`)].sort();
 
-check('setup: the labels on both sides, made once, one five-minute trigger, the starting point', () => {
+check('setup: the labels on both sides, made once, a five-minute trigger and an hourly one, the starting point', () => {
   w.run('setup()');
   w.run('setup()');
   assert.deepStrictEqual([...w.labels.keys()], ['No issue', 'GitHub', 'GitHub/bug', 'GitHub/enhancement',
@@ -209,8 +214,8 @@ check('setup: the labels on both sides, made once, one five-minute trigger, the 
     'KaLi Quest', 'KaLi Recipe', 'KaLi HUD', 'in English', 'in French', 'in German', 'in Spanish',
     'attachments in mail']);
   assert.ok(w.github.labels.slice(3).every((l) => /^[0-9a-f]{6}$/.test(l.color) && l.description));
-  assert.strictEqual(w.triggers.length, 1);
-  assert.strictEqual(w.triggers[0].n, 5);
+  // (run twice, still two: the first ones deleted before the new are made)
+  assert.deepStrictEqual(w.triggers.map((t) => `${t.fn} ${t.n}`), ['run 5', 'run 60']);
   assert.ok(w.props.get('since'));
   w.props.set('since', minutesAgo(30).toISOString());
   assert.ok(Number(w.props.get('start')) > minutesAgo(1).getTime(), 'no starting point');

@@ -73,9 +73,10 @@ Each addon is published from a tag of its own (Ikar 2026-11-24: "One tag per add
    and tries the CurseForge token there.
 3. `git tag quest-0.9.1`, then `git push origin quest-0.9.1` (`recipe-…`, `hud-…`): the
    [Publish](.github/workflows/release.yml) run checks the tag against the TOC and the changelog, checks the package,
-   builds the zip, makes the GitHub release with it, then uploads it to CurseForge with the version's changelog. Each
-   addon's files go up as betas until `RELEASE_TYPE` in [tools/release.py](tools/release.py) says `release` (Ikar: "We
-   stay in beta for a while, but I think I will mark it released when the presentation is good in curseforge").
+   builds the zip, makes the GitHub release with it, then uploads it to CurseForge with the version's changelog. Since
+   0.9.1 the files go up as Releases, `RELEASE_TYPE` in [tools/release.py](tools/release.py) (Ikar: "Still beta, but
+   the file release shoudl not be beta anymore. So that it is more visible to everyone"): the CurseForge app offers
+   betas only to the players who ask for them. The addons still call themselves betas, in their READMEs.
 
 By hand on CurseForge, as no API reaches them (Ikar: "desc and image by hands"), and the run's summary says when: the
 description, the addon's `README.md` pasted in the editor's Markdown mode, when it changed; the Gallery's pictures,

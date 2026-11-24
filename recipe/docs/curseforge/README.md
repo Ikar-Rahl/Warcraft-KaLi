@@ -47,6 +47,8 @@ error saved, the API check 0 failing at 20:40, no file changed since, and no KaL
 Then, that evening, a name met in another language stands in for « someone » (Ikar, in an English client: "why do I
 see Taught by someone everywhere?"): offline ALL PASS, 73/73; in game, to check before the upload.
 
+From 0.9.1 (2026-11-24) the files go up as **Release**, from their tag (Ikar: "Still beta, but the file release shoudl not be beta anymore. So that it is more visible to everyone"): the app shows the project and offers its files to every player. The addon still calls itself a beta, in its README.
+
 ## Gallery and video
 
 As KaLi Quest's: the Gallery holds the screenshots and the YouTube video in the carousel's order, one picture goes under

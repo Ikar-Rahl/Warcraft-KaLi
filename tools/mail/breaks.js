@@ -7,6 +7,8 @@ const repo = process.argv[2] || path.resolve(__dirname, '../..');
 const code = fs.readFileSync(path.join(repo, 'tools/mail/Code.gs'), 'utf8');
 const test = fs.readFileSync(path.join(repo, 'tools/mail/test.js'), 'utf8');
 const BREAKS = [
+  ['no hourly trigger beside the five-minute one', "  ScriptApp.newTrigger('run').timeBased().everyHours(1).create();\n",
+    ''],
   ['an address left in the issue', ".replace(EMAIL, '[address removed]')", ''],
   ['an answer mailed at each run', '      if (comment.id <= known.c) continue;\n', ''],
   ['an absence reply added to the issue', "auto === 'no' && ", ''],

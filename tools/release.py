@@ -32,9 +32,11 @@ from kali.shared import ADDONS  # noqa: E402
 
 TITLES = {"quest": "KaLi Quest", "recipe": "KaLi Recipe", "hud": "KaLi HUD"}
 SLUGS = {"quest": "kali-quest", "recipe": "kali-recipe", "hud": "kali-hud"}
-# Each addon's files go up as betas until Ikar says otherwise (2026-11-24: "We stay in beta for a while, but I think I
-# will mark it released when the presentation is good in curseforge"); "release" here makes the next ones Releases.
-RELEASE_TYPE = {"quest": "beta", "recipe": "beta", "hud": "beta"}
+# Each addon's files' type on CurseForge, and its GitHub release a pre-release unless "release". Releases since 0.9.1
+# (Ikar 2026-11-24: "Still beta, but the file release shoudl not be beta anymore. So that it is more visible to
+# everyone": the CurseForge app shows a project only once it has a Release file, and offers betas only to players who
+# ask for them). The addons stay betas in their own words, the README's notice.
+RELEASE_TYPE = {"quest": "release", "recipe": "release", "hud": "release"}
 
 CURSEFORGE = "https://wow.curseforge.com"
 # CurseForge's game version type for World of Warcraft Forever, as BigWigs' packager has it (release.sh, 2026-11-04).

@@ -72,7 +72,8 @@ It adds labels, never takes one off, and leaves the mailed issues to the script.
 5. **Start it:** back in the editor, pick `setup` in the list of functions, **Run**. Google asks to allow the script
    to read and send the account's mail, reach GitHub and run on a timer; as the script is your own, "Google hasn't
    verified this app" is answered with **Advanced**, then **Go to KaLi mail**. The log then says the token works, the
-   labels are made on both sides, and `run()` is on every five minutes.
+   labels are made on both sides, and `run()` is on every five minutes, and every hour in case Google stops firing
+   the first (it did once, on 2026-11-24, with no error). Running `setup` again is safe: it replaces both.
 6. **Try it:** from another address, mail "KaLi Quest: a test bug" to KaLi's address. Within five minutes an issue
    labelled **by mail** and **bug** appears, and the test mail gets its link. Comment on the issue: the comment comes
    back by mail. Close it as not planned: that comes back too.

@@ -158,10 +158,13 @@ function setup() {
     if (trigger.getHandlerFunction() === 'run') ScriptApp.deleteTrigger(trigger);
   }
   ScriptApp.newTrigger('run').timeBased().everyMinutes(5).create();
+  // A second, every hour, in case Google stops firing the first: it did on 2026-11-24, the trigger still listed with
+  // no error and no run after 21:24 (Ikar: "add a secondary, just in case"). The lock keeps the two from overlapping.
+  ScriptApp.newTrigger('run').timeBased().everyHours(1).create();
   const props = PropertiesService.getScriptProperties();
   if (!props.getProperty('since')) props.setProperty('since', new Date().toISOString());
   if (!props.getProperty('start')) props.setProperty('start', String(Date.now()));
-  Logger.log('Labels made, and run() every five minutes.');
+  Logger.log('Labels made, and run() every five minutes, and every hour in case the first stops.');
 }
 
 // Every five minutes. One run at a time; a failure (an expired token) is mailed to the account by Google.
