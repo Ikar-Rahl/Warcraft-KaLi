@@ -1,0 +1,22 @@
+# Labels for an issue opened on GitHub, from the game's link or by hand: its kind, its addons and its language, read as
+# the mail script reads a mail (tools/mail/label.js). The mailed issues are labelled by the mail script itself.
+name: Label issues
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: tools/mail
+      - name: Label the issue
+        run: node tools/mail/label.js
+        env:
+          GH_TOKEN: ${{ github.token }}
