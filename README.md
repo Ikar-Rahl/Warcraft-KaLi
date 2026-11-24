@@ -12,9 +12,12 @@ To install one, copy its folder from `quest/addon/`, `recipe/addon/` or `hud/add
 `KaLiHUD`) into the game's `Interface\AddOns`. The `_Tests` and `_Probe` folders are for development; players don't
 need them.
 
-Found a bug? Each addon's `/kq report`, `/kr report` or `/kh report` gives a link to copy: opened in a browser, it's a
-[new issue](https://github.com/Ikar-Rahl/Warcraft-KaLi/issues/new) whose title says which addon it's from, with a
-question about what happened. Then copy the report from the same window and paste it in.
+Found a bug? Each addon's `/kq report`, `/kr report` or `/kh report` window gives a link to copy: opened in a browser,
+it's a [new issue](https://github.com/Ikar-Rahl/Warcraft-KaLi/issues/new) whose title says which addon it's from, with
+a question about what happened; then copy the report from the same window and paste it in. Without a GitHub account,
+the same window gives KaLi's address, [warcraft.kali.addons@gmail.com](mailto:warcraft.kali.addons@gmail.com): a mail
+with the report becomes an issue, without the sender's address, and the answers go back by mail
+([tools/mail](tools/mail/README.md)).
 
 ## Layout
 
@@ -53,9 +56,33 @@ Needs Python 3.13, and Lua 5.1 through lupa, installed locally:
 The tools read Blizzard's UI source and tables, and QuestieDB, from a `reference/` folder beside the repository; set
 `KALI_REFERENCE` to put it elsewhere, and `KALI_GAME` for the game's folder.
 
-**Never published:** Blizzard's art, sounds and font, the screenshots, and data built from QuestieDB (GPL-3.0). The
+**Never published:** Blizzard's art, sounds and font, the screenshots as taken (the CurseForge pages' pictures,
+prepared, are in each addon's `docs/images/`), and data built from QuestieDB (GPL-3.0). The
 benches' scripts make them locally, into folders `.gitignore` keeps out. Nor are the images KaLi HUD's cartouches and
 minimap rings are cut from (`hud/art/`, generated with Google Gemini): the addon ships the pieces.
+
+## Publishing
+
+Each addon is published from a tag of its own (Ikar 2026-11-24: "One tag per addon. Automated publishing."):
+
+1. Its TOC's `## Version` raised, a `## <version> (<date>)` section on top of its `CHANGELOG.md`, and
+   `python -I tools/run_tests.py <addon>` ending in `ALL PASS`: GitHub can't run the tests, they read the local
+   reference copies. Committed and pushed.
+2. `python -I tools/release.py quest-0.9.1 --dry-run`: the tag's run without uploading anything (the zip, the
+   changelog it sends, what stays by hand). "Run workflow" on the repository's Actions page does the same on GitHub,
+   and tries the CurseForge token there.
+3. `git tag quest-0.9.1`, then `git push origin quest-0.9.1` (`recipe-…`, `hud-…`): the
+   [Publish](.github/workflows/release.yml) run checks the tag against the TOC and the changelog, checks the package,
+   builds the zip, makes the GitHub release with it, then uploads it to CurseForge with the version's changelog. Each
+   addon's files go up as betas until `RELEASE_TYPE` in [tools/release.py](tools/release.py) says `release` (Ikar: "We
+   stay in beta for a while, but I think I will mark it released when the presentation is good in curseforge").
+
+By hand on CurseForge, as no API reaches them (Ikar: "desc and image by hands"), and the run's summary says when: the
+description, the addon's `README.md` pasted in the editor's Markdown mode, when it changed; the Gallery's pictures,
+downloaded from the addon's `docs/images/`, where `python -I tools/gallery.py <addon>` writes them from the
+screenshots prepared in `release/<Addon>-<version>/gallery/` beside the repository. The CurseForge token is the
+repository's secret `CF_API_TOKEN`, made on authors.curseforge.com. How each page is filled:
+`<addon>/docs/curseforge/README.md`.
 
 ## Licence
 

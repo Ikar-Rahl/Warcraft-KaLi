@@ -60,6 +60,12 @@ Install it and play: recipes are noted as you meet them. The notebook opens from
 - **The notebook:** the minimap button, the addon compartment, a click on "Notebook: …", or `/kr`. Information bars such as Titan Panel list "KaLi Recipe" too.
 - **The options:** the gear at the top right of the notebook, a right-click on any of those buttons, or `/kr options`. They open in a window of their own, beside the notebook, which stays open while you set them. **Options > AddOns > KaLi Recipe** has a button to it.
 
+## Compatibility
+
+- **[Auctionator](https://www.curseforge.com/wow/addons/auctionator):** a recipe's tooltip says what KaLi Recipe knows in Auctionator's list as in Blizzard's.
+- **Baganator:** its bags get the same marks on recipe items as Blizzard's.
+- **Information bars** such as [Titan Panel](https://www.curseforge.com/wow/addons/titan-panel) list "KaLi Recipe", to open the notebook.
+
 ## Slash commands
 
 | Command | What it does |
@@ -95,9 +101,12 @@ The CurseForge app installs and updates it. By hand: put the `KaLiRecipe` folder
 
 ## Bugs and ideas
 
-`/kr report`, or **Report a bug** at the end of the options (the notebook's gear), gives you a link that opens a new issue on GitHub with its questions, then a report of what the addon sees to paste into it. The report holds no character or realm name; you need a GitHub account. Please say what you were doing and what happened.
+`/kr report`, or **Report a bug** at the end of the options (the notebook's gear), opens a window with a report of what the addon sees, to copy. It holds no character or realm name. Please say what you were doing and what happened.
 
-You can also open an issue directly: [github.com/Ikar-Rahl/Warcraft-KaLi/issues](https://github.com/Ikar-Rahl/Warcraft-KaLi/issues)
+- **With a GitHub account:** **Select the link**, copy it (Ctrl+C) and open it in your browser: a new issue opens, its questions in it. Then **Select the report**, copy it and paste it in. You can also open an issue directly: [github.com/Ikar-Rahl/Warcraft-KaLi/issues](https://github.com/Ikar-Rahl/Warcraft-KaLi/issues).
+- **Without one, by mail:** click the address under the link, copy it, and write to [warcraft.kali.addons@gmail.com](mailto:warcraft.kali.addons@gmail.com) with the report pasted in. Within a few minutes your mail becomes an issue and you get its link: what you write is published there, your address never is. The answers come back to you by mail; reply to them to add to the issue.
+
+Ideas and questions are welcome either way; by mail, say *idea* or *question* in the subject.
 
 ## Source and license
 

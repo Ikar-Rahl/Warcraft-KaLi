@@ -1983,7 +1983,7 @@ picker (which redraws the whole HUD, the plate and the ring included).
   first and open at first ("help speed up the setup"): one « Préréglage » list of nine styles, each a minimap ring and
   a colour: « Blizzard - cuivre », « Argent », « Doré », « Forêt - vert », « Rune - taupe », « Steampunk - bronze »,
   « Gemme - rose et or », « Astronomie - bleu », « Feu - rouge » (2026-11-18: "add the fire - red as a preset": the
-  fire ring and cartouche, an ember red border b4544a, charred dark stone 2e1f1c, both added to the lists). The Gem's background a dark old rose `5e4a48` since 2026-11-20 ("The gem style shoudl have darker background, text unreadable other wise"), the light one `a88c86` its hue's from its art's pearl pinks and champagne gold from 2026-11-19 ("too dark for the gem style, is shoudl be much clearer, in the colors of the art"), the dark bordeaux `3a2226` before, kept in the list. A style sets the look alone, `PRESET_KEYS`: the map's ring, the
+  fire ring and cartouche, an ember red border b4544a, charred dark stone 2e1f1c, both added to the lists, without names until 2026-11-24: the lists showed their strings' keys, `L` giving a missing one back, now « Rouge braise » and « Pierre calcinée », and the smoke checks each colour of both lists has one (Ikar: "fix the color names for firez they use a code right now, looks bad")). The Gem's background a dark old rose `5e4a48` since 2026-11-20 ("The gem style shoudl have darker background, text unreadable other wise"), the light one `a88c86` its hue's from its art's pearl pinks and champagne gold from 2026-11-19 ("too dark for the gem style, is shoudl be much clearer, in the colors of the art"), the dark bordeaux `3a2226` before, kept in the list. A style sets the look alone, `PRESET_KEYS`: the map's ring, the
   border's colour, the background's colour and material, the windows' cartouche and the corners' shape ("I believe
   yes", 2026-11-17); never a size, a margin, an opacity or what a bar shows, so no style moves anything. Each border
   colour is its ring's own metal, sampled from its highlights (verdigris `a0b4a8`, taupe `9a8b74`, rose gold `c9a08f`
@@ -2015,7 +2015,11 @@ picker (which redraws the whole HUD, the plate and the ring included).
   `Lock`, `Unlock`, `Chevron`, `Icon`) are generated procedurally; the cartouches and the minimap rings are cut from
   images Ikar generated with Google Gemini (`hud/art`, not published; each sheet carries Google's C2PA credentials,
   `trainedAlgorithmicMedia`); the background's materials are the game's own, never shipped; MIT-licensed patterns
-  adapted from Malkkav's FlareUI are attributed in `LICENSE`.
+  adapted from Malkkav's FlareUI are attributed in `LICENSE`. The README's « Credits » (Ikar 2026-11-24: "The inspired by should be a separate section, look
+  how flare UI did it. It should be to honour other modders, important"), after FlareUI's own: each work linked
+  with its author and licence and what KaLi HUD owes it, an idea said to be one: FlareUI (its look, its XP bar, the
+  code above), Titan Panel (the info bar, the idea only), SexyMap (the minimap's borders, the idea only). Then, at his "Ok", from this log: SpartanUI (the status bars under the bars, by wutname1)
+  and SinStats Character Stats (the thresholds against a target of another level, by Sinba), ideas only.
 
 ## Build order
 

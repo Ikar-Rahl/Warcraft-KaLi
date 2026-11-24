@@ -41,6 +41,8 @@ Install it and the plate is there. Shape it in **Edit Mode**: click the KaLi HUD
 
 ![A macro's editor, and the macro's tooltip on the bar](https://github.com/Ikar-Rahl/Warcraft-KaLi/raw/main/hud/docs/images/06-a-macro.jpg)
 
+![A note's editor, and the note's tooltip on the bar](https://github.com/Ikar-Rahl/Warcraft-KaLi/raw/main/hud/docs/images/07-a-note.jpg)
+
 ## The character sheet, on a hover
 
 - **Every attribute on the bar,** its hover a card: its value, where it comes from (the base, each worn item and its enchantment, sets, buffs, talents, your race and class) and what it gives, each source with its icon.
@@ -64,6 +66,11 @@ Install it and the plate is there. Shape it in **Edit Mode**: click the KaLi HUD
 - **Sturdy:** a button that can't be placed is left out, a change that fails halfway is put back whole, and a part of the HUD that fails to load is named while the rest starts.
 - **Turn off what you don't want:** the plate, the info bar and the minimap's dome each have their switch. With the info bar off, other addons' minimap buttons go back on the minimap.
 - **Nothing else to install:** no libraries, no dependencies.
+
+## Compatibility
+
+- **Action bar addons:** KaLi HUD works with most of them.
+- **Left alone:** the player, target, party and raid frames, and in general anything that comes and goes during play: buffs, spells and the rest are for the game or your other addons.
 
 ## Slash commands
 
@@ -103,9 +110,22 @@ The CurseForge app installs and updates it. By hand: put the `KaLiHUD` folder in
 
 ## Bugs and ideas
 
-`/kh report`, or **Help** on the options page, gives you a link that opens a new issue on GitHub with its questions, then a report of what the addon sees to paste into it. The report holds no character or realm name; you need a GitHub account. Please say what you were doing and what happened. A figure looks wrong somewhere particular (at a camp, after a level-up, in a form)? Type `/kh stats` there first.
+`/kh report`, or **Help** on the options page, opens a window with a report of what the addon sees, to copy. It holds no character or realm name. Please say what you were doing and what happened. A figure looks wrong somewhere particular (at a camp, after a level-up, in a form)? Type `/kh stats` there first.
 
-You can also open an issue directly: [github.com/Ikar-Rahl/Warcraft-KaLi/issues](https://github.com/Ikar-Rahl/Warcraft-KaLi/issues)
+- **With a GitHub account:** **Select the link**, copy it (Ctrl+C) and open it in your browser: a new issue opens, its questions in it. Then **Select the report**, copy it and paste it in. You can also open an issue directly: [github.com/Ikar-Rahl/Warcraft-KaLi/issues](https://github.com/Ikar-Rahl/Warcraft-KaLi/issues).
+- **Without one, by mail:** click the address under the link, copy it, and write to [warcraft.kali.addons@gmail.com](mailto:warcraft.kali.addons@gmail.com) with the report pasted in. Within a few minutes your mail becomes an issue and you get its link: what you write is published there, your address never is. The answers come back to you by mail; reply to them to add to the issue.
+
+Ideas and questions are welcome either way; by mail, say *idea* or *question* in the subject.
+
+## Credits
+
+KaLi HUD stands on other modders' work. What it owes each:
+
+- **[FlareUI](https://www.curseforge.com/wow/addons/flareui) by Malkkav** (MIT License): KaLi HUD's look started from it, its bronze and the grain along a border, and its status bars are drawn and filled as FlareUI's XP bar. Code adapted from FlareUI's, under its license: part of the color palette, the status bars' colors, the folding bag bar, and the patterns that keep the minimap and the windows working with it (the notice is in KaLi HUD's LICENSE). FlareUI's art isn't shipped: KaLi HUD's textures are its own.
+- **[Titan Panel](https://www.curseforge.com/wow/addons/titan-panel) by the Titan Panel Team**, HonorGoG and urnati, and before them TitanMod, Dark Imakuni and Adsertor: the information bar with plugins, which KaLi HUD's info bar takes on. The idea only: KaLi HUD's code is its own.
+- **[SexyMap](https://www.curseforge.com/wow/addons/sexymap) by Funkeh:** the minimap dressed in a choice of borders, which KaLi HUD's dome and its rings take on. The idea only: KaLi HUD's code is its own.
+- **[SpartanUI](https://www.curseforge.com/wow/addons/spartan-ui) by wutname1:** the status bars along the foot of the screen, under the bars, as KaLi HUD's two lie along its info bar. The idea only: KaLi HUD's code is its own.
+- **[SinStats Character Stats](https://www.curseforge.com/wow/addons/sinstats) by Sinba:** the thresholds against a target of another level, which the attribute cards show against your target. The idea only: KaLi HUD's code is its own.
 
 ## Source and license
 

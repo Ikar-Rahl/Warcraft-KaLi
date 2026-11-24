@@ -48,6 +48,11 @@ Install it and the tracker is there. Type `/kq options`, or open **Options > Add
 - **Back to Blizzard's any time:** untick "KaLi Quest's tracker" in the options, or type `/kq tracker off`.
 - **Nothing else to install:** no libraries, no dependencies.
 
+## Compatibility
+
+- **[Spoken](https://www.curseforge.com/wow/addons/spoken),** which reads quest dialogue and books aloud, works alongside KaLi Quest.
+- **[Forever Quest Tint](https://www.curseforge.com/wow/addons/forever-quest-tint),** which marks the quests new to Forever, works alongside it too.
+
 ## Slash commands
 
 | Command | What it does |
@@ -86,9 +91,19 @@ The CurseForge app installs and updates it. By hand: put the `KaLiQuest` folder 
 
 ## Bugs and ideas
 
-`/kq report`, or **Report a bug** at the bottom of the gear's menu, gives you a link that opens a new issue on GitHub with its questions, then a report of what the addon sees to paste into it. The report holds no character or realm name; you need a GitHub account. Please say what you were doing and what happened.
+`/kq report`, or **Report a bug** at the bottom of the gear's menu, opens a window with a report of what the addon sees, to copy. It holds no character or realm name. Please say what you were doing and what happened.
 
-You can also open an issue directly: [github.com/Ikar-Rahl/Warcraft-KaLi/issues](https://github.com/Ikar-Rahl/Warcraft-KaLi/issues)
+- **With a GitHub account:** **Select the link**, copy it (Ctrl+C) and open it in your browser: a new issue opens, its questions in it. Then **Select the report**, copy it and paste it in. You can also open an issue directly: [github.com/Ikar-Rahl/Warcraft-KaLi/issues](https://github.com/Ikar-Rahl/Warcraft-KaLi/issues).
+- **Without one, by mail:** click the address under the link, copy it, and write to [warcraft.kali.addons@gmail.com](mailto:warcraft.kali.addons@gmail.com) with the report pasted in. Within a few minutes your mail becomes an issue and you get its link: what you write is published there, your address never is. The answers come back to you by mail; reply to them to add to the issue.
+
+Ideas and questions are welcome either way; by mail, say *idea* or *question* in the subject.
+
+## Credits
+
+KaLi Quest stands on other modders' work. What it owes each:
+
+- **[Questie](https://www.curseforge.com/wow/addons/questie) by the Questie team**, TheCrux_BB, yttriumtyclief, Lawgon, muehedev and cheeq, and before them aerorocks99, Dyaxler and Drejjmit (GPLv3): their investigations of Forever, how saved data survives and which of its quest functions fail, which KaLi Quest's design leans on, and QuestieDB, which tested KaLi Quest while it was made. Nothing of Questie's is shipped.
+- **[Kaliel's Tracker](https://www.curseforge.com/wow/addons/kaliels-tracker) by Kaliel:** the long-standing replacement tracker, the one KaLi Quest was measured against. The idea only: KaLi Quest's code is its own.
 
 ## Source and license
 

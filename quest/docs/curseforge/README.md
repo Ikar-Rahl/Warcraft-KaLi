@@ -8,7 +8,9 @@ CurseForge asks of every title and description. Change them here first, then on 
 | [KaLiQuest/README.md](../../addon/KaLiQuest/README.md) | The project's description: the addon's own README, the one in the zip, pasted as it is in the editor's Markdown mode (its default is the visual one). One text for the page, GitHub and the zip |
 | [KaLiQuest/CHANGELOG.md](../../addon/KaLiQuest/CHANGELOG.md) | Each file's changelog: the addon's own, the one in the zip; its version's section (from the line under the version's heading) pasted in Markdown |
 
-The files to upload are built outside the repository, in `release/KaLiQuest-0.9.0/` beside it: the zip and the logo.
+Since 2026-11-24 a version goes up from its tag, built and uploaded on GitHub (« Publishing », in the
+repository's [README](../../../README.md)). The pictures, the Gallery's and the logo, are in
+[docs/images](../images/), to download for the site.
 
 ## The project
 
@@ -21,6 +23,7 @@ A project can only be created there, by its author: the upload API has no call f
 | Summary | Your own quest groups, in a rewritten objective tracker. |
 | Description | [KaLiQuest/README.md](../../addon/KaLiQuest/README.md) |
 | License | MIT License |
+| Links | Issues: `https://github.com/Ikar-Rahl/Warcraft-KaLi/issues`; Source: `https://github.com/Ikar-Rahl/Warcraft-KaLi`. The description's « Bugs and ideas » gives KaLi's mail for players without a GitHub account ([tools/mail](../../../tools/mail/README.md)) |
 | Class | Addons |
 | Main category | Quests & Leveling |
 | Additional categories | None |
@@ -56,19 +59,22 @@ The description's pictures are in the repository, `<addon>/docs/images/` (JPEG, 
 links them through github.com (Ikar 2026-11-24: "I would want the images to be in github, so the description get auto
 updated"): a picture pushed to `main` under the same name shows on CurseForge without touching the page. The text is
 pasted by hand when it changes: CurseForge's upload API sends files and their changelogs, never a project's
-description. The Gallery's pictures are uploaded to CurseForge itself.
+description. The Gallery's pictures are uploaded to CurseForge itself, by hand, from the same folder (Ikar
+2026-11-24: "I also want all images to be in GitHub. So I can download them and put them in curseforge").
 
-Taken in game, in an English client, as the quest names are the game's, on 2026-11-23. The files, outside the
-repository, are in `release/KaLiQuest-0.9.0/gallery/`, in the Gallery's order.
+Taken in game, in an English client, as the quest names are the game's, on 2026-11-23, prepared
+outside the repository in `release/KaLiQuest-0.9.0/gallery/` (PNG), and in [docs/images](../images/) as JPEGs at
+most 1920 wide (`python -I tools/gallery.py quest`), under the same names, in the Gallery's order.
 
 | # | In the Gallery | In the description |
 | --- | --- | --- |
+| 0 | `00-hero.jpg`: the hero, first in the carousel: the logo, the name and the summary on the left, your groups large on the right (Ikar 2026-11-24: "Go for 2 and 2") | |
 | 1 | `KaLiQuest-video.mp4`, 45 s, on YouTube: [Q2OJeZRcSps](https://www.youtube.com/watch?v=Q2OJeZRcSps) (YouTube files it as a Short) | |
-| 2 | `01-your-groups.png`: four groups of your own under Track, the Journal folded | Under the opening lines |
-| 3 | `02-several-quests-at-once.png`: three quests picked with Ctrl+click | After « Your groups » |
-| 4 | `03-filters-with-counts.png`: the filter menu, each choice with its count | After « Find what you need » |
-| 5 | `04-the-journal.png`: the Journal by zone and kind, dungeons and raids apart | |
-| 6 | `05-edit-mode.png`: the tracker's Edit Mode dialog beside it | After « Out of your way » |
+| 2 | `01-your-groups.jpg`: four groups of your own under Track, the Journal folded | Under the opening lines |
+| 3 | `02-several-quests-at-once.jpg`: three quests picked with Ctrl+click | After « Your groups » |
+| 4 | `03-filters-with-counts.jpg`: the filter menu, each choice with its count | After « Find what you need » |
+| 5 | `04-the-journal.jpg`: the Journal by zone and kind, dungeons and raids apart | |
+| 6 | `05-edit-mode.jpg`: the tracker's Edit Mode dialog beside it | After « Out of your way » |
 
 If the description plays animated GIFs (CurseForge's guides don't say; to check with the first one), a cut of the
 video's drag and drop can go after « Your groups ».
@@ -81,7 +87,12 @@ it in the first screen, the features grouped under headings with the feature fir
 commands table, questions in the players' words, where bugs go. Every claim is the addon's own: its strings
 (`Locale/enUS.lua`, the Tips page), its changelog and its tests. American spelling, as the game's English.
 
-## After the moderators' approval
+## Published
 
-The project's id, in its « About Project » box, goes into the TOC as `## X-Curse-Project-ID`; later files can then go
-up through the upload API with a token.
+On CurseForge since 2026-11-23, by Ikar_Rahl: [kali-quest](https://www.curseforge.com/wow/addons/kali-quest), project
+1826687. Its id is in the TOC as `## X-Curse-Project-ID: 1826687` since 2026-11-24, so a tag's run uploads
+its files there.
+
+Read on the page on 2026-11-24: the file `KaLiQuest-0.9.0.zip` as a beta for Forever 1.60.1, its description rendered,
+its logo, and its Gallery empty. No picture was read in the description: perhaps it was pasted before the pictures
+were in the repository, or the tool that read the page left them out; still to see in a browser.
