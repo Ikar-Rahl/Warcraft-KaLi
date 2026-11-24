@@ -20,6 +20,7 @@
 ## AddonCompartmentFuncOnLeave: KaLiRecipe_OnAddonCompartmentLeave
 ## X-License: MIT
 ## X-Website: https://github.com/Ikar-Rahl/Warcraft-KaLi
+## X-Curse-Project-ID: 1826730
 
 Core\Init.lua
 Shared\Core.lua
