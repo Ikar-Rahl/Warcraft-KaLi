@@ -1,6 +1,7 @@
 -- Copied from shared/tests/Harness.lua by tools/sync_shared.py: edit the source, not this copy.
--- A small test harness, shared by the KaLi addons' tests. The same tests run in game (/kq test, /kr test) and offline
--- (each addon's tools/run_tests.py). They work on fresh tables and a fake world, never on the player's saved data.
+-- A small test harness, shared by the KaLi addons' tests. The same tests run in game (/kq test, /kr test, /kh test)
+-- and offline (each addon's tools/run_tests.py). They work on fresh tables and a fake world, never on the player's
+-- saved data.
 -- Loaded first by <Addon>_Tests, it makes <Addon>Tests, which the test files add to.
 local ADDON = ...
 local BASE = ADDON:gsub("_Tests$", "")

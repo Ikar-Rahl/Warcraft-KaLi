@@ -8,7 +8,7 @@ KaLi Quest):
 3. KaLiRecipe_Tests runs: the same tests as /kr test in game.
 4. recipe/tools/lua/smoke.lua starts the addon and its probe as the game would, plays a session and runs
    every slash command of both; then tools/lua/smoke_shared.lua checks the shared code's copy (shared/) the same
-   way in both addons.
+   way in every addon.
 5. Every C_ function, bare global function and :Method( the addons call exists in this build's API docs or
    Blizzard's own code.
 6. KaLiRecipe's folder is a complete package: the TOC's fields, an icon the game can read, every listed file
@@ -35,19 +35,28 @@ KaLi Quest):
 
 Run with: python -I recipe/tools/run_tests.py
 --addons <dir> runs on a copy, for experiments: recipe/addon is linked into the game.
+--only <part>[,<part>] runs parts of it alone, after the compile (tools/kali/checks.py, "The parts of a run"): static
+(5 to 11 and 13, --at <check> one of them: api, globals, methods, enums, needs, package, nan, secret, data, strings,
+sounds), tests (3), smoke (4 with the shared code's, the labels' and the restarts' checks after it; --at <text> the
+smoke's one block whose check says that text), shared (the shared code's checks after a login alone), labels (14 after
+a login alone), restart (12, after the whole smoke, less than a second). tools/breaks.py runs each deliberate break
+against the part linked to it, in seconds.
 """
 import csv
 import json
 import re
 import sys
 import xml.etree.ElementTree as ET
+from functools import cache
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
-from kali import checks, labels  # noqa: E402
+from kali import checks, game  # noqa: E402
 from kali.paths import RECIPE, REFERENCE  # noqa: E402
 
+ADDON = "KaLiRecipe"
 RECIPE_LUA = RECIPE / "tools/lua"
+SMOKE = RECIPE_LUA / "smoke.lua"
 NEEDS_FILE = "KaLiRecipe/Data/Needs.lua"
 ALLOWED_GLOBALS = {
     "KaLiRecipeDev", "KaLiRecipeDB", "KaLiRecipeDevDB", "KaLiRecipeCopyDB", "SLASH_KALIRECIPE1", "SLASH_KALIRECIPE2",
@@ -60,12 +69,11 @@ ALLOWED_GLOBALS = {
 checks.configure(ADDONS=RECIPE / "addon", NEEDS_FILE=NEEDS_FILE, ALLOWED_GLOBALS=ALLOWED_GLOBALS,
                  ENGINE_METHODS={"AddDoubleLine", "SetItemByID", "SetSpellByID"})
 lupa, ADDONS, rel = checks.lupa, checks.ADDONS, checks.rel
+# The dialog whose texts the labels' check measures, and what opens it and the options page after a login alone.
+DIALOG = "KaLiRecipeOptions"
+OPENS = "KaLiRecipeDev.ns.Options.Open(); FakeWoW.RunTimers()"
 
-
-API_DOCS = checks.API_DOCS
-DB2 = max((REFERENCE / "db2").iterdir())
 FRENCH = REFERENCE / "BlizzardInterfaceResources/Resources/GlobalStrings/frFR.lua"
-SOUNDKIT_LUA = REFERENCE / "wow-ui-source/Interface/AddOns/Blizzard_SharedXML/Mainline/SoundKitConstants.lua"
 BENCH_SOUNDS = RECIPE / "bench/js/sounds.js"
 UI_NS = "{http://www.blizzard.com/wow/ui/}"
 
@@ -82,8 +90,9 @@ def to_lua(lua, value):
     return value
 
 
-# The family's enum check (tools/kali/checks.py); the fake gets the docs' own tables for those the addons name.
-ENUMS = checks.documented_enums()
+# The family's enum check (tools/kali/checks.py); the fake gets the docs' own tables for those the addons name: read
+# again at each run's start (main), a break's worker running the code changed each time.
+ENUMS = game.documented_enums()
 USED_ENUMS = checks.addon_enums(sorted(ADDONS.rglob("*.lua")))
 
 
@@ -132,6 +141,7 @@ def runtime():
     return lua, load_addon
 
 
+@cache
 def french_strings():
     """The French client's global strings: { name: text }."""
     out = {}
@@ -155,16 +165,23 @@ def string_problems(lua, read_by_addon):
     return problems, len(defined | set(read_by_addon))
 
 
-def sound_problems(lua):
-    """Core/Sounds.lua's choices against this build's sound tables, and the bench's copy."""
-    names = {k: int(v) for k, v in re.findall(r"^\s*([A-Z0-9_]+)\s*=\s*(\d+)", SOUNDKIT_LUA.read_text(encoding="utf-8"), re.M)}
-    with open(DB2 / "SoundKit.csv", encoding="utf-8", newline="") as f:
+@cache
+def sound_tables():
+    """This build's sounds: SOUNDKIT's names, each kit's volume, each kit's files."""
+    names = {k: int(v) for k, v in re.findall(r"^\s*([A-Z0-9_]+)\s*=\s*(\d+)", game.SOUNDKITS.read_text(encoding="utf-8"), re.M)}
+    with open(game.tables() / "SoundKit.csv", encoding="utf-8", newline="") as f:
         kits = {int(r["ID"]): float(r["VolumeFloat"]) for r in csv.DictReader(f)}
-    own = lua.eval("KaLiRecipeDev.ns.Sounds.KIT_VOLUME")
     files = {}
-    with open(DB2 / "SoundKitEntry.csv", encoding="utf-8", newline="") as f:
+    with open(game.tables() / "SoundKitEntry.csv", encoding="utf-8", newline="") as f:
         for r in csv.DictReader(f):
             files.setdefault(int(r["SoundKitID"]), set()).add(int(r["FileDataID"]))
+    return names, kits, files
+
+
+def sound_problems(lua):
+    """Core/Sounds.lua's choices against this build's sound tables, and the bench's copy."""
+    names, kits, files = sound_tables()
+    own = lua.eval("KaLiRecipeDev.ns.Sounds.KIT_VOLUME")
     choices = lua.eval("KaLiRecipeDev.ns.Sounds.CHOICES")
     problems, listed = [], {}
     for kind in ("recipe", "place"):
@@ -203,9 +220,9 @@ def data_problems():
     text = (ADDONS / "KaLiRecipe/Data/Recipes.lua").read_text(encoding="utf-8")
     problems = []
     build = re.search(r'ns\.DATA_BUILD = "([^"]+)"', text)
-    tables = max((REFERENCE / "db2").iterdir()).name
-    if not build or build.group(1) != tables:
-        problems.append(f"data: Data/Recipes.lua is from {build and build.group(1)}, the tables are {tables}: run gen_addon_data.py")
+    newest = game.tables().name
+    if not build or build.group(1) != newest:
+        problems.append(f"data: Data/Recipes.lua is from {build and build.group(1)}, the tables are {newest}: run gen_addon_data.py")
     recipes_part, rest = text.split("ns.RECIPE_ITEMS", 1)
     items_part, cats_part = rest.split("ns.CATEGORIES", 1)
     recipes = {int(a): [int(x) for x in b.split(",")] for a, b in re.findall(r"^\s+\[(\d+)\] = \{ ([\d, ]+) \},$", recipes_part, re.M)}
@@ -247,9 +264,10 @@ def restart_problems(lua, load_addon):
     copy = saved("KaLiRecipeCopyDB", g.KaLiRecipeCopyDB)
     sightings = saved("sightings", g.KaLiRecipeDB.sightings)
     options = saved("options", g.KaLiRecipeDB.options)
-    problems = []
+    problems, sessions = [], []
 
     def start(texts, before=""):
+        sessions.append(before)
         lua2, load2 = runtime()
         load2("KaLiRecipe")
         load2("KaLiRecipe_Tests")
@@ -324,93 +342,78 @@ def restart_problems(lua, load_addon):
             problems.append("restart, a newer account file: written over")
         if kept_copy != copy:
             problems.append("restart, a newer account file: the character's copy written over")
-    return problems, 5
+    return problems, len(sessions)
+
+
+PARTS = ("static", "tests", "smoke", "shared", "labels", "restart")
+
+
+def part_static(sources, at):
+    needs_path = ADDONS / NEEDS_FILE
+    # What the shipped code takes from the game, its nan and its secret values: Data/ left out, the needs list and
+    # Recipes.lua, the tables gen_addon_data.py made from the build's: numbers and names, calling nothing of the game's
+    shipped = [p for p in sorted((ADDONS / ADDON).rglob("*.lua")) if p != needs_path and "Data" not in p.parts]
+    found = checks.static_checks(ADDON, sources, shipped, needs_path, "recipe/tools/run_tests.py")
+    loaded = {}
+
+    def lua():
+        if "lua" not in loaded:
+            loaded["lua"], load_addon = runtime()
+            load_addon(ADDON)
+        return loaded["lua"]
+
+    def data():
+        problems, n_recipes, n_items = data_problems()
+        print(f"data: {n_recipes} recipes, {n_items} recipe items, {len(problems)} problems")
+        return problems
+
+    def strings():
+        problems, n_strings = string_problems(lua(), found.found()["strings"])
+        print(f"strings: {n_strings} French game strings against the client's, {len(problems)} problems")
+        return problems
+
+    def sounds():
+        problems, n_sounds = sound_problems(lua())
+        print(f"sounds: {n_sounds} offered, against this build's tables and the bench's list, {len(problems)} problems")
+        return problems
+
+    return checks.run_static(found + [("data", data), ("strings", strings), ("sounds", sounds)], at)
+
+
+def restarts_of(lua, load_addon):
+    restart, sessions = restart_problems(lua, load_addon)
+    print(f"restart: {sessions} sessions from the files the smoke wrote, {len(restart)} problems")
+    return restart
+
+
+def part_smoke(at):
+    lua, load_addon, problems, blocks = checks.smoke_part(runtime, ADDON, SMOKE, at)
+    if blocks is not None:
+        return problems
+    return problems + checks.after_smoke(lua, ADDON, DIALOG) + restarts_of(lua, load_addon)
+
+
+def part_restart():
+    """The sessions after the smoke's: the whole smoke first, less than a second here, to write their files."""
+    lua, load_addon, problems, _ = checks.smoke_part(runtime, ADDON, SMOKE)
+    return problems + restarts_of(lua, load_addon)
 
 
 def main():
-    problems = []
-    lua = lupa.LuaRuntime(unpack_returned_tuples=True)
-    sources = sorted(ADDONS.rglob("*.lua"))
-    for path in sources:
-        result = lua.globals().loadstring(path.read_text(encoding="utf-8"), "@" + rel(path))
-        if isinstance(result, tuple) and result[1]:
-            problems.append(f"compile: {result[1]}")
-    print(f"compile: {len(sources)} files")
-    called_by_blizzard, defined_by_blizzard, methods_by_blizzard, defined_in, templates_in, fonts_in = checks.ui_source_names()
-    unknown, known = checks.unknown_api_calls(sources, called_by_blizzard)
-    print(f"api: {known} documented C_ functions, {len(unknown)} unknown names used")
-    problems += [f"api not in this build's docs: {u}" for u in unknown]
-    unknown_globals = checks.unknown_global_calls(sources, defined_by_blizzard)
-    print(f"globals: {len(unknown_globals)} unknown global functions called")
-    problems += [f"global function not in the game: {u}" for u in unknown_globals]
-    unknown_methods = checks.unknown_method_calls(sources, methods_by_blizzard)
-    print(f"methods: {len(unknown_methods)} unknown method names called")
-    problems += [f"method not in the game: {u}" for u in unknown_methods]
-    package, count = checks.package_problems("KaLiRecipe")
-    print(f"package: {count} files, {len(package)} problems")
-    problems += package
-    needs_path = ADDONS / NEEDS_FILE
-    shipped = [p for p in sorted((ADDONS / "KaLiRecipe").rglob("*.lua")) if p != needs_path and "Data" not in p.parts]
-    found = checks.needs(shipped, checks.documented_functions(called_by_blizzard), defined_in, templates_in, fonts_in)
-    expected = checks.needs_lua(found)
-    if "--write-needs" in sys.argv:
-        needs_path.write_text(expected, encoding="utf-8", newline="\n")
-    elif not needs_path.exists() or needs_path.read_text(encoding="utf-8") != expected:
-        problems.append(f"needs: {rel(needs_path)} is out of date: run recipe/tools/run_tests.py --write-needs")
-    print(f"needs: {len(found['globals'])} globals, {len(found['events'])} events, {len(found['atlases'])} atlases, "
-          f"{len(found['templates'])} templates, {len(found['cvars'])} CVars, {len(found['strings'])} strings")
-    data, n_recipes, n_items = data_problems()
-    print(f"data: {n_recipes} recipes, {n_items} recipe items, {len(data)} problems")
-    problems += data
-    enums = checks.enum_problems(USED_ENUMS, ENUMS)
-    print(f"enums: {len(USED_ENUMS)} named, {len(enums)} not in this build's docs nor Blizzard's code")
-    problems += enums
-    nan = checks.self_compare_problems(shipped)
-    print(f"nan: {len(nan)} values compared with themselves in the shipped addon")
-    problems += nan
-    secret, hidden = checks.secret_problems(shipped)
-    print(f"secret: {hidden} calls whose result the game may hide, {len(secret)} not read through ns.Plain")
-    problems += secret
-
-    lua, load_addon = runtime()
-    load_addon("KaLiRecipe")
-    strings, n_strings = string_problems(lua, found["strings"])
-    sounds, n_sounds = sound_problems(lua)
-    print(f"strings: {n_strings} French game strings against the client's, {len(strings)} problems")
-    print(f"sounds: {n_sounds} offered, against this build's tables and the bench's list, {len(sounds)} problems")
-    problems += strings + sounds
-    load_addon("KaLiRecipe_Tests")
-    report = lua.eval("KaLiRecipeTests.Run()")
-    print(report.text)
-    if report.failed > 0:
-        problems.append(f"tests: {report.summary}")
-
-    lua, load_addon = runtime()
-    load_addon("KaLiRecipe")
-    if (ADDONS / "KaLiRecipe_Probe").exists():
-        load_addon("KaLiRecipe_Probe")
-    failures = lua.execute((RECIPE_LUA / "smoke.lua").read_text(encoding="utf-8"))
-    failures = list(failures.values())
-    print(f"smoke: {'PASS' if not failures else 'FAIL'}")
-    problems += [f"smoke: {f}" for f in failures]
-    shared_failures = checks.shared_smoke(lua, "KaLiRecipe")
-    print(f"shared: {'PASS' if not shared_failures else 'FAIL'}")
-    problems += shared_failures
-    misfits, measured = labels.problems(lua, "KaLiRecipeDev", "KaLiRecipeOptions")
-    print(measured)
-    problems += misfits
-    leaks = sorted(set(lua.globals().KALI_LEAKS.values()))
-    problems += [f"global written: {leak}" for leak in leaks]
-    restart, sessions = restart_problems(lua, load_addon)
-    print(f"restart: {sessions} sessions from the files the smoke wrote, {len(restart)} problems")
-    problems += restart
-
-    print()
-    if problems:
-        print("\n".join(problems))
-        print(f"\nFAIL: {len(problems)} problem(s)")
-        sys.exit(1)
-    print("ALL PASS")
+    global USED_ENUMS
+    USED_ENUMS = checks.addon_enums(sorted(ADDONS.rglob("*.lua")))
+    run = checks.Run(PARTS)
+    problems, sources = checks.compile_problems()
+    run.problems += problems
+    run.part("static", lambda: part_static(sources, run.at))
+    run.part("tests", lambda: checks.tests_part(runtime, ADDON))
+    run.part("smoke", lambda: part_smoke(run.at))
+    # in a whole run, all three after the smoke, on what it left (part_smoke)
+    if run.only:
+        run.part("shared", lambda: checks.shared_part(runtime, ADDON))
+        run.part("labels", lambda: checks.labels_part(runtime, ADDON, DIALOG, OPENS))
+        run.part("restart", part_restart)
+    run.end()
 
 
 # read_saved.py check imports runtime() from here, to open the player's files with the addon's own code.

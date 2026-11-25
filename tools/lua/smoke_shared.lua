@@ -1,5 +1,5 @@
 -- The shared code's own checks (shared/), run by each addon's runner on that addon's copy, after its smoke session:
--- what both addons run the same way is checked the same way in both. KALI_ADDON names the addon. It runs last: it
+-- what the addons run the same way is checked the same way in each. KALI_ADDON names the addon. It runs last: it
 -- clears the debug log and adds two failing assumptions. Returns a list of failures.
 local F = FakeWoW
 local ADDON = KALI_ADDON

@@ -1,68 +1,91 @@
 """Deliberate breaks: plant one fault at a time in a copy of the code, and see the tests fail. A fault they don't see
 is a gap in them; a fix proven this way stays proven.
 
-Run with: python -I tools/breaks.py <breaks file> [word] [--link] [--slice i/n]
-The breaks file is Python and sets BREAKS = [(name, path, old, new), ...]. path is the repository's, under
+Run with: python -I tools/breaks.py <breaks file> [word...] [--link] [--jobs N] [--links-only] [--no-budget]
+The breaks file is Python and sets BREAKS = [(name, path, old, new, ...), ...]. path is the repository's, under
 quest/addon/, recipe/addon/, hud/addon/ or shared/; old must be found exactly once there, and becomes new. A break in
 shared/ goes into each addon's copy, and each addon's tests must catch it; a further item that is a tuple, such as
 ("quest",) or ("quest", "recipe"), limits it to the addons where it changes anything (a hook only one addon sets, a
-part only some use). With a word, only the breaks whose name holds it run.
-Each run works on a copy in a temporary folder: the repository, linked into the game, is never touched.
-A runner that hasn't finished after HUNG seconds is stopped, the break caught: its tests never pass (a loop the break
-let run forever held a whole run, 2026-11-17).
-Exits 1 when a break goes unnoticed.
+part only some use). With words, only the breaks whose name holds one of them run.
+Each break runs on a copy in a temporary folder: the repository, linked into the game, is never touched.
+Exits 1 when a break goes unnoticed, or when one can't run as it should (aborted, named, before anything runs).
 
-A break is linked to the test that must catch it, and runs that alone (Ikar 2026-11-18: "Link each break with test on
-interest, and run only those"; a break replayed its addon's whole run, minutes each, hours for a file of them). For a
-runner made of parts (PARTS: KaLi HUD's, hud/tools/run_tests.py --only <part>) the link is the part, and in its smoke
-the block whose check caught it (--at <what the check says>): seconds. A link is found once, by --link, which tries
-the parts in turn on each break that has none and keeps what it finds in tools/breaks/links/<breaks file>.json; a
-break may name its own as a further item, "test:<part>" (a scenario's name is one). The block a link names must pass
-alone on the code as it is, or a failure of its own would pass for the break caught: tried once for each block met, the
-whole part run in its place when it doesn't (--blocks-stand: not tried, for a run made just after the runner's own
-`--only blocks` passed, which tries them all). A break with no link runs the whole runner, as all did.
-A link to the whole smoke is never kept: the break is skipped, and says to put its check into a scenario. A run stops
-once its breaks have taken BUDGET seconds, five minutes, and names those it left (--no-budget for a whole sweep).
---slice i/n takes each nth break from the ith, for several runs side by side; each keeps its links in a file of its
-own, and --merge gathers them.
+How it stays quick (Ikar 2026-11-23: "Tests for an addon shoudl be 5min max total"; 2026-11-24: "If a break run the
+whole suite, abort instatly, you have faield and fix it"):
+- Each break runs only the part of its runner that must catch it, its link: a part of the runner (--only <part>, the
+  runners' "The parts of a run"), narrowed by --at to one block of the smoke or one static check; a scenario of
+  KaLi HUD's by its name. A second or two. Never a whole runner, never the whole smoke: before anything runs, a break
+  with no link, or one to the whole smoke, or to a smoke's line that no longer is, aborts the run, named.
+- Each runner is kept running in workers (tools/kali/worker.py), each on its own copy of the addon, side by side
+  (--jobs, eight at the most): no break pays Python's start or the reading of the game's files.
+- Before any break, each link the breaks use runs once on the code as it is, and must pass: a part that fails on its
+  own would pass for every break caught (a smoke's block that no longer stands alone, a scenario broken). One that
+  fails aborts the run, named, with what it said.
+- A run stops once BUDGET seconds have gone, five minutes, and names the breaks it left (--no-budget: a whole sweep
+  Ikar asks for).
+- A runner's part that hasn't answered after ten times its own run on the code as it is (half a minute at the least) is
+  stopped: the break caught, its tests never pass (a loop the break let run forever held a whole run, 2026-11-17).
 
-A break whose old text the code no longer holds proves nothing, and only running it, which takes minutes, said so:
-tools/run_tests.py asks stale() each time, which reads every breaks file and runs none.
+A break's link is its own further item "test:<part>" or "test:<part>@<at>" (a scenario's name is a part; at, a text
+of the smoke's block or a static check's name), or the one --link found, kept in tools/breaks/links/<breaks file>.json,
+{ break: { addon: { "part": ..., "at": ... } } }, an addon each (a shared break has one in each). --link finds the
+links that are missing, those to the whole smoke and those gone stale: for each, the runner's quick parts in turn (the
+unit tests, the shared code's checks, the labels, the first run alone, the scenarios), then the whole smoke once, for
+the block its first failure came from (each failure says it: checks.smoke_run), which must catch it alone too, then the
+static checks. A break no part catches alone aborts the run: its check goes into a scenario, or a block of its own.
+--link also drops the links kept for nothing: for a break gone or renamed, for an addon it no longer goes into, or for
+one that names its own "test:". --links-only runs no break: each link used, on the code as it is.
+
+A break whose old text the code no longer holds proves nothing: tools/run_tests.py asks stale() each time, which reads
+every breaks file and its links, and runs nothing. It names the links kept for nothing too.
 """
+import difflib
 import json
+import os
+import queue
 import re
 import runpy
 import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from kali import shared  # noqa: E402
+from kali import checks, shared  # noqa: E402
 from kali.paths import ROOT  # noqa: E402
+from kali.worker import MARK  # noqa: E402
 
 RUNNERS = {"quest": ROOT / "quest/tools/run_tests.py", "recipe": ROOT / "recipe/tools/run_tests.py",
            "hud": ROOT / "hud/tools/run_tests.py"}
-# A runner's whole run takes a few minutes; ten times that is a loop that never ends. One part of it alone takes a
-# minute at the most on a busy machine: five are a loop.
-HUNG = 1200
-PART_HUNG = 300
-# The runners made of parts, each run alone with --only, in the order --link tries them: the quickest and the likeliest
-# first. Together they are the whole run.
-PARTS = {"hud": ("smoke", "tests", "scenarios", "alone", "static")}
-# Files whose breaks the unit tests catch more often than not: tried first there.
-UNIT_FIRST = ("Core/DB.lua", "Core/Geometry.lua", "Core/Format.lua")
+WORKER = ROOT / "tools/kali/worker.py"
+SMOKES = {"quest": ROOT / "quest/tools/lua/smoke.lua", "recipe": ROOT / "recipe/tools/lua/smoke.lua",
+          "hud": ROOT / "hud/tools/lua/smoke.lua"}
+SCENARIOS = ROOT / "hud/tools/lua/scenarios"
+# Each runner's parts (its run_tests.py, PARTS): what a link may name. "smoke" only with a block (--at).
+PARTS = {"quest": ("static", "tests", "smoke", "shared", "labels"),
+         "recipe": ("static", "tests", "smoke", "shared", "labels", "restart"),
+         "hud": ("static", "tests", "smoke", "alone", "scenarios", "shared", "labels")}
+# The order --link tries them in: the quickest and likeliest first; the whole smoke, for its block, then the static
+# checks last (a break that changes which of the game's names the code uses trips the needs list, which says nothing
+# of the test meant for it).
+SEARCH = {"quest": ("tests", "shared", "labels", "smoke", "static"),
+          "recipe": ("tests", "shared", "labels", "smoke", "restart", "static"),
+          "hud": ("tests", "shared", "labels", "alone", "scenarios", "smoke", "static")}
 LINKS = ROOT / "tools/breaks/links"
-# A change's tests and breaks stay under five minutes (Ikar 2026-11-23: "Tests for an addon shoudl be 5min max total";
-# AGENTS.md): a run stops once its breaks have taken that long, and says which it left. --no-budget, for a sweep Ikar
-# asks for.
 BUDGET = 300
-WHOLE_SMOKE = ("caught by the whole smoke alone, about a minute a run: link refused. Put the check that catches it "
-               "into a scenario (hud/tools/lua/scenarios/), name it as the break's \"test:<scenario>\", run it again")
-BLOCK = re.compile(r"\(the block at line ([\d, ]+) alone\)|\((no block), what stands between them\)")
+# A worker's first run reads the game's files, which takes a while: given that long at the least.
+COLD = 300
+JOBS = min(8, max(1, (os.cpu_count() or 2) // 2))
+# A fresh worker after this many runs: memory kept in bounds.
+RECYCLE = 150
+NO_LINK = ("Fix: run tools/breaks.py <file> <word> --link, which finds each one's quick part, or name it as the "
+           "break's \"test:<part>\" (a scenario of hud/tools/lua/scenarios/, a check put into one).")
 
+
+# ---------- Breaks and their links ----------
 
 def targets(path, only=None):
     """(addon key, the file's path inside the addon's folder of folders) for each place the break goes."""
@@ -77,20 +100,159 @@ def targets(path, only=None):
 
 
 def extras(rest):
-    """A break's items past its four: the addons a shared one is limited to (a tuple), and its own link, the part that
-    must catch it ("test:<part>")."""
+    """A break's items past its four: the addons a shared one is limited to (a tuple), and its own link
+    ("test:<part>" or "test:<part>@<at>"), as a link."""
     only = next((item for item in rest if isinstance(item, tuple)), None)
     test = next((item[len("test:"):] for item in rest if isinstance(item, str) and item.startswith("test:")), None)
-    return only, test
+    if test is None:
+        return only, None
+    part, _, at = test.partition("@")
+    return only, {"part": part, **({"at": at} if at else {})}
+
+
+def read_links(stem):
+    """The links kept for a breaks file: { break: { addon: link } }."""
+    path = LINKS / f"{stem}.json"
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+
+
+def write_links(stem, links):
+    LINKS.mkdir(parents=True, exist_ok=True)
+    (LINKS / f"{stem}.json").write_text(json.dumps(links, ensure_ascii=False, indent=1, sort_keys=True) + "\n",
+                                        encoding="utf-8", newline="\n")
+
+
+def link_of(links, name, key, own):
+    """The link a break runs against in an addon: its own, or the one kept."""
+    return own or links.get(name, {}).get(key)
+
+
+def unused_links(breaks, links):
+    """The links kept for a breaks file that no break runs: [(break, addon, why)], one kept for no break of that name,
+    for an addon the break doesn't go into, or for a break that names its own "test:"."""
+    goes, own = {}, set()
+    for name, path, _, _, *rest in breaks:
+        only, test = extras(rest)
+        if test:
+            own.add(name)
+        goes.setdefault(name, set()).update(key for key, _ in targets(path, only))
+    unused = []
+    for name, by_addon in sorted(links.items()):
+        for key in sorted(by_addon):
+            if name not in goes:
+                unused.append((name, key, "no break of that name"))
+            elif name in own:
+                unused.append((name, key, "the break names its own test:"))
+            elif key not in goes[name]:
+                unused.append((name, key, f"the break doesn't go into {key}"))
+    return unused
+
+
+def scenario_named(word):
+    return any(word in path.stem for path in SCENARIOS.glob("*.lua"))
+
+
+def blocks_of(key, at):
+    """The smoke's blocks a text names (checks.smoke_session): a tuple of their lines, () for what stands between
+    them; LookupError when no line says it."""
+    return checks.blocks_kept(SMOKES[key], at)
+
+
+def link_problem(key, link):
+    """Why a link can't be run as it is (None: it can): none, the whole smoke, a part the runner hasn't, a smoke's line
+    that no longer is."""
+    if not link:
+        return "no link"
+    part, at = link.get("part"), link.get("at")
+    if part == "smoke" and at in (None, ""):
+        return "linked to the whole smoke"
+    if part not in PARTS[key] and not (key == "hud" and part != "blocks" and scenario_named(part)):
+        return f"linked to {part}, no part of {key}'s runner"
+    if part == "scenarios":
+        return "linked to every scenario: name the one"
+    if part == "smoke":
+        try:
+            blocks_of(key, at)
+        except LookupError:
+            return f"linked to a line the smoke no longer says: {at[:60]}"
+        except checks.LayoutError as wrong:
+            return str(wrong)
+    return None
+
+
+def same_run(key, link):
+    """What a link runs, as one: two texts of one block are the same run."""
+    at = link.get("at")
+    if link["part"] == "smoke":
+        at = blocks_of(key, at)
+    return key, link["part"], at
+
+
+def arguments(link):
+    """The runner's arguments for a link; at 0 is the smoke's own lines, no block."""
+    at = link.get("at")
+    return ["--only", link["part"]] + (["--at", str(at)] if at not in (None, "") else [])
+
+
+def block_text(key, line, said, at=None):
+    """A text that names the smoke's block at `line`, for a link: the longest stretch of what its check said that a
+    line of the statement it came from holds (`at`, the session's line that was running: checks.smoke_run), else a
+    line of that statement, then the same over the whole block; one only that block holds first. A text of the
+    statement stays with its check when the block is cut up."""
+    _, lines, blocks = checks.smoke_layout(SMOKES[key], SMOKES[key].stat().st_mtime_ns)
+    start = line - 1
+    end = next((last for first, last, _ in blocks if first == start), None)
+    if end is None:
+        return None
+    statement = []
+    if at and start < at - 1 < end:
+        indent = len(lines[at - 1]) - len(lines[at - 1].lstrip())
+        statement = [lines[at - 1]]
+        for code in lines[at:end]:
+            if code.strip() and len(code) - len(code.lstrip()) <= indent:
+                break
+            statement.append(code)
+    candidates = []
+    for scope in (statement, lines[start + 1:end]):
+        texts = []
+        for code in scope:
+            match = difflib.SequenceMatcher(None, said, code, autojunk=False).find_longest_match(0, len(said), 0,
+                                                                                                  len(code))
+            if match.size >= 20:
+                texts.append((match.size, code[match.b:match.b + match.size].strip()))
+        candidates += [text for _, text in sorted(texts, reverse=True)]
+        candidates += [code.strip() for code in scope if len(code.strip()) >= 20]
+    named = []
+    for text in candidates:
+        try:
+            blocks = blocks_of(key, text[:100])
+        except LookupError:
+            continue
+        if blocks == (line,):
+            return text[:100]
+        if line in blocks:
+            named.append(text[:100])
+    return named[0] if named else None
 
 
 def stale():
     """(what's wrong, how many breaks) over every file of tools/breaks: a break whose old text isn't found exactly once
-    in each place it goes, one that changes nothing, two under one name. Reads only."""
-    problems, count = [], 0
+    in each place it goes, one that changes nothing, two under one name, a link that can't be run as it is, a link
+    kept for nothing (unused_links). Reads only."""
+    problems, count, read = [], 0, {}
+
+    def text_of(path):
+        if path not in read:
+            read[path] = path.read_text(encoding="utf-8")
+        return read[path]
+
     for file in sorted((ROOT / "tools/breaks").glob("*.py")):
         names = set()
-        for name, path, old, new, *rest in runpy.run_path(str(file))["BREAKS"]:
+        links = read_links(file.stem)
+        breaks = runpy.run_path(str(file))["BREAKS"]
+        problems += [f"tools/breaks/links/{file.stem}.json: {name}: {key}: kept for nothing ({why})"
+                     for name, key, why in unused_links(breaks, links)]
+        for name, path, old, new, *rest in breaks:
             count += 1
             where = f"tools/breaks/{file.name}: {name}"
             if name in names:
@@ -98,12 +260,18 @@ def stale():
             names.add(name)
             if old == new:
                 problems.append(f"{where}: changes nothing")
-            for key, inside in targets(path, extras(rest)[0]):
-                found = (shared.ADDONS[key][0] / inside).read_text(encoding="utf-8").count(old)
+            only, own = extras(rest)
+            for key, inside in targets(path, only):
+                found = text_of(shared.ADDONS[key][0] / inside).count(old)
                 if found != 1:
                     problems.append(f"{where}: its text is found {found} times in {key}'s {inside.as_posix()}")
+                why = link_problem(key, link_of(links, name, key, own))
+                if why:
+                    problems.append(f"{where}: {key}: {why}")
     return problems, count
 
+
+# ---------- What a runner said ----------
 
 def first_problem(output):
     """What the runner listed first: its problems come after a blank line and end at the blank line before its FAIL
@@ -113,7 +281,8 @@ def first_problem(output):
     lines = output.splitlines()
     end = next((i for i, line in enumerate(lines) if line.startswith("FAIL:")), None)
     if end is None:
-        return next((line.strip() for line in lines if "LuaError:" in line), lines[-1] if lines else "")
+        return next((line.strip() for line in lines if "LuaError:" in line or "Error:" in line),
+                    lines[-1] if lines else "")
     while end > 0 and lines[end - 1] == "":
         end -= 1
     blank = max((i for i, line in enumerate(lines[:end]) if line == ""), default=-1)
@@ -121,240 +290,379 @@ def first_problem(output):
     return next((line for line in listed if not line.startswith("needs:")), listed[0] if listed else lines[-1])
 
 
-def arguments(link):
-    """What a link asks of its runner: its part alone, and in it the block of what its check says."""
-    if not link or link.get("part") in (None, "all"):
-        return []
-    return ["--only", link["part"]] + (["--at", link["at"]] if link.get("at") else [])
+# ---------- Workers ----------
+
+class Worker:
+    """A runner kept running on a copy of its addon (tools/kali/worker.py), started again as needed."""
+
+    def __init__(self, key):
+        self.key = key
+        self.work = Path(tempfile.mkdtemp(prefix=f"kali-break-{key}-"))
+        self.copy = self.work / "addon"
+        shutil.copytree(shared.ADDONS[key][0], self.copy, ignore=shutil.ignore_patterns("__pycache__"))
+        self.proc = None
+        self.served = 0
+
+    def start(self):
+        self.err = open(self.work / "worker.err", "a", encoding="utf-8", errors="replace")
+        self.proc = subprocess.Popen([sys.executable, "-I", str(WORKER), str(RUNNERS[self.key]), str(self.copy)],
+                                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=self.err, text=True,
+                                     encoding="ascii", errors="replace", bufsize=1)
+        self.replies = queue.Queue()
+        self.served = 0
+        threading.Thread(target=self.read, args=(self.proc, self.replies), daemon=True).start()
+
+    @staticmethod
+    def read(proc, replies):
+        for line in proc.stdout:
+            if line.startswith(MARK):
+                replies.put(json.loads(line[len(MARK):]))
+        replies.put(None)
+
+    def stop(self):
+        if self.proc:
+            self.proc.kill()
+            self.proc.wait()
+            self.proc = None
+            self.err.close()
+
+    def close(self):
+        self.stop()
+        shutil.rmtree(self.work, ignore_errors=True)
+
+    def ask(self, args, hung):
+        """The runner's answer to its arguments: (its exit code, all it said); code None when it hung."""
+        if self.proc is None or self.proc.poll() is not None:
+            self.stop()
+            self.start()
+        hung = max(hung, COLD) if self.served == 0 else hung
+        try:
+            self.proc.stdin.write(json.dumps(args) + "\n")
+            self.proc.stdin.flush()
+        except OSError:  # it had ended: a fresh one
+            self.stop()
+            self.start()
+            self.proc.stdin.write(json.dumps(args) + "\n")
+            self.proc.stdin.flush()
+        try:
+            reply = self.replies.get(timeout=hung)
+        except queue.Empty:
+            self.stop()
+            return None, f"its tests didn't finish in {hung:.0f} s: stopped"
+        if reply is None:
+            self.stop()
+            said = (self.work / "worker.err").read_text(encoding="utf-8", errors="replace").strip().splitlines()
+            return 1, "the worker ended: " + (said[-1] if said else "nothing said")
+        self.served += 1
+        if self.served >= RECYCLE:
+            self.stop()
+        return reply["code"], reply["output"]
+
+    def run(self, args, plant=None, hung=COLD):
+        """(failed, what it said first, all it said, seconds) for the runner's arguments, a break planted first (inside,
+        old, new) and taken out after; failed None when the break's text isn't there exactly once."""
+        started = time.time()
+        target = original = None
+        if plant:
+            inside, old, new = plant
+            target = self.copy / inside
+            original = target.read_bytes()
+            text = original.decode("utf-8").replace("\r\n", "\n")
+            if text.count(old) != 1:
+                return None, f"found {text.count(old)} times in {self.key}'s {inside.as_posix()}", "", 0
+            target.write_text(text.replace(old, new), encoding="utf-8", newline="\n")
+        try:
+            code, output = self.ask(args, hung)
+        finally:
+            if plant:
+                target.write_bytes(original)
+        seconds = time.time() - started
+        if code is None:
+            return True, output, output, seconds
+        return code != 0, first_problem(output), output, seconds
 
 
-def runner(key, args, addons=None):
-    """A runner's run, on a copy or on the code as it is: (it failed, what it listed first, all it said)."""
-    command = [sys.executable, "-I", str(RUNNERS[key])] + (["--addons", str(addons)] if addons else []) + list(args)
-    hung = PART_HUNG if args else HUNG
-    # A runner's error output may come in Windows' own encoding: read whatever it is.
-    try:
-        done = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=hung)
-    except subprocess.TimeoutExpired:
-        return True, f"its tests didn't finish in {hung // 60} minutes: stopped", ""
-    output = (done.stdout or "") + (done.stderr or "")
-    return done.returncode != 0, first_problem(output), output
+class Lanes:
+    """Workers side by side, up to `jobs` for each addon, each taking the next job of its addon's."""
+
+    def __init__(self, jobs):
+        self.jobs = jobs
+        self.pools = {}
+        self.lock = threading.Lock()
+
+    def run(self, work, deadline=None, failed=lambda error: (None, f"breaks.py: {error!r}", "", 0)):
+        """work: [(key, job)], job(worker) giving a result. The results in work's order; None for a job not begun
+        before the deadline; failed(error) for one that raised (a skip, never a break caught)."""
+        results = [None] * len(work)
+        queues = {}
+        for at, (key, job) in enumerate(work):
+            queues.setdefault(key, queue.Queue()).put((at, job))
+        threads = []
+        for key, jobs in queues.items():
+            pool = self.pools.setdefault(key, [])
+            wanted = min(self.jobs, jobs.qsize())
+            while len(pool) < wanted:
+                pool.append(Worker(key))
+            for worker in pool[:wanted]:
+                thread = threading.Thread(target=self.lane, args=(worker, jobs, results, deadline, failed),
+                                          daemon=True)
+                thread.start()
+                threads.append(thread)
+        for thread in threads:
+            thread.join()
+        return results
+
+    @staticmethod
+    def lane(worker, jobs, results, deadline, failed):
+        while not (deadline and time.time() > deadline):
+            try:
+                at, job = jobs.get_nowait()
+            except queue.Empty:
+                return
+            try:
+                results[at] = job(worker)
+            except Exception as error:  # this tool's own fault, not the break's: said, never counted caught
+                results[at] = failed(error)
+
+    def say(self, line):
+        with self.lock:
+            print(line, flush=True)
+
+    def close(self):
+        for pool in self.pools.values():
+            for worker in pool:
+                worker.close()
 
 
-def run(key, inside, old, new, link=None):
-    """(caught, why, all the runner said) for a break against its link's test, the whole run with none; caught None
-    when old isn't there exactly once."""
-    folders = shared.ADDONS[key][0]
-    work = Path(tempfile.mkdtemp(prefix="kali-break-"))
-    try:
-        copy = work / "addon"
-        shutil.copytree(folders, copy)
-        target = copy / inside
-        text = target.read_text(encoding="utf-8")
-        if text.count(old) != 1:
-            return None, f"found {text.count(old)} times in {key}'s {inside.as_posix()}", ""
-        target.write_text(text.replace(old, new), encoding="utf-8", newline="\n")
-        return runner(key, arguments(link), copy)
-    finally:
-        shutil.rmtree(work, ignore_errors=True)
+# ---------- A run ----------
 
-
-# The blocks tried alone on the code as it is, this run: { (addon key, block) = it passes }.
-alone = {}
-
-
-def stands(key, link, output):
-    """Whether the block the runner kept for this link passes alone on the code as it is: a break caught there is
-    caught by the break. True too where the runner kept no block (the whole part ran)."""
-    kept = BLOCK.search(output)
-    if not kept or "--blocks-stand" in sys.argv:
-        return True
-    block = kept.group(1) or kept.group(2)
-    if (key, block) not in alone:
-        failed, _, _ = runner(key, arguments(link))
-        alone[(key, block)] = not failed
-    return alone[(key, block)]
-
-
-def whole(link):
-    """Whether a link runs a whole suite: none (the whole runner), or the whole smoke. Never allowed (Ikar 2026-11-24:
-    "If a break run the whole suite, abort instatly, you have faield and fix it")."""
-    return not link or link.get("part") in (None, "all") or (link.get("part") == "smoke" and not link.get("at"))
-
-
-def abort(names, why):
-    print(f"\nABORTED, nothing more run: {len(names)} break(s) {why}:")
-    for name in names[:20]:
+def abort(names, why, fix=NO_LINK):
+    print(f"\nABORTED, nothing more run: {len(names)} {why}:")
+    for name in names[:25]:
         print(f"  {name}")
-    if len(names) > 20:
-        print(f"  ... and {len(names) - 20} more")
-    print("Fix: put the check that catches each one into a scenario (hud/tools/lua/scenarios/), and name it as the "
-          "break's test, \"test:<scenario>\".")
+    if len(names) > 25:
+        print(f"  ... and {len(names) - 25} more")
+    print(fix)
     sys.exit(1)
 
 
-def linked(key, inside, old, new, link):
-    """A break against its link: (caught, why, the link used). A link to a block that doesn't stand alone would fall
-    back on the whole smoke: aborted instead."""
-    caught, why, output = run(key, inside, old, new, link)
-    if caught and link and link.get("at") and not stands(key, link, output):
-        abort([why], "linked to a smoke block that no longer runs alone (the whole smoke would run)")
-    return caught, why, link
+def baselines(lanes, runs):
+    """Each run a link asks, on the code as it is: { run: seconds }; aborts naming those that fail, a break caught by
+    them proving nothing."""
+    order = sorted(runs, key=str)
+    started = time.time()
+
+    def job(run):
+        def go(worker):
+            return worker.run(arguments(runs[run]))
+        return go
+
+    results = lanes.run([(run[0], job(run)) for run in order])
+    failing = [f"{run[0]}: {arguments(runs[run])}: {why[:140]}" for run, (failed, why, _, _) in zip(order, results)
+               if failed]
+    if failing:
+        abort(failing, "link(s) that fail on the code as it is", "Fix the part first (its block, its scenario), "
+              "then run the breaks again.")
+    print(f"links: {len(order)} run on the code as it is, all pass, in {time.time() - started:.0f} s", flush=True)
+    return {run: result[3] for run, result in zip(order, results)}
 
 
-def find_link(key, inside, old, new):
-    """The link of a break that has none, for a runner made of parts: each part in turn, the first that catches it;
-    in the smoke, the block of the check that caught it, when it catches it alone too. (link, why), link None when
-    no part does."""
-    parts = list(PARTS[key])
-    if inside.as_posix().endswith(UNIT_FIRST) and "tests" in parts:
-        parts.remove("tests")
-        parts.insert(0, "tests")
-    for part in parts:
-        caught, why, _ = run(key, inside, old, new, {"part": part})
+# The smoke's blocks run on the code as it is, this run: { (addon, blocks): whether they pass }.
+clean_blocks = {}
+clean_lock = threading.Lock()
+
+
+def stands(key, link, worker):
+    """Whether the smoke's block a link names passes on the code as it is (once a run for each block)."""
+    run = (key, blocks_of(key, link["at"]))
+    with clean_lock:
+        known = clean_blocks.get(run)
+    if known is None:
+        known = not worker.run(arguments(link))[0]
+        with clean_lock:
+            clean_blocks[run] = known
+    return known
+
+
+def search(key, inside, old, new, worker):
+    """A link for a break that has none: the quick parts in turn (SEARCH), the first that catches it; in the smoke,
+    the block of the check that caught it, when it catches it alone too and stands alone; a scenario by its name; a
+    static check by its own. (link, why): link None when none does, why then what the runs said."""
+    plant = (inside, old, new)
+    said = []
+    for part in SEARCH[key]:
+        caught, why, output, _ = worker.run(["--only", part], plant)
         if caught is None:
             return None, why
         if not caught:
             continue
         if part == "scenarios":
             named = re.match(r"scenario (\S+):", why)
-            return {"part": named.group(1) if named else part}, why
-        if part == "smoke" and why.startswith("smoke: "):
-            # what the check said: its runner finds the block by as much of it as the session's source holds
-            link = {"part": part, "at": why[len("smoke: "):][:100].rstrip()}
-            again, _, output = run(key, inside, old, new, link)
-            if again and BLOCK.search(output) and stands(key, link, output):
-                return link, why
+            if named:
+                return {"part": named.group(1)}, why
+            said.append(f"scenarios: {why[:80]}")
+            continue
+        if part == "static":
+            return {"part": "static", "at": checks.static_check_of(why)}, why
         if part == "smoke":
-            # never kept: the whole smoke is a minute a run, twice (Ikar 2026-11-24: "did you screw the 5min rule
-            # again ?", two breaks linked so that day)
-            return None, WHOLE_SMOKE
+            # the block its first failure came from (checks.smoke_run), by a text of it; 0, the lines between them
+            first = checks.FIRST_FROM.search(output)
+            if not first:
+                said.append(f"smoke, after the session: {why[:80]}")
+                continue
+            if first.group(2):
+                link = {"part": "smoke", "at": 0}
+            else:
+                text = block_text(key, int(first.group(1)), why[len("smoke: "):] if why.startswith("smoke: ") else why,
+                                  int(first.group(3)) if first.group(3) else None)
+                if not text:
+                    said.append(f"smoke, no text names its block at line {first.group(1)}: {why[:80]}")
+                    continue
+                link = {"part": "smoke", "at": text}
+            again, _, _, _ = worker.run(arguments(link), plant)
+            alone = stands(key, link, worker)
+            if again and alone:
+                return link, why
+            said.append(f"smoke, its block {'fails on its own' if not alone else 'passes with the break'}: {why[:80]}")
+            continue
         return {"part": part}, why
-    return None, "no part of its runner catches it"
-
-
-def find_link_alone(key, inside, old, new):
-    """The link of a break that has none, found without running a whole suite: the scenarios, the unit tests, the
-    static checks and the fresh install, each part alone, never the smoke whole. (link, why); link None when none of
-    them catches it, the break then needing a scenario of its own."""
-    for part in ("scenarios", "tests", "static", "alone"):
-        caught, why, _ = run(key, inside, old, new, {"part": part})
-        if caught is None:
-            return None, why
-        if caught:
-            named = re.match(r"scenario (\S+):", why) if part == "scenarios" else None
-            return {"part": named.group(1) if named else part}, why
-    return None, "no part of its runner catches it"
-
-
-def links_file(stem, cut=None):
-    return LINKS / (f"{stem}.json" if not cut else f"{stem}.part{cut[0]}of{cut[1]}.json")
-
-
-def read_links(stem):
-    """Every link kept for a breaks file, those of runs side by side included."""
-    links = {}
-    for file in sorted(LINKS.glob(f"{stem}*.json")):
-        links.update(json.loads(file.read_text(encoding="utf-8")))
-    return links
-
-
-def write_links(stem, links, cut=None):
-    LINKS.mkdir(parents=True, exist_ok=True)
-    links_file(stem, cut).write_text(json.dumps(links, ensure_ascii=False, indent=1, sort_keys=True) + "\n",
-                                     encoding="utf-8", newline="\n")
+    return None, "; ".join(said) or "no part of its runner catches it"
 
 
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
-    flags = {"--link", "--merge", "--blocks-stand", "--no-budget"}
+    flags = {"--link", "--no-budget", "--links-only"}
     args = [a for a in sys.argv[1:] if a not in flags]
-    cut = None
-    if "--slice" in args:
-        at = args.index("--slice")
-        cut = tuple(int(n) for n in args[at + 1].split("/"))
+    jobs = JOBS
+    if "--jobs" in args:
+        at = args.index("--jobs")
+        jobs = int(args[at + 1])
         del args[at:at + 2]
     if not args:
         raise SystemExit(__doc__)
     stem = Path(args[0]).stem
     breaks = runpy.run_path(args[0])["BREAKS"]
+    words = args[1:]
+    chosen = [b for b in breaks if not words or any(word in b[0] for word in words)]
     links = read_links(stem)
-    if "--merge" in sys.argv:
-        # the links of runs side by side into the file's own, those of breaks no longer there dropped
-        names = {b[0] for b in breaks}
-        write_links(stem, {name: link for name, link in links.items() if name in names})
-        for file in LINKS.glob(f"{stem}.part*.json"):
-            file.unlink()
-        print(f"links: {len(read_links(stem))} of {len(breaks)} breaks linked")
-        return
-    word = args[1] if len(args) > 1 else None
-    chosen = [b for b in breaks if not word or word in b[0]]
-    # a slice is cut from the whole list, before what's linked is left out: runs side by side start at different
-    # moments, and one that left out what another had linked meanwhile took a different slice of what was left
-    if cut:
-        chosen = chosen[cut[0] - 1::cut[1]]
-    if "--link" in sys.argv:
-        # only those that have none: one linked, or naming its own test, was run when it got it
-        chosen = [b for b in chosen if b[0] not in links and not extras(b[4:])[1]
-                  and Path(b[1]).parts[0] in PARTS]
-    # Before anything runs: a break that would run a whole suite aborts the run, named (Ikar 2026-11-24: "If a break
-    # run the whole suite, abort instatly, you have faield and fix it"). A runner without parts (KaLi Quest's, KaLi
-    # Recipe's) can only run whole; a HUD break with no link and no test of its own would run the whole runner, one
-    # linked to the whole smoke, the whole smoke. With --link, a break without one is linked by its parts alone.
-    heavy = []
-    for name, path, old, new, *rest in chosen:
-        only, test = extras(rest)
-        for key, inside in targets(path, only):
-            link = {"part": test} if test else links.get(name) if key in PARTS and path.startswith(key) else None
-            if link is None and "--link" in sys.argv and key in PARTS and path.startswith(key):
-                continue
-            if whole(link):
-                heavy.append(f"{name} ({key}: {'its runner has no parts' if key not in PARTS else 'no link' if not link else 'the whole smoke'})")
-                break
-    if heavy:
-        abort(heavy, "would run a whole suite")
-    found = {}
-    missed = skipped = 0
     began = time.time()
-    for at, (name, path, old, new, *rest) in enumerate(chosen):
-        if time.time() - began > BUDGET and "--no-budget" not in sys.argv:
-            left = [b[0] for b in chosen[at:]]
-            print(f"\nBUDGET: {BUDGET} s spent, {len(left)} breaks not run: {'; '.join(left)}. Their links are too slow"
-                  " (the whole smoke, or a block that doesn't stand alone): move their checks into scenarios.")
-            sys.exit(1)
-        only, test = extras(rest)
-        started = time.time()
-        results, used = [], None
+    # (break, addon key, file inside, old, new, link or None)
+    tasks = []
+    for name, path, old, new, *rest in chosen:
+        only, own = extras(rest)
         for key, inside in targets(path, only):
-            link = {"part": test} if test else links.get(name) if key in PARTS and path.startswith(key) else None
-            if link is None and key in PARTS and path.startswith(key) and "--link" in sys.argv:
-                link, why = find_link_alone(key, inside, old, new)
-                if not link and not why.startswith("found "):
-                    abort([name], "caught by no part alone, the scenarios, the unit tests, the static checks, the "
-                          "fresh install")
-                if link:
-                    # kept at once: a run stopped half way has lost nothing
-                    found[name] = link
-                    write_links(stem, found if cut else {**links, **found}, cut)
-                results.append((key, None if not link else True, why))
-            else:
-                caught, why, link = linked(key, inside, old, new, link)
-                results.append((key, caught, why))
-            used = link or used
-        if any(caught is None for _, caught, _ in results):
-            skipped += 1
-            print(f"SKIP: {name}  ({'; '.join(why for _, caught, why in results if caught is None)})", flush=True)
+            tasks.append((name, key, inside, old, new, link_of(links, name, key, own), own))
+    lanes = Lanes(jobs)
+    try:
+        if "--link" in sys.argv:
+            unused = unused_links(breaks, links)
+            for name, key, _ in unused:
+                del links[name][key]
+                if not links[name]:
+                    del links[name]
+            if unused:
+                write_links(stem, links)
+                print(f"links: {len(unused)} kept for nothing dropped", flush=True)
+            link_breaks(stem, links, tasks, lanes)
+            return
+        # Before anything runs: a break with no link, or one to the whole smoke, or to a line gone, aborts the run.
+        refused = [f"{name} ({key}: {why})" for name, key, _, _, _, link, _ in tasks
+                   for why in [link_problem(key, link)] if why]
+        if refused:
+            abort(refused, "break(s) that would run a whole suite, or can't run as they are")
+        runs = {}
+        for _, key, _, _, _, link, _ in tasks:
+            runs.setdefault(same_run(key, link), link)
+        took = baselines(lanes, runs)
+        if "--links-only" in sys.argv:
+            return
+        deadline = None if "--no-budget" in sys.argv else began + BUDGET
+
+        def job(task):
+            name, key, inside, old, new, link, _ = task
+
+            def go(worker):
+                hung = max(30, 10 * took[same_run(key, link)])
+                return worker.run(arguments(link), (inside, old, new), hung)
+            return go
+
+        results = lanes.run([(task[1], job(task)) for task in tasks], deadline)
+        report(chosen, tasks, results, began)
+    finally:
+        lanes.close()
+
+
+def report(chosen, tasks, results, began):
+    by_break = {}
+    for task, result in zip(tasks, results):
+        by_break.setdefault(task[0], []).append((task, result))
+    missed = skipped = 0
+    left = []
+    for name, *_ in chosen:
+        done = by_break.get(name, [])
+        if any(result is None for _, result in done):
+            left.append(name)
             continue
-        gaps = [key for key, caught, _ in results if not caught]
+        if any(result[0] is None for _, result in done):
+            skipped += 1
+            print(f"SKIP: {name}  ({'; '.join(r[1] for _, r in done if r[0] is None)})")
+            continue
+        gaps = [task[1] for task, result in done if not result[0]]
         missed += bool(gaps)
-        how = "; ".join(f"{key}: {why[:110]}" for key, caught, why in results if caught)
-        by = f"  [{used['part']}{', its block' if used.get('at') else ''}, {time.time() - started:.0f} s]" if used else ""
-        print(f"{'MISSED by ' + ', '.join(gaps) if gaps else 'caught'}: {name}  {how}{by}", flush=True)
-    print(f"\n{len(chosen) - missed - skipped}/{len(chosen)} caught" + (f", {skipped} skipped" if skipped else "")
-          + (f"; {len(found)} linked" if found else "") + f" in {time.time() - began:.0f} s")
-    if "--link" in sys.argv and found:
-        print("Each break linked was run as it was linked: caught above. Don't run them again.")
-    sys.exit(1 if missed or skipped else 0)
+        how = "; ".join(f"{task[1]}: {result[1][:100]}" for task, result in done if result[0])
+        by = ", ".join(f"{task[5]['part']}{'@' if task[5].get('at') else ''} {result[3]:.1f} s" for task, result in done)
+        print(f"{'MISSED by ' + ', '.join(gaps) if gaps else 'caught'}: {name}  {how}  [{by}]")
+    ran = len(chosen) - len(left)
+    print(f"\n{ran - missed - skipped}/{ran} caught" + (f", {skipped} skipped" if skipped else "")
+          + f" in {time.time() - began:.0f} s")
+    if left:
+        print(f"BUDGET: {BUDGET} s gone, {len(left)} breaks not run: {'; '.join(left[:10])}"
+              + (" ..." if len(left) > 10 else ""))
+    sys.exit(1 if missed or skipped or left else 0)
+
+
+def link_breaks(stem, links, tasks, lanes):
+    """--link: a link for each break that has none, or one to the whole smoke, or one gone stale; each kept as soon as
+    it is found, and each break so linked run with it (caught: no need to run it again)."""
+    wanted = [task for task in tasks if link_problem(task[1], task[5]) and not task[6]]
+    owned = [task[0] for task in tasks if task[6] and link_problem(task[1], task[6])]
+    if owned:
+        abort(owned, "break(s) whose own \"test:\" link can't be run as it is", "Fix: change or take out the break's "
+              "own \"test:\" item, then link it.")
+    if not wanted:
+        print("links: every break chosen has one")
+        return
+    print(f"links: {len(wanted)} to find, {lanes.jobs} side by side for each addon", flush=True)
+    started = time.time()
+    # every part searched passes on the code as it is, or each break would seem caught by it
+    keys = sorted({task[1] for task in wanted})
+    baselines(lanes, {(key, part, None): {"part": part} for key in keys for part in SEARCH[key]})
+    found = {}
+
+    def job(task):
+        name, key, inside, old, new, _, _ = task
+
+        def go(worker):
+            t = time.time()
+            link, why = search(key, inside, old, new, worker)
+            if link:
+                with lanes.lock:
+                    links.setdefault(name, {})[key] = link
+                    write_links(stem, links)
+                    found[(name, key)] = link
+            lanes.say(f"{'linked' if link else 'NOT LINKED'}: {name} ({key}) "
+                      f"{('-> ' + link['part'] + ('@' + str(link['at'])[:50] if link.get('at') else '')) if link else ''}"
+                      f"  {why[:110]}  [{time.time() - t:.0f} s]")
+            return link, why
+        return go
+
+    results = lanes.run([(task[1], job(task)) for task in wanted], failed=lambda error: (None, f"breaks.py: {error!r}"))
+    unlinked = [f"{task[0]} ({task[1]}: {why[:100]})" for task, (link, why) in zip(wanted, results) if not link]
+    print(f"\nlinks: {len(found)} of {len(wanted)} found in {time.time() - started:.0f} s; each break so linked was "
+          "caught by it alone: no need to run it again")
+    if unlinked:
+        abort(unlinked, "break(s) no quick part catches alone", "Fix: put the check that catches each one into a "
+              "scenario (hud/tools/lua/scenarios/) or a block of its own, and name it as the break's \"test:<part>\".")
 
 
 if __name__ == "__main__":

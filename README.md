@@ -40,10 +40,12 @@ Needs Python 3.13, and Lua 5.1 through lupa, installed locally:
   without it that check says so and passes). `quest`, `recipe` or `hud` runs one addon; `--write-needs` updates the
   lists of what each addon takes from the game.
 - **The shared code:** edit `shared/`, never an addon's `Shared/` copy, then `python -I tools/sync_shared.py`.
-- **Deliberate breaks:** `python -I tools/breaks.py <file>` plants one fault at a time in a copy of the code and checks
-  the tests fail; `tools/breaks/shared.py` holds the shared code's, `quest.py`, `recipe.py` and `hud.py` each addon's
-  own. A fix isn't proven until its break is caught. `tools/run_tests.py` checks each time that every break still
-  applies to the code as it is, without running any.
+- **Deliberate breaks:** `python -I tools/breaks.py <file> [word...]` plants one fault at a time in a copy of the code
+  and checks the tests fail; `tools/breaks/shared.py` holds the shared code's, `quest.py`, `recipe.py` and `hud.py`
+  each addon's own. A fix isn't proven until its break is caught. Each break runs only the part of its runner that
+  must catch it (its link, in `tools/breaks/links/`; `--link` finds a new one's), in workers side by side: a whole
+  file in seconds to a few minutes. `tools/run_tests.py` checks each time that every break still applies to the code
+  as it is and that its link can run, without running any.
 - **The game is the ground truth:** the fake game gives this build's own answers where its files hold them, but only
   the game says what it really answers. Each addon's API check keeps what it found at login, per build, in the game's
   saved `<Addon>DevDB` (`apiChecks`, and in its `told` what didn't hold when it said so in chat), with its errors, what

@@ -2,6 +2,8 @@
 -- layout, following bars in Edit Mode and static outside it, its reach; the info bar's items and other addons'
 -- objects; the status bars) and runs every slash command. Run by hud/tools/run_tests.py after the addons' files are
 -- loaded. Returns a list of failures.
+-- Its blocks (a line `do` alone, to its `end`) are scopes of their own: a deliberate break runs the one that catches it
+-- (tools/breaks.py), with what stands between them, which every such run plays. A new check goes into a block.
 local F = FakeWoW
 local failures = {}
 local function expect(ok, what)
@@ -624,7 +626,7 @@ expect(near(cart:GetWidth(), chat.w * 0.75) and near(select(2, cartFoot()), chat
     "the cartouche grown leaves its flat line, or isn't the share of its window set: " .. tostring(select(2, cartFoot())))
 -- Every cartouche the share of its window set, on the chat and on the damage meter, its ring as its art has it there
 -- (its ring the same on every one from 2026-11-18 until 2026-11-20): the styles' own.
-run(function()
+do
     -- each style wearing its own (Ikar 2026-11-18: "Two new cartouche, the first for steampunk, second for the
     -- silver"; then "I added arts for the gold and the astronomy version"; then "For the steampunk, the last, replace
     -- the existing", "4th for the gem"), a choice saved and named; the Silver's well painted into its art, the round
@@ -657,7 +659,7 @@ run(function()
     end
     ns.db.options.foldArt = nil
     ns.ApplyAll()
-end)
+end
 ns.db.options.foldArtWidth = nil
 ns.db.options.borderSize = 100
 ns.ApplyAll()
@@ -2796,27 +2798,29 @@ end
 -- Ikar 2026-11-16, his list: each item read from the game, standing in the folder made for it (its role), its icon
 -- alone on its button at the bar's left side, its list of icons with their text running down; a separator a rule in
 -- its column; the macro's icon picked from its menu as a folder's; a note runs nothing.
+-- What the blocks of the bar's other items share: its folders and macros, the errors the session keeps, an item's text,
+-- a folder's members.
+local Folders, Macros, Editor, Picker, Separators = ns.Folders, ns.Macros, ns.MacroEditor, ns.IconPicker, ns.Separators
+local function errors()
+    local n = 0
+    for _ in pairs(KaLiHUDDevDB.errors or {}) do
+        n = n + 1
+    end
+    return n
+end
+local function text(name)
+    local b = Buttons.Get(name)
+    return b and F.Shows(b):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "") or nil
+end
+local function names(id)
+    local list = {}
+    for _, e in ipairs(Hub.InFolder(id)) do
+        list[#list + 1] = e.isSeparator and "|" or e.name:gsub("^KaLiHUD_", "")
+    end
+    return table.concat(list, " ")
+end
 do
-    local Folders, Macros, Editor, Picker, Separators = ns.Folders, ns.Macros, ns.MacroEditor, ns.IconPicker, ns.Separators
-    local function errors()
-        local n = 0
-        for _ in pairs(KaLiHUDDevDB.errors or {}) do
-            n = n + 1
-        end
-        return n
-    end
     local before = errors()
-    local function text(name)
-        local b = Buttons.Get(name)
-        return b and F.Shows(b):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "") or nil
-    end
-    local function names(id)
-        local list = {}
-        for _, e in ipairs(Hub.InFolder(id)) do
-            list[#list + 1] = e.isSeparator and "|" or e.name:gsub("^KaLiHUD_", "")
-        end
-        return table.concat(list, " ")
-    end
     -- the folders, each once, at the bar's left side
     local roles = { "weapons", "professions", "stats", "reagents", "statistics", "guild", "group", "session", "infos",
         "reputations" }
@@ -2896,7 +2900,12 @@ do
             "the memory's tooltip goes on a click that opens nothing")
         F.RunScript(perf, "OnLeave")
     end
+    expect(errors() == before, "an error in the bar's folders: " .. tostring(next(KaLiHUDDevDB.errors or {})))
+end
 
+do
+    local before = errors()
+    local weapons = Folders.ByRole("weapons")
     -- skills: weapons with defence, professions with secondary skills; one of a single rank in none
     expect(names(weapons) == "Skill_43 Skill_95", "the weapon skills' folder: " .. names(weapons))
     local professions = Folders.ByRole("professions")
@@ -3036,7 +3045,11 @@ do
         F.Fire("SKILL_LINES_CHANGED")
         F.RunTimers()
     end)
+    expect(errors() == before, "an error in the skills' items: " .. tostring(next(KaLiHUDDevDB.errors or {})))
+end
 
+do
+    local before = errors()
     -- attributes: the sheet's, its categories apart; buffed green; hidden in a fight, they keep their last text
     local stats = Folders.ByRole("stats")
     local sheet = "^| Attr_HEALTH Attr_POWER Attr_MOVESPEED | Attr_STRENGTH Attr_AGILITY Attr_STAMINA Attr_INTELLECT "
@@ -3272,6 +3285,13 @@ do
             local fire = tip("KaLiHUD_Attr_FIRE")
             expect(fire:find(string.format(L.STAT_CAMP_PART, "Luth enchanté"), 1, true) and fire:find(Color("+9", GOOD), 1, true),
                 "the lute's fire resistance, which its line doesn't write, isn't its resistances' 9: " .. fire)
+            -- each line its own: one that writes no figure for the attributes takes none of the next line's, the data's
+            -- 13 then (read as one, the lute's line took the bowl's 8)
+            ok, t = camped(113, camp .. "Luth enchanté\194\160: Armure augmentée de 123.\r\n\r\n" .. bowl,
+                string.format(L.STAT_CAMP_PART, "Luth enchanté"))
+            expect(ok and t:find(string.format(L.STAT_CAMP_PART, "Luth enchanté") .. "\n" .. Color("+13", GOOD), 1, true)
+                and t:find(Color("+" .. ns.Format.Percent(0.08), GOOD) .. " (" .. Color("+8", GOOD) .. ")", 1, true),
+                "a camp's line without a figure takes the next line's: " .. t)
             for _, says in ipairs({ F.SECRET, camp }) do
                 ok, t = camped(108, says)
                 expect(not ok and t:find(L.STAT_OTHER, 1, true),
@@ -3674,6 +3694,7 @@ do
         -- « Autres -10 »)
         F.itemStats[1], F.itemQuality[1] = { ITEM_MOD_STRENGTH_SHORT = 10 }, 2
         F.auras.HELPFUL[1] = { name = "Bénédiction des rois", spellId = 20217, points = { 10 } }
+        local kings = {}
         for _, bonus in ipairs({ 11, 21 }) do
             UnitStat = function(unit, i)
                 if i == 1 then
@@ -3682,6 +3703,7 @@ do
                 return unitStat(unit, i)
             end
             local t = card("STRENGTH")
+            kings[bonus] = t
             -- (its base split by the original table: the human's 20, the warrior's 3 at level 1, the levels', and
             -- what the game's isn't the table's, « Forever »; Ikar 2026-11-23: "split to race, class and level")
             expect(after("Humaine", Number(20)) and after(F.BASE.class, Number(3))
@@ -3690,6 +3712,14 @@ do
                 and not t:find(L.STAT_OTHER, 1, true), "Kings, the game's bonus " .. bonus .. ", isn't a base of 100, "
                 .. "the item and its share: " .. t)
         end
+        -- the same sources whichever way the game splits it (its own split, in the card's head, is its own): the base
+        -- is 100 either way, its share taken out (since the table splits the base, what's left of it is « Forever »,
+        -- which hid a base of 110 from the check above)
+        local function sources(t)
+            return t:sub((t:find("Humaine", 1, true) or 1))
+        end
+        expect(sources(kings[11]) == sources(kings[21]), "Kings: the card's sources aren't the same, the game's bonus 11 or 21: "
+            .. sources(kings[11]):gsub("\n", " | ") .. " / " .. sources(kings[21]):gsub("\n", " | "))
         -- the human's spirit without its racial's share (The Human Spirit, 10 % of it, named on its own), 20 as the
         -- original server's table has it, not the guides' 21 (the review of 2026-11-21)
         card("SPIRIT")
@@ -4436,8 +4466,10 @@ do
             .. "  6.50%% Dodge\n14.00%% Parry|r"
         t = tip("KaLiHUD_Attr_EXPERTISE")
         CR_RANGED_EXPERTISE_TOOLTIP = nil
-        expect(t:find("Raid Boss", 1, true) and t:find("\n" .. L.STAT_EFFECTS .. "\n", 1, true)
-            and t:find("Raid Boss", 1, true) < t:find("\n" .. L.STAT_EFFECTS .. "\n", 1, true),
+        -- (its figures too, not the boss's name alone: with the notes' grey missed, the name stayed and they went)
+        local effectsAt = t:find("\n" .. L.STAT_EFFECTS .. "\n", 1, true)
+        expect(t:find("Raid Boss", 1, true) and effectsAt and t:find("Raid Boss", 1, true) < effectsAt
+            and t:find("14.00% Parry", 1, true) and t:find("14.00% Parry", 1, true) < effectsAt,
             "the game's notes aren't under what there is to know when their grey starts mid-paragraph: " .. t)
         -- a source the data has no figure of (one following its caster's power): the mark in its place, and the
         -- card's foot saying what it asks, by its name (Ikar 2026-11-19: "the description should give an answer")
@@ -4813,7 +4845,11 @@ do
     expect(text("KaLiHUD_Attr_ARMOR") == was and was:find("1", 1, true) and errors() == before,
         "an attribute hidden in a fight doesn't keep its text, or errs: " .. tostring(text("KaLiHUD_Attr_ARMOR")))
     F.statsSecret = false
+    expect(errors() == before, "an error in the attributes' items: " .. tostring(next(KaLiHUDDevDB.errors or {})))
+end
 
+do
+    local before = errors()
     -- reagents: a warrior's ammunition alone; another class's reagents nowhere, nor taken for another addon's
     local reagents = Folders.ByRole("reagents")
     expect(names(reagents) == "Ammo" and text("KaLiHUD_Ammo"):match("(%S+)$") == "412"
@@ -5225,7 +5261,12 @@ do
         ns.StatusBars.Refresh()
         F.RunTimers()
     end
+    expect(errors() == before, "an error in the bar's readouts: " .. tostring(next(KaLiHUDDevDB.errors or {})))
+end
 
+do
+    local before = errors()
+    local infos = Folders.ByRole("infos")
     -- every item of ours named, as the bar's menu and Edit Mode list it, never by its id
     local unnamed = {}
     for _, e in ipairs(Hub.Entries()) do
@@ -5767,7 +5808,7 @@ end)
 -- Ikar 2026-11-20, of the sketch of the attributes: "C'est très bien, par contre, il faudra transformer la limite max
 -- qui est de 12 aujourd'hui. Ça doit être un slider avec la limite max à 25"; "whatever we do there, I want it to be
 -- recreatable by the user": every part a setting of any folder or separator.
-run(function()
+do
     local Folders, Separators, Buttons, Seeds = ns.Folders, ns.Separators, ns.HubButtons, ns.Seeds
     local function choose(item)
         if item and item.choose then
@@ -5992,14 +6033,14 @@ run(function()
     expect(said(group) == made[group] and said(group) == "-," .. L.GROUP_MARKERS .. ">",
         "the group's markers aren't under their title in a column of their own, or a title an earlier build left stays: "
         .. said(group))
-end)
+end
 
 -- ---------- Undo and redo, the locked folders ----------
 -- Ikar 2026-11-16: "when deleting a folder, prompt the user if he is sure, as the content will be deleted, not
 -- displaced"; "add an undo/redo stack, up to 10 actions. movement, deletion, creation"; 2026-11-23, the folders KaLi
 -- HUD makes locked in place of their resets: "No edit, no reset, user can delete them whole (and bring back) and if
 -- they drag and drop, it create a copy".
-run(function()
+do
     local Folders, Macros, History = ns.Folders, ns.Macros, ns.History
     local function copy(v)
         if type(v) ~= "table" then
@@ -6382,202 +6423,204 @@ run(function()
         end
     end
     expect(#F.blocked == blocked, "the game blocked the hub: " .. table.concat(F.blocked, ", ", blocked + 1))
-end)
+end
 
 -- ---------- Borders & backgrounds ----------
--- The plate's edge takes the border all along its computed outline, grown by its shadow: a quad a segment, its
--- corners moved.
-expect(Plate.last.band and Plate.last.band > 20, "the plate's edge isn't drawn along its outline: " .. tostring(Plate.last.band))
--- Grain over the border's metal, a band over the band, as Ikar approved it: internal, no option; none at 0.
-expect(Plate.last.grain == Plate.last.band, "the border's metal has no grain: " .. tostring(Plate.last.grain))
-local grain = ns.Border.Grain(ns.Border.Profile())
-expect(ns.Border.GRAIN.strength == 35 and ns.Border.GRAIN.length == 100 and grain and near(grain.tint[4], 0.35)
-    and ns.DB.DEFAULTS.borderGrain == nil and ns.DB.DEFAULTS.borderGrainSize == nil,
-    "the grain isn't Ikar's, internal: " .. tostring(grain and grain.tint[4]))
-ns.Border.GRAIN.strength = 0
-run(ns.ApplyAll)
-expect(Plate.last.grain == 0, "the grain shows at none: " .. tostring(Plate.last.grain))
-ns.Border.GRAIN.strength = 35
-run(ns.ApplyAll)
-expect(near(ns.Border.Profile().out, ns.LOOK.out * ns.db.options.borderSize / 100) and ns.LOOK.out > 0,
-    "the plate's edge doesn't stand out by its shadow")
--- Each stretch of border takes the profile lit as its outer side faces: the top's isn't the foot's nor a wall's.
 do
-    local coords = ns.Border.Profile().coords
-    local up, down, left = coords(10, 0, 0, 1), coords(10, 0, 0, -1), coords(10, 0, -1, 0)
-    expect(up ~= down and up ~= left and up >= 0 and down < 1 and select(3, coords(10, 0, 0, 1)) > up,
-        "the border's profile doesn't follow the way its edge faces: " .. up .. " " .. down .. " " .. left)
-end
--- The background: its colour alone when smooth or at no depth, the material's grain imprinted in it otherwise.
-ns.db.options.bgStyle = "smooth"
-run(ns.ApplyAll)
-local plain = Plate.textures
-ns.db.options.bgStyle = "leather"
-run(ns.ApplyAll)
-expect(Plate.textures > plain + 5, "the background's material isn't imprinted: " .. Plate.textures .. " for " .. plain)
-local fill, lum = ns.Border.Fill(), ns.MATERIALS.leather.lum
-local red = ns.Border.RGB(ns.db.options.bgColor)
-expect(fill.material and near(fill.foot[1] + fill.matFoot[1] * lum, red * ns.Border.FOOT)
-    and near(fill.top[1] + fill.matTop[1] * lum, red * ns.Border.TOP),
-    "colour and material together don't keep the colour's light")
-F.missingAtlases[ns.MATERIALS.masonry.atlas] = true
-ns.db.options.bgStyle = "masonry"
-run(ns.ApplyAll)
-expect(Plate.textures == plain, "a material the game lacks isn't left out")
-F.missingAtlases[ns.MATERIALS.masonry.atlas] = nil
-ns.db.options.bgStyle = "leather"
-ns.db.options.bgIntensity = 0
-run(ns.ApplyAll)
-expect(Plate.textures == plain, "at no depth the material still shows")
-ns.db.options.bgIntensity = nil
--- The info bar and the map's foot carved in.
-ns.db.options.footGroove = false
-run(ns.ApplyAll)
-local uncarved = Plate.textures
-ns.db.options.footGroove = nil
-run(ns.ApplyAll)
-expect(Plate.textures >= uncarved + 2, "the info bar and the map's foot aren't carved into the plate")
--- The minimap pockets' free places marked as small round recesses, none under an item, only while unlocked.
-ns.db.options.pocketMarks = false
-run(ns.ApplyAll)
-local unmarked = Plate.textures
-ns.db.options.pocketMarks = nil
-run(ns.ApplyAll)
-expect(Plate.textures == unmarked, "the pockets' places are marked while the slots are locked")
-Hub.SetLocked(false)
-run(ns.ApplyAll)
-local pocketSpots, _, pocketTaken = Hub.Pockets(Plate.last.dome, Plate.last.T)
-local marks, held = 0, 0
-for _, side in ipairs({ "pocketLeft", "pocketRight" }) do
-    for i = 1, #pocketSpots[side] do
-        if pocketTaken[side][i] then
-            held = held + 1
-        else
-            marks = marks + 1
-        end
-    end
-end
-expect(held > 0 and marks > 0 and Plate.textures == unmarked + marks,
-    "the pockets' free places aren't the ones marked: " .. (Plate.textures - unmarked) .. " for " .. marks)
-Hub.SetLocked(true)
-run(ns.ApplyAll)
--- Our border round the map: the ring whole, over the plate's edge.
-ns.db.options.minimapRing = "kali"
-run(ns.ApplyAll)
-local ringDome, prof = Plate.last.dome, ns.Border.Profile()
-expect(ns.Minimap.ringDrawn == #ns.Geometry.Band(ns.Geometry.Circle(ringDome.cx, ringDome.cy, ringDome.mapR - prof.out), prof.e),
-    "the map's ring isn't drawn whole: " .. tostring(ns.Minimap.ringDrawn))
-ns.db.options.minimapRing = nil
-run(ns.ApplyAll)
-ns.db.options.cornerStyle = "bevel"
-run(ns.ApplyAll)
-local cuts = 0
-for _, p in ipairs(ns.Geometry.Pieces(Plate.last.segs, Plate.last.dome, 0, Plate.Corners(ns.db.options))) do
-    cuts = cuts + ((p[1] == "bevel" or p[1] == "slope") and 1 or 0)
-end
-expect(cuts > 0 and Plate.last.band > 20, "bevelled corners aren't cut: " .. cuts)
-ns.db.options.cornerStyle = nil
-run(ns.ApplyAll)
--- One look for our frames: the thin border as a band round them, the plate's corners, its metal from the frame's edge,
--- its shadow outside, over the background; the status bars' ground is FlareUI's dark one.
-local deco = bars[-1].Holder.KaLiBorder
-local panelDeco = ns.Folders.Panel(ns.Folders.Default()).KaLiBorder
-expect(deco and #deco.pool > 0 and deco.pool[1]:IsShown() and panelDeco and panelDeco.Bg:IsShown() and not deco.Bg:IsShown()
-    and bars[-1].Holder.Ground:IsShown() and ns.Border.Count() >= 2, "our frames have no border and background")
-expect(near(deco.edge, ns.LOOK.thin.edge * ns.db.options.borderSize / 100) and ns.LOOK.thin.edge < ns.LOOK.edge,
-    "the status bars don't wear the thin border")
--- Its metal darker than the plate's, as bright as FlareUI's XP bar border (Ikar 2026-11-15: "too bright").
-do
-    local r = ns.Border.Color()
-    local tint = deco.pool[1].vertexColor
-    expect(ns.Border.THIN_SHADE < 1 and tint and near(tint[1], r * ns.Border.THIN_SHADE),
-        "the status bars' border isn't darker than the plate's: " .. tostring(tint and tint[1]))
-end
--- The plate hugs the damage meter and the chat (moved down earlier), its edge their border: no margin but the border's
--- metal, their own skins see-through; without the plate they show again.
-local meterSlot
-for _, s in ipairs(Plate.last.slots) do
-    meterSlot = s.key == "DamageMeter" and s or meterSlot
-end
-expect(meterSlot and near(meterSlot.margin, ns.Border.Hug()) and near(meterSlot.x, taken("DamageMeter").x),
-    "the plate doesn't hug the damage meter")
-expect(DamageMeterSessionWindow1.FlareUI_DMSkin.Center.alpha == 0 and ChatFrame1.FlareUI_Skin.TopEdge.alpha == 0
-    and ChatFrame1.FlareUI_Skin.alpha ~= 0, "the windows' own frames show under our border, or their tabs went with them")
-ns.db.options.plate = false
-run(ns.ApplyAll)
-expect(DamageMeterSessionWindow1.FlareUI_DMSkin.Center.alpha ~= 0 and ChatFrame1.FlareUI_Skin.TopEdge.alpha ~= 0,
-    "without the plate, the windows' own frames don't come back")
--- the info bar's own strip still drawn, the border along its top, nothing higher (Ikar 2026-11-20: "when disabling
--- the plaque, the info bar, if still enabled, shoudl stil lshow it background as before"); none with the bar off too
-do
-    local alone = Plate.drawn
-    local top = alone and ns.Geometry.Top(alone.segs) or 0
-    expect(alone and alone.alone and Plate.textures > 0 and (alone.band or 0) > 0
-        and near(top, ns.InfoBar.Top() + ns.Border.Hug()),
-        "the plate off, the info bar has no background of its own, or it reaches past the bar: " .. tostring(top))
-    ns.db.options.infoBar = false
+    -- The plate's edge takes the border all along its computed outline, grown by its shadow: a quad a segment, its
+    -- corners moved.
+    expect(Plate.last.band and Plate.last.band > 20, "the plate's edge isn't drawn along its outline: " .. tostring(Plate.last.band))
+    -- Grain over the border's metal, a band over the band, as Ikar approved it: internal, no option; none at 0.
+    expect(Plate.last.grain == Plate.last.band, "the border's metal has no grain: " .. tostring(Plate.last.grain))
+    local grain = ns.Border.Grain(ns.Border.Profile())
+    expect(ns.Border.GRAIN.strength == 35 and ns.Border.GRAIN.length == 100 and grain and near(grain.tint[4], 0.35)
+        and ns.DB.DEFAULTS.borderGrain == nil and ns.DB.DEFAULTS.borderGrainSize == nil,
+        "the grain isn't Ikar's, internal: " .. tostring(grain and grain.tint[4]))
+    ns.Border.GRAIN.strength = 0
     run(ns.ApplyAll)
-    expect(Plate.drawn == nil and Plate.textures == 0, "the plate and the info bar off, a strip is still drawn")
-    ns.db.options.infoBar = nil
-end
-ns.db.options.plate = nil
-run(ns.ApplyAll)
-local leftmost = math.huge
-for _, t in ipairs(deco.pool) do
-    if t:IsShown() then
-        leftmost = math.min(leftmost, select(4, t:GetPoint()))
+    expect(Plate.last.grain == 0, "the grain shows at none: " .. tostring(Plate.last.grain))
+    ns.Border.GRAIN.strength = 35
+    run(ns.ApplyAll)
+    expect(near(ns.Border.Profile().out, ns.LOOK.out * ns.db.options.borderSize / 100) and ns.LOOK.out > 0,
+        "the plate's edge doesn't stand out by its shadow")
+    -- Each stretch of border takes the profile lit as its outer side faces: the top's isn't the foot's nor a wall's.
+    do
+        local coords = ns.Border.Profile().coords
+        local up, down, left = coords(10, 0, 0, 1), coords(10, 0, 0, -1), coords(10, 0, -1, 0)
+        expect(up ~= down and up ~= left and up >= 0 and down < 1 and select(3, coords(10, 0, 0, 1)) > up,
+            "the border's profile doesn't follow the way its edge faces: " .. up .. " " .. down .. " " .. left)
     end
-end
-expect(deco.out > 0 and near(leftmost, -deco.out), "the frame's border doesn't stand out by its shadow: " .. tostring(leftmost))
-ns.db.options.borderSize = 50
-ns.ApplyAll()
-expect(near(deco.edge, ns.LOOK.thin.edge / 2) and near(ns.Border.Profile().e, ns.LOOK.edge / 2), "the border's size: " .. tostring(deco.edge))
-ns.db.options.borderSize = nil
-ns.ApplyAll()
--- Set closer than its metal, the plate's edge runs flush with the bars and the status bars' border, never over them.
-ns.db.options.marginStatus, ns.db.options.marginBars, ns.db.options.marginBags = 0, 0, 0
-ns.ApplyAll()
-do
-    local flush, n = true, 0
-    for _, s in ipairs(Plate.last.slots) do
-        if s.kind == "status" or s.kind == "bar" then
-            n = n + 1
-            flush = flush and near(s.margin, ns.Border.Hug())
+    -- The background: its colour alone when smooth or at no depth, the material's grain imprinted in it otherwise.
+    ns.db.options.bgStyle = "smooth"
+    run(ns.ApplyAll)
+    local plain = Plate.textures
+    ns.db.options.bgStyle = "leather"
+    run(ns.ApplyAll)
+    expect(Plate.textures > plain + 5, "the background's material isn't imprinted: " .. Plate.textures .. " for " .. plain)
+    local fill, lum = ns.Border.Fill(), ns.MATERIALS.leather.lum
+    local red = ns.Border.RGB(ns.db.options.bgColor)
+    expect(fill.material and near(fill.foot[1] + fill.matFoot[1] * lum, red * ns.Border.FOOT)
+        and near(fill.top[1] + fill.matTop[1] * lum, red * ns.Border.TOP),
+        "colour and material together don't keep the colour's light")
+    F.missingAtlases[ns.MATERIALS.masonry.atlas] = true
+    ns.db.options.bgStyle = "masonry"
+    run(ns.ApplyAll)
+    expect(Plate.textures == plain, "a material the game lacks isn't left out")
+    F.missingAtlases[ns.MATERIALS.masonry.atlas] = nil
+    ns.db.options.bgStyle = "leather"
+    ns.db.options.bgIntensity = 0
+    run(ns.ApplyAll)
+    expect(Plate.textures == plain, "at no depth the material still shows")
+    ns.db.options.bgIntensity = nil
+    -- The info bar and the map's foot carved in.
+    ns.db.options.footGroove = false
+    run(ns.ApplyAll)
+    local uncarved = Plate.textures
+    ns.db.options.footGroove = nil
+    run(ns.ApplyAll)
+    expect(Plate.textures >= uncarved + 2, "the info bar and the map's foot aren't carved into the plate")
+    -- The minimap pockets' free places marked as small round recesses, none under an item, only while unlocked.
+    ns.db.options.pocketMarks = false
+    run(ns.ApplyAll)
+    local unmarked = Plate.textures
+    ns.db.options.pocketMarks = nil
+    run(ns.ApplyAll)
+    expect(Plate.textures == unmarked, "the pockets' places are marked while the slots are locked")
+    Hub.SetLocked(false)
+    run(ns.ApplyAll)
+    local pocketSpots, _, pocketTaken = Hub.Pockets(Plate.last.dome, Plate.last.T)
+    local marks, held = 0, 0
+    for _, side in ipairs({ "pocketLeft", "pocketRight" }) do
+        for i = 1, #pocketSpots[side] do
+            if pocketTaken[side][i] then
+                held = held + 1
+            else
+                marks = marks + 1
+            end
         end
     end
-    expect(n > 2 and flush, "the plate's edge runs over a bar or a status bar set with no margin")
+    expect(held > 0 and marks > 0 and Plate.textures == unmarked + marks,
+        "the pockets' free places aren't the ones marked: " .. (Plate.textures - unmarked) .. " for " .. marks)
+    Hub.SetLocked(true)
+    run(ns.ApplyAll)
+    -- Our border round the map: the ring whole, over the plate's edge.
+    ns.db.options.minimapRing = "kali"
+    run(ns.ApplyAll)
+    local ringDome, prof = Plate.last.dome, ns.Border.Profile()
+    expect(ns.Minimap.ringDrawn == #ns.Geometry.Band(ns.Geometry.Circle(ringDome.cx, ringDome.cy, ringDome.mapR - prof.out), prof.e),
+        "the map's ring isn't drawn whole: " .. tostring(ns.Minimap.ringDrawn))
+    ns.db.options.minimapRing = nil
+    run(ns.ApplyAll)
+    ns.db.options.cornerStyle = "bevel"
+    run(ns.ApplyAll)
+    local cuts = 0
+    for _, p in ipairs(ns.Geometry.Pieces(Plate.last.segs, Plate.last.dome, 0, Plate.Corners(ns.db.options))) do
+        cuts = cuts + ((p[1] == "bevel" or p[1] == "slope") and 1 or 0)
+    end
+    expect(cuts > 0 and Plate.last.band > 20, "bevelled corners aren't cut: " .. cuts)
+    ns.db.options.cornerStyle = nil
+    run(ns.ApplyAll)
+    -- One look for our frames: the thin border as a band round them, the plate's corners, its metal from the frame's edge,
+    -- its shadow outside, over the background; the status bars' ground is FlareUI's dark one.
+    local deco = bars[-1].Holder.KaLiBorder
+    local panelDeco = ns.Folders.Panel(ns.Folders.Default()).KaLiBorder
+    expect(deco and #deco.pool > 0 and deco.pool[1]:IsShown() and panelDeco and panelDeco.Bg:IsShown() and not deco.Bg:IsShown()
+        and bars[-1].Holder.Ground:IsShown() and ns.Border.Count() >= 2, "our frames have no border and background")
+    expect(near(deco.edge, ns.LOOK.thin.edge * ns.db.options.borderSize / 100) and ns.LOOK.thin.edge < ns.LOOK.edge,
+        "the status bars don't wear the thin border")
+    -- Its metal darker than the plate's, as bright as FlareUI's XP bar border (Ikar 2026-11-15: "too bright").
+    do
+        local r = ns.Border.Color()
+        local tint = deco.pool[1].vertexColor
+        expect(ns.Border.THIN_SHADE < 1 and tint and near(tint[1], r * ns.Border.THIN_SHADE),
+            "the status bars' border isn't darker than the plate's: " .. tostring(tint and tint[1]))
+    end
+    -- The plate hugs the damage meter and the chat (moved down earlier), its edge their border: no margin but the border's
+    -- metal, their own skins see-through; without the plate they show again.
+    local meterSlot
+    for _, s in ipairs(Plate.last.slots) do
+        meterSlot = s.key == "DamageMeter" and s or meterSlot
+    end
+    expect(meterSlot and near(meterSlot.margin, ns.Border.Hug()) and near(meterSlot.x, taken("DamageMeter").x),
+        "the plate doesn't hug the damage meter")
+    expect(DamageMeterSessionWindow1.FlareUI_DMSkin.Center.alpha == 0 and ChatFrame1.FlareUI_Skin.TopEdge.alpha == 0
+        and ChatFrame1.FlareUI_Skin.alpha ~= 0, "the windows' own frames show under our border, or their tabs went with them")
+    ns.db.options.plate = false
+    run(ns.ApplyAll)
+    expect(DamageMeterSessionWindow1.FlareUI_DMSkin.Center.alpha ~= 0 and ChatFrame1.FlareUI_Skin.TopEdge.alpha ~= 0,
+        "without the plate, the windows' own frames don't come back")
+    -- the info bar's own strip still drawn, the border along its top, nothing higher (Ikar 2026-11-20: "when disabling
+    -- the plaque, the info bar, if still enabled, shoudl stil lshow it background as before"); none with the bar off too
+    do
+        local alone = Plate.drawn
+        local top = alone and ns.Geometry.Top(alone.segs) or 0
+        expect(alone and alone.alone and Plate.textures > 0 and (alone.band or 0) > 0
+            and near(top, ns.InfoBar.Top() + ns.Border.Hug()),
+            "the plate off, the info bar has no background of its own, or it reaches past the bar: " .. tostring(top))
+        ns.db.options.infoBar = false
+        run(ns.ApplyAll)
+        expect(Plate.drawn == nil and Plate.textures == 0, "the plate and the info bar off, a strip is still drawn")
+        ns.db.options.infoBar = nil
+    end
+    ns.db.options.plate = nil
+    run(ns.ApplyAll)
+    local leftmost = math.huge
+    for _, t in ipairs(deco.pool) do
+        if t:IsShown() then
+            leftmost = math.min(leftmost, select(4, t:GetPoint()))
+        end
+    end
+    expect(deco.out > 0 and near(leftmost, -deco.out), "the frame's border doesn't stand out by its shadow: " .. tostring(leftmost))
+    ns.db.options.borderSize = 50
+    ns.ApplyAll()
+    expect(near(deco.edge, ns.LOOK.thin.edge / 2) and near(ns.Border.Profile().e, ns.LOOK.edge / 2), "the border's size: " .. tostring(deco.edge))
+    ns.db.options.borderSize = nil
+    ns.ApplyAll()
+    -- Set closer than its metal, the plate's edge runs flush with the bars and the status bars' border, never over them.
+    ns.db.options.marginStatus, ns.db.options.marginBars, ns.db.options.marginBags = 0, 0, 0
+    ns.ApplyAll()
+    do
+        local flush, n = true, 0
+        for _, s in ipairs(Plate.last.slots) do
+            if s.kind == "status" or s.kind == "bar" then
+                n = n + 1
+                flush = flush and near(s.margin, ns.Border.Hug())
+            end
+        end
+        expect(n > 2 and flush, "the plate's edge runs over a bar or a status bar set with no margin")
+    end
+    ns.db.options.marginStatus, ns.db.options.marginBars, ns.db.options.marginBags = nil, nil, nil
+    ns.ApplyAll()
+    -- The colour picker sets the background's colour, cancelled it puts it back.
+    ns.Border.PickColor("bgColor")
+    F.PickColor(0.2, 0.4, 0.6)
+    expect(ns.db.options.bgColor == "336699", "the colour picked isn't the background's: " .. tostring(ns.db.options.bgColor))
+    ColorPickerFrame.info.cancelFunc()
+    expect(rawget(ns.db.options, "bgColor") == nil, "cancelling the colour picker didn't put the colour back")
+    -- The info bar's icons and text at their sizes: at size 14, icons 20.
+    ns.db.options.infoSize = 14
+    ns.ApplyAll()
+    F.RunTimers()
+    expect(Buttons.Get("Spoken").Icon.width == 20, "the info bar's icons aren't at their size")
+    -- An atlas's drawn part at the size, not its empty margin, its shape kept; the padlock's too.
+    local volume = Buttons.Get("KaLiHUD_Volume").Icon
+    expect(near(volume.height, 20) and volume.width < volume.height, "an atlas icon's art isn't at the icons' size, or is squashed")
+    -- The padlock's block (Ikar 2026-11-20: "go for bloc"): flush with the screen's edge and foot, a little taller than the
+    -- bar, wider than tall, its padlock over the bar's middle, the bar's items stopping short of it.
+    do
+        local lock, barH = InfoBar.lockButton, ns.Hub.BarHeight()
+        local point, to, rel, x, y = lock:GetPoint()
+        expect(point == "BOTTOMRIGHT" and to == InfoBar.frame and rel == "BOTTOMRIGHT" and x == 0 and y == 0
+            and lock:GetHeight() > barH and lock:GetHeight() < barH * 1.3 and lock:GetWidth() > lock:GetHeight()
+            and lock.Icon.height < barH and lock.Icon.height > barH / 2
+            and InfoBar.Ends().rightEdge <= UIParent:GetWidth() - lock:GetWidth(),
+            "the padlock's block isn't flush with the bar's end, a little taller than the bar, its padlock in it, or the bar's items run under it")
+    end
+    expect(Buttons.Get("KaLiHUD_Clock").Text.kaliSize == 14, "the info bar's text isn't at its size")
+    ns.db.options.infoSize = nil
+    ns.ApplyAll()
+    F.RunTimers()
 end
-ns.db.options.marginStatus, ns.db.options.marginBars, ns.db.options.marginBags = nil, nil, nil
-ns.ApplyAll()
--- The colour picker sets the background's colour, cancelled it puts it back.
-ns.Border.PickColor("bgColor")
-F.PickColor(0.2, 0.4, 0.6)
-expect(ns.db.options.bgColor == "336699", "the colour picked isn't the background's: " .. tostring(ns.db.options.bgColor))
-ColorPickerFrame.info.cancelFunc()
-expect(rawget(ns.db.options, "bgColor") == nil, "cancelling the colour picker didn't put the colour back")
--- The info bar's icons and text at their sizes: at size 14, icons 20.
-ns.db.options.infoSize = 14
-ns.ApplyAll()
-F.RunTimers()
-expect(Buttons.Get("Spoken").Icon.width == 20, "the info bar's icons aren't at their size")
--- An atlas's drawn part at the size, not its empty margin, its shape kept; the padlock's too.
-local volume = Buttons.Get("KaLiHUD_Volume").Icon
-expect(near(volume.height, 20) and volume.width < volume.height, "an atlas icon's art isn't at the icons' size, or is squashed")
--- The padlock's block (Ikar 2026-11-20: "go for bloc"): flush with the screen's edge and foot, a little taller than the
--- bar, wider than tall, its padlock over the bar's middle, the bar's items stopping short of it.
-do
-    local lock, barH = InfoBar.lockButton, ns.Hub.BarHeight()
-    local point, to, rel, x, y = lock:GetPoint()
-    expect(point == "BOTTOMRIGHT" and to == InfoBar.frame and rel == "BOTTOMRIGHT" and x == 0 and y == 0
-        and lock:GetHeight() > barH and lock:GetHeight() < barH * 1.3 and lock:GetWidth() > lock:GetHeight()
-        and lock.Icon.height < barH and lock.Icon.height > barH / 2
-        and InfoBar.Ends().rightEdge <= UIParent:GetWidth() - lock:GetWidth(),
-        "the padlock's block isn't flush with the bar's end, a little taller than the bar, its padlock in it, or the bar's items run under it")
-end
-expect(Buttons.Get("KaLiHUD_Clock").Text.kaliSize == 14, "the info bar's text isn't at its size")
-ns.db.options.infoSize = nil
-ns.ApplyAll()
-F.RunTimers()
 
 -- ---------- The status bars ----------
 -- As FlareUI's: rested, the bonus runs ahead of the fill; the tooltip says what's left; a gain flashes the fill; the
@@ -7066,11 +7109,9 @@ do
     collectgarbage("restart")
     expect(grown < 1, "the movement check allocates " .. grown .. " KB in 200 checks")
     -- Outside Edit Mode nothing is followed: a press on a window has the plate look at nothing.
-    F.mouseFoci = { ChatFrame1 }
     F.Fire("GLOBAL_MOUSE_DOWN", "LeftButton")
     expect(Plate.frame:GetScript("OnUpdate") == nil, "outside Edit Mode, a press on a window has the plate look every frame")
     F.Fire("GLOBAL_MOUSE_UP", "LeftButton")
-    F.mouseFoci = { WorldFrame }
     -- Edit Mode's Revert draws the HUD once, however many settings it puts back.
     F.EnterEditMode()
     ns.db.options.marginBars, ns.db.options.padBars, ns.db.options.reach = 20, 9, 60
@@ -7088,30 +7129,32 @@ do
 end
 
 -- ---------- Commands & Entry points ----------
-for _, text in ipairs({ "", "options", "edit", "help", "status", "redraw", "reach", "reach nope", "bridge", "bridge nope", "report" }) do
-    slash(text)
+do
+    for _, text in ipairs({ "", "options", "edit", "help", "status", "redraw", "reach", "reach nope", "bridge", "bridge nope", "report" }) do
+        slash(text)
+    end
+    F.ExitEditMode()
+    F.RunTimers()
+    run(KaLiHUD_OnAddonCompartmentClick)
+    expect(printed(string.format(L.REACH, 40)), "/kh reach doesn't say the reach")
+    expect(printed(string.format(L.REACH_USAGE, ns.DB.RANGES.reach[2])), "/kh reach with no number gives no usage")
+    expect(printed(string.format(L.BRIDGE, 40)), "/kh bridge doesn't say the bridge")
+    expect(printed(string.format(L.BRIDGE_USAGE, ns.DB.RANGES.bridge[2])), "/kh bridge with no number gives no usage")
+    -- Less reach, no status bars under the bars: the bars 27 above the info bar go, the damage meter 6 above it stays.
+    ns.db.options.statusLeft, ns.db.options.statusRight = "none", "none"
+    slash("reach 10")
+    expect(ns.db.options.reach == 10 and not taken("MainActionBar") and taken("DamageMeter"), "/kh reach 10 doesn't let the bars go")
+    slash("reach 9999")
+    expect(ns.db.options.reach == 10, "/kh reach takes a reach past the most")
+    slash("reach 40")
+    expect(taken("MainActionBar"), "/kh reach 40 doesn't take the bars back")
+    ns.db.options.statusLeft, ns.db.options.statusRight = nil, nil
+    ns.ApplyAll()
+    F.RunTimers()
+    run(SlashCmdList.KALIHUDPROBE, "")
+    run(SlashCmdList.KALIHUDPROBE, "blocked")
+    F.RunTimers()
 end
-F.ExitEditMode()
-F.RunTimers()
-run(KaLiHUD_OnAddonCompartmentClick)
-expect(printed(string.format(L.REACH, 40)), "/kh reach doesn't say the reach")
-expect(printed(string.format(L.REACH_USAGE, ns.DB.RANGES.reach[2])), "/kh reach with no number gives no usage")
-expect(printed(string.format(L.BRIDGE, 40)), "/kh bridge doesn't say the bridge")
-expect(printed(string.format(L.BRIDGE_USAGE, ns.DB.RANGES.bridge[2])), "/kh bridge with no number gives no usage")
--- Less reach, no status bars under the bars: the bars 27 above the info bar go, the damage meter 6 above it stays.
-ns.db.options.statusLeft, ns.db.options.statusRight = "none", "none"
-slash("reach 10")
-expect(ns.db.options.reach == 10 and not taken("MainActionBar") and taken("DamageMeter"), "/kh reach 10 doesn't let the bars go")
-slash("reach 9999")
-expect(ns.db.options.reach == 10, "/kh reach takes a reach past the most")
-slash("reach 40")
-expect(taken("MainActionBar"), "/kh reach 40 doesn't take the bars back")
-ns.db.options.statusLeft, ns.db.options.statusRight = nil, nil
-ns.ApplyAll()
-F.RunTimers()
-run(SlashCmdList.KALIHUDPROBE, "")
-run(SlashCmdList.KALIHUDPROBE, "blocked")
-F.RunTimers()
 
 -- ---------- The review's fixes (2026-11-16) ----------
 -- Edit Mode's boxes: each of the HUD's takes whatever the mouse can do to it. The strip's box is Blizzard's template,
@@ -8699,10 +8742,20 @@ do
         local into = F.MenuItem(string.format(L.SIDE_folder, Folders.Get(mine).name))
         expect(into ~= nil, "setup: an element's menu lists the player's folder")
         if into then
+            -- (a flash of its own: the one before lit the same button)
+            local function plays()
+                local n = 0
+                for _, f in ipairs(InfoBar.Flashes()) do
+                    n = n + (f.Fade.plays or 0)
+                end
+                return n
+            end
+            local played = plays()
             run(into.choose)
             F.RunTimers()
             target = lit()
-            expect(Hub.Entry(READOUT).folder == mine and target == Buttons.Get(mine) and not Folders.IsOpen(mine),
+            expect(Hub.Entry(READOUT).folder == mine and target == Buttons.Get(mine) and not Folders.IsOpen(mine)
+                and plays() == played + 1,
                 "an element sent into a folder from its menu doesn't light the folder's button, or opens its list")
             ns.History.Undo()
             F.RunTimers()

@@ -1,0 +1,1011 @@
+{
+ "API check: an event gone and refused is named twice": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "API check: an event the game refused to register isn't named": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "Call: a game function's answer lost": {
+  "hud": {
+   "part": "alone"
+  },
+  "quest": {
+   "at": "the API check finds the log's keys as the addon assumes:",
+   "part": "smoke"
+  },
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "CombatRefused: refused out of a fight too": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "CombatRefused: the click doesn't say why": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "Count: nothing counted": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "DeepCopy: a copy that shares its tables": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "tests"
+  },
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "DropNonFinite: a nan key left": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "DropNonFinite: what's inside a table left": {
+  "hud": {
+   "part": "tests"
+  },
+  "quest": {
+   "part": "tests"
+  },
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "EveryFrame: a failing handler comes back every frame": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "EveryFrame: nothing follows a handler's error": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "EveryFrame: the error not kept": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "Finite: nan and inf taken as numbers a file holds": {
+  "hud": {
+   "part": "tests"
+  },
+  "quest": {
+   "part": "tests"
+  },
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "InCombat: a fight's first moment missed": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "InCombat: still a fight once it's over": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "Later: work asked twice in a frame runs twice": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "Plain: a hidden value given as it is": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "Plain: only the first value looked at": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "SafeCall: an error no longer reaches the debug log": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "chat: the colon French's in every language": {
+  "hud": {
+   "part": "tests"
+  },
+  "quest": {
+   "part": "tests"
+  },
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "close: a window's X through Blizzard's HideUIPanel, refused in a fight": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "commands: a word no command has goes unanswered": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "commands: debug on leaves it off": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "commands: only the first slash command registered": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "commands: the in-game tests' result kept without the game's build": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "commands: the in-game tests' result not kept": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "commands: the ones for any time wait for the saved data": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "debug: Clear keeps the errors": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "debug: a hidden value read while tracing events": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "debug: errors not counted": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "debug: its saved data under another name": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "debug: its table saved with a nan in it": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "debug: the log written with debug mode off": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "tests"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "dialog: a change applied, nothing redrawn": {
+  "hud": {
+   "at": 0,
+   "part": "smoke"
+  },
+  "quest": {
+   "at": "a zoom set there applies at once, and the frame's box grows with the rows",
+   "part": "smoke"
+  },
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "dialog: a check box writes nothing": {
+  "hud": {
+   "at": "a check box of the dialog doesn't set its option",
+   "part": "smoke"
+  },
+  "quest": {
+   "at": "a box sets its option, and the markers' style has its three values, the current one ticked",
+   "part": "smoke"
+  },
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "dialog: a label broken by hand is broken in its tooltip's title too": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "dialog: a list worked out once, a colour just picked without its line": {
+  "hud": {
+   "at": "ns.EditFrame.Select(\"borders\")",
+   "part": "smoke"
+  }
+ },
+ "dialog: a section's bar opens it but never closes it": {
+  "hud": {
+   "at": "a click on the open section's bar doesn't close it:",
+   "part": "smoke"
+  },
+  "quest": {
+   "at": "a click on the open bar closes it",
+   "part": "smoke"
+  },
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "dialog: a section's line lit only once the window is drawn again": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "dialog: a section's « Annuler » leaves its own extra": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "dialog: a section's « Annuler » lit with nothing to cancel": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "dialog: a section's « Annuler » puts back every section's": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "dialog: a section's « Par défaut » sets every section's": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "dialog: cancelling puts nothing back": {
+  "hud": {
+   "at": 0,
+   "part": "smoke"
+  },
+  "quest": {
+   "at": "« Annuler les modifications » puts back the settings and places as they were on entering Edit Mode",
+   "part": "smoke"
+  },
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "dialog: every section's rows shown at once": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "dialog: its rows lit as a fight starts, asking the game's lockdown a moment too soon": {
+  "quest": {
+   "at": "in a fight its rows and buttons wait",
+   "part": "smoke"
+  }
+ },
+ "dialog: its rows usable in a fight": {
+  "quest": {
+   "at": "in a fight its rows and buttons wait",
+   "part": "smoke"
+  }
+ },
+ "dialog: the plain look's nine-slice border made with no parent": {
+  "hud": {
+   "at": 0,
+   "part": "smoke"
+  },
+  "quest": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "dialog: the window look built as Edit Mode's": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "dialog: the window look's open header keeps its plus": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "dialog: « Annuler les modifications » lit with nothing to cancel": {
+  "hud": {
+   "at": "« Annuler les modifications » is lit with nothing to cancel",
+   "part": "smoke"
+  },
+  "quest": {
+   "at": "« Annuler les modifications » once something changed, no position to reset before a move",
+   "part": "smoke"
+  },
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "dialog: « Par défaut » leaves the values": {
+  "hud": {
+   "at": "« Par défaut » leaves what the player changed",
+   "part": "smoke"
+  },
+  "quest": {
+   "at": "« Par défaut » puts every row back to its default",
+   "part": "smoke"
+  },
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "events: Off leaves the handler in place": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "events: a failing handler stops the ones after it": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "events: an event the client no longer has isn't listed": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "events: an event the client no longer has stops the function registering it": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "events: an event the game refuses without an error isn't listed": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "link: Ctrl+C in its box says to paste into the issue": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "link: its button selects the whole report": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "link: letters left to %w, which may take a byte of é for one": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "link: no place said to paste the report": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "link: spaces and | left as they are": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "link: the report put back in it": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "page: a button does nothing": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "page: a check box sets nothing": {
+  "hud": {
+   "at": "a part's box on the options page doesn't turn it off and on",
+   "part": "smoke"
+  },
+  "quest": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "page: a click on a row's name doesn't tick its box": {
+  "hud": {
+   "at": "a click on a row's name doesn't tick its box",
+   "part": "smoke"
+  },
+  "quest": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "page: a row doesn't light up under the pointer": {
+  "quest": {
+   "at": 0,
+   "part": "smoke"
+  },
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "page: a row says nothing under the pointer": {
+  "quest": {
+   "at": 0,
+   "part": "smoke"
+  },
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "page: its boxes not drawn again after a click": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  }
+ },
+ "page: never added to the game's list of addons": {
+  "hud": {
+   "at": "the options page puts something in the game's own lists of settings",
+   "part": "smoke"
+  },
+  "quest": {
+   "at": 0,
+   "part": "smoke"
+  },
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "page: no title": {
+  "hud": {
+   "at": "/kh options doesn't open the page, under its title",
+   "part": "smoke"
+  },
+  "quest": {
+   "at": 0,
+   "part": "smoke"
+  },
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "page: opens in a fight": {
+  "hud": {
+   "at": "/kh in a fight opens the options, or lists the commands under the game's refusal",
+   "part": "smoke"
+  },
+  "quest": {
+   "at": 0,
+   "part": "smoke"
+  },
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "page: the pages under it never listed": {
+  "quest": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "report: colour codes kept": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "report: its ``` closes the issue's block early": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "report: one failing part fails it all": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "report: the addon's own sections left out": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "report: the addon's status lines left out": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "report: the address never shown": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "report: the mailbox's address not selected by a click": {
+  "quest": {
+   "part": "shared"
+  }
+ },
+ "report: the mailbox's lines shown with no address": {
+  "quest": {
+   "part": "shared"
+  }
+ },
+ "report: the report's button left under the link, over the mailbox's lines": {
+  "quest": {
+   "part": "shared"
+  }
+ },
+ "report: what didn't hold when told left out": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "self-check: a Blizzard addon not loaded, its names taken as missing": {
+  "quest": {
+   "at": "the report names what the game no longer has, but not what a Blizzard addon not yet loaded holds",
+   "part": "smoke"
+  }
+ },
+ "self-check: a blocked action not passed to the addon": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "self-check: an assumption giving back no list stops the check": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "self-check: an assumption that fails stops the check": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "self-check: every build's result kept": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "self-check: the CVars left unchecked": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "self-check: the same warning again not counted": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "self-check: told at login, without the addon's own timing": {
+  "quest": {
+   "at": "at login, once the log had loaded, it tried each thing it assumes and kept them for the build:",
+   "part": "smoke"
+  }
+ },
+ "self-check: what didn't hold when told not kept": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "windows: a dragged window's place left for the game's layout file to keep": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "windows: a window let go stays placed by the player for the game": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ },
+ "windows: what follows a drag never told": {
+  "hud": {
+   "part": "shared"
+  },
+  "quest": {
+   "part": "shared"
+  },
+  "recipe": {
+   "part": "shared"
+  }
+ }
+}

@@ -5,7 +5,7 @@
    the allowed list is reported, which catches a missing "local".
 3. KaLiQuest_Tests runs: the same tests as /kq test in game.
 4. quest/tools/lua/smoke.lua starts the addon and its probe as the game would and runs every slash command of both;
-   then tools/lua/smoke_shared.lua checks the shared code's copy (shared/) the same way in both addons.
+   then tools/lua/smoke_shared.lua checks the shared code's copy (shared/) the same way in every addon.
 5. Every C_Namespace.Function the addons name exists in this build's API documentation, and every bare global
    function they call is in the game's global API list or defined by Blizzard's own Lua.
 6. Every :Method( they call is a widget method in that documentation, one Blizzard's own code defines, one they
@@ -26,15 +26,22 @@
 
 The checks of 1 to 8 and 10 to 13 are the family's, in tools/kali. Run with: python -I quest/tools/run_tests.py
 --addons <dir> runs on a copy, for experiments: quest/addon is linked into the game.
+--only <part>[,<part>] runs parts of it alone, after the compile (tools/kali/checks.py, "The parts of a run"): static
+(5 to 12, --at <check> one of them: api, globals, methods, enums, needs, package, nan, secret, data), tests (3), smoke
+(4 with the shared code's and the labels' checks after it; --at <text> the smoke's one block whose check says that
+text), shared (the shared code's checks after a login alone), labels (13 after a login alone). tools/breaks.py runs
+each deliberate break against the part linked to it, in seconds.
 """
 import csv
 import sys
+from functools import cache
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
-from kali import checks, labels  # noqa: E402
+from kali import checks, game  # noqa: E402
 from kali.paths import QUEST  # noqa: E402
 
+ADDON = "KaLiQuest"
 checks.configure(
     ADDONS=QUEST / "addon",
     NEEDS_FILE="KaLiQuest/Data/Needs.lua",
@@ -47,17 +54,26 @@ checks.configure(
     },
 )
 SMOKE = QUEST / "tools/lua/smoke.lua"
+# The dialog whose texts the labels' check measures, and what opens it and the options page after a login alone.
+DIALOG = "KaLiQuestEditModeDialog"
+OPENS = "KaLiQuestDev.ns.EditFrame.OpenEditMode(); FakeWoW.RunTimers()"
 # Filter.TAG's names in the game's QuestInfo table. Raid10 and Raid25 aren't in Forever's: the API check holds them
 # against Enum.QuestTag in game.
 TAG_NAMES = {"elite": "Elite", "life": "Life", "pvp": "PvP", "raid": "Raid", "dungeon": "Dungeon",
              "worldevent": "World Event", "legendary": "Legendary", "raid10": None, "raid25": None}
 
 
+@cache
+def quest_info():
+    """This build's QuestInfo table: { ID: name }."""
+    with open(game.tables() / "QuestInfo.csv", encoding="utf-8", newline="") as f:
+        return {int(row["ID"]): row["InfoName_lang"] for row in csv.DictReader(f)}
+
+
 def data_problems(lua):
     """Filter.TAG, which the API check can only partly hold against the game's enums, by the names this build's
     QuestInfo table gives its IDs."""
-    with open(max(checks.DB2.iterdir()) / "QuestInfo.csv", encoding="utf-8", newline="") as f:
-        names = {int(row["ID"]): row["InfoName_lang"] for row in csv.DictReader(f)}
+    names = quest_info()
     problems, checked = [], 0
     for key, value in lua.eval("KaLiQuestDev.ns.Filter.TAG").items():
         if key not in TAG_NAMES:
@@ -70,84 +86,44 @@ def data_problems(lua):
     return problems, checked
 
 
-def main():
-    problems = []
-    addons, rel = checks.ADDONS, checks.rel
+PARTS = ("static", "tests", "smoke", "shared", "labels")
 
-    lua = checks.lupa.LuaRuntime(unpack_returned_tuples=True)
-    sources = sorted(addons.rglob("*.lua"))
-    for path in sources:
-        result = lua.globals().loadstring(path.read_text(encoding="utf-8"), "@" + rel(path))
-        if isinstance(result, tuple) and result[1]:
-            problems.append(f"compile: {result[1]}")
-    print(f"compile: {len(sources)} files")
-    called_by_blizzard, defined_by_blizzard, methods_by_blizzard, defined_in, templates_in, fonts_in = checks.ui_source_names()
-    unknown, known = checks.unknown_api_calls(sources, called_by_blizzard)
-    print(f"api: {known} documented C_ functions, {len(unknown)} unknown names used")
-    problems += [f"api not in this build's docs: {u}" for u in unknown]
-    unknown_globals = checks.unknown_global_calls(sources, defined_by_blizzard)
-    print(f"globals: {len(unknown_globals)} unknown global functions called")
-    problems += [f"global function not in the game: {u}" for u in unknown_globals]
-    unknown_methods = checks.unknown_method_calls(sources, methods_by_blizzard)
-    print(f"methods: {len(unknown_methods)} unknown method names called")
-    problems += [f"method not in the game: {u}" for u in unknown_methods]
-    package, count = checks.package_problems("KaLiQuest")
-    print(f"package: {count} files, {len(package)} problems")
-    problems += package
+
+def part_static(sources, at):
+    addons = checks.ADDONS
     needs_path = addons / checks.NEEDS_FILE
-    shipped = [p for p in sorted((addons / "KaLiQuest").rglob("*.lua")) if p != needs_path]
-    found = checks.needs(shipped, checks.documented_functions(called_by_blizzard), defined_in, templates_in, fonts_in)
-    expected = checks.needs_lua(found)
-    if "--write-needs" in sys.argv:
-        needs_path.write_text(expected, encoding="utf-8", newline="\n")
-    elif not needs_path.exists() or needs_path.read_text(encoding="utf-8") != expected:
-        problems.append(f"needs: {rel(needs_path)} is out of date: run quest/tools/run_tests.py --write-needs")
-    print(f"needs: {len(found['globals'])} globals, {len(found['events'])} events, {len(found['atlases'])} atlases, "
-          f"{len(found['templates'])} templates, {len(found['cvars'])} CVars, {len(found['strings'])} strings")
-    used_enums = checks.addon_enums(sources)
-    enums = checks.enum_problems(used_enums, checks.documented_enums())
-    print(f"enums: {len(used_enums)} named, {len(enums)} not in this build's docs nor Blizzard's code")
-    problems += enums
-    nan = checks.self_compare_problems(shipped)
-    print(f"nan: {len(nan)} values compared with themselves in the shipped addon")
-    problems += nan
-    secret, hidden = checks.secret_problems(shipped)
-    print(f"secret: {hidden} calls whose result the game may hide, {len(secret)} not read through ns.Plain")
-    problems += secret
+    shipped = [p for p in sorted((addons / ADDON).rglob("*.lua")) if p != needs_path]
 
-    lua, load_addon = checks.runtime()
-    load_addon("KaLiQuest")
-    load_addon("KaLiQuest_Tests")
-    data, checked = data_problems(lua)
-    print(f"data: {checked} quest tags checked against QuestInfo, {len(data)} problems")
-    problems += data
-    report = lua.eval("KaLiQuestTests.Run()")
-    print(report.text)
-    if report.failed > 0:
-        problems.append(f"tests: {report.summary}")
+    def data():
+        lua, load_addon = checks.runtime()
+        load_addon(ADDON)
+        problems, checked = data_problems(lua)
+        print(f"data: {checked} quest tags checked against QuestInfo, {len(problems)} problems")
+        return problems
 
-    lua, load_addon = checks.runtime()
-    load_addon("KaLiQuest")
-    load_addon("KaLiQuest_Probe")
-    failures = lua.execute(SMOKE.read_text(encoding="utf-8"))
-    failures = list(failures.values())
-    print(f"smoke: {'PASS' if not failures else 'FAIL'}")
-    problems += [f"smoke: {f}" for f in failures]
-    shared_failures = checks.shared_smoke(lua, "KaLiQuest")
-    print(f"shared: {'PASS' if not shared_failures else 'FAIL'}")
-    problems += shared_failures
-    misfits, measured = labels.problems(lua, "KaLiQuestDev", "KaLiQuestEditModeDialog")
-    print(measured)
-    problems += misfits
-    leaks = sorted(set(lua.globals().KALI_LEAKS.values()))
-    problems += [f"global written: {leak}" for leak in leaks]
+    found = checks.static_checks(ADDON, sources, shipped, needs_path, "quest/tools/run_tests.py")
+    return checks.run_static(found + [("data", data)], at)
 
-    print()
-    if problems:
-        print("\n".join(problems))
-        print(f"\nFAIL: {len(problems)} problem(s)")
-        sys.exit(1)
-    print("ALL PASS")
+
+def part_smoke(at):
+    lua, _, problems, blocks = checks.smoke_part(checks.runtime, ADDON, SMOKE, at)
+    if blocks is not None:
+        return problems
+    return problems + checks.after_smoke(lua, ADDON, DIALOG)
+
+
+def main():
+    run = checks.Run(PARTS)
+    problems, sources = checks.compile_problems()
+    run.problems += problems
+    run.part("static", lambda: part_static(sources, run.at))
+    run.part("tests", lambda: checks.tests_part(checks.runtime, ADDON))
+    run.part("smoke", lambda: part_smoke(run.at))
+    # in a whole run, both after the smoke, on what it left (part_smoke)
+    if run.only:
+        run.part("shared", lambda: checks.shared_part(checks.runtime, ADDON))
+        run.part("labels", lambda: checks.labels_part(checks.runtime, ADDON, DIALOG, OPENS))
+    run.end()
 
 
 if __name__ == "__main__":

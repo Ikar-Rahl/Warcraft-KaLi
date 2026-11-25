@@ -1,0 +1,475 @@
+{
+ "API check: a search closed on at once called unanswered": {
+  "recipe": {
+   "at": "the house closed two seconds after the search: its answer was still due, nothing wrong:",
+   "part": "smoke"
+  }
+ },
+ "API check: a search sent behind another's called unanswered": {
+  "recipe": {
+   "at": "sent behind another addon's search, the house closed a minute later: still due:",
+   "part": "smoke"
+  }
+ },
+ "API check: a search the game never answered goes unsaid": {
+  "recipe": {
+   "at": "the game free to take it, the house open twenty seconds, no answer: named:",
+   "part": "smoke"
+  }
+ },
+ "API check: made at login only when the saved data loaded": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "API check: profession 0, the game's none, noted as a skill line it doesn't know": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "API check: the professions window's profession 0 reported": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "auction house: a page's first rows never read": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "auction house: every page added reads the whole list again": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "gear: a second click doesn't close them": {
+  "recipe": {
+   "at": "a second click closes it",
+   "part": "smoke"
+  }
+ },
+ "gear: opens nothing": {
+  "recipe": {
+   "at": "the gear opens the options window, no menu, and the notebook stays open",
+   "part": "smoke"
+  }
+ },
+ "hidden identity: a quest giver's read": {
+  "recipe": {
+   "at": "a quest offered by a giver the game hides: its reward noted, with the quest alone",
+   "part": "smoke"
+  }
+ },
+ "hidden identity: a vendor's read": {
+  "recipe": {
+   "at": "a vendor whose identity the game hides: its recipe noted at its place, with no NPC",
+   "part": "smoke"
+  }
+ },
+ "hidden identity: the looted mob's name read off the target": {
+  "recipe": {
+   "at": "secret",
+   "part": "static"
+  }
+ },
+ "icon: the minimap button names a file the addon doesn't have": {
+  "recipe": {
+   "at": "package",
+   "part": "static"
+  }
+ },
+ "labels: a label too long for the options window's two lines": {
+  "recipe": {
+   "part": "labels"
+  }
+ },
+ "languages: a German key misspelt": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "languages: a German profession's name left out": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "languages: a Mexican string the same as Castilian's": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "languages: a Spanish string's blanks in another order": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "languages: the notebook's hint names the left button in words": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "map pins: a pin made in a fight never told to let right clicks through": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "map pins: a pin never lets right clicks through": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "map pins: right clicks asked through in a fight, which the game blocks": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "notebook: its X through Blizzard's HideUIPanel, refused in a fight": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "notebook: its place left for the game's layout file to keep": {
+  "recipe": {
+   "at": "the notebook dragged keeps its place in the addon's data, none in the game's layout file",
+   "part": "smoke"
+  }
+ },
+ "notebook: its place the game's to save": {
+  "recipe": {
+   "at": "the notebook dragged keeps its place in the addon's data, none in the game's layout file",
+   "part": "smoke"
+  }
+ },
+ "notebook: the hammer silent in a fight": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "options page: its row in the game's own list of settings": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "options page: no bug report on it": {
+  "recipe": {
+   "part": "labels"
+  }
+ },
+ "options window: Edit Mode's look": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "options window: Escape leaves it open": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "options window: a size from the grip not shown in it": {
+  "recipe": {
+   "at": "and the options window's slider, open beside it, says so",
+   "part": "smoke"
+  }
+ },
+ "options window: cancelling goes back to an older opening": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "options window: no bug report in it": {
+  "recipe": {
+   "part": "labels"
+  }
+ },
+ "options window: off the screen on the left": {
+  "recipe": {
+   "at": "and in the middle of the screen when neither side has room:",
+   "part": "smoke"
+  }
+ },
+ "options window: opens while the game asks about a change waiting": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "options window: over the notebook, not beside it": {
+  "recipe": {
+   "at": "beside the notebook, on its right:",
+   "part": "smoke"
+  }
+ },
+ "options window: the notebook's « Suivre » not shown in it": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "options window: the page's button leaves the game's options open": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "options window: the sounds played as they're put back": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "options window: « Suivre » ticked there doesn't dock": {
+  "recipe": {
+   "at": "« Suivre » ticked in the window docks the notebook",
+   "part": "smoke"
+  }
+ },
+ "professions: an empty list believed at once, its recipes forgotten": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "professions: an empty list never believed, read again": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "quest: a log quest given up on after a reward with no data": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "quest: a party member's share placed as a giver": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "quest: a reward read by its link alone": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "quest: a reward's data coming late not read": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "quest: a turn-in's NPC and place taken for the giver's": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "quest: an object's offer left without its place": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "quest: an offer's recipe without its line and sound": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "quest: an older sighting never gets its giver": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "quest: no mark in the quest's lines": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "quest: one quest's recipe in the plural line": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "quest: the giver's pin the plain one": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "quest: the giver's words never used": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "quest: the log not read": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "quest: the log's quests said at login": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "quest: the offer's giver not kept": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "saved data: the notebook's place kept with an anchor SetPoint doesn't take": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "stock: no clock after the vendor's name": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "stock: no limit read as limited": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "stock: not stored at the visit": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "stock: one a file can't hold kept": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "stock: the chat line without the clock": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "stock: the latest kept, not the highest": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "stock: the visit's line not told which sighting": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "stock: two copies merged keep the latest": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "vendors: a copy's visits not merged": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "vendors: a visit not kept": {
+  "recipe": {
+   "at": "the vendor opened is kept, by character",
+   "part": "smoke"
+  }
+ },
+ "vendors: a visit that can't be read dropped, not set aside": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "vendors: another's visit shown with « Sur un autre personnage » off": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "vendors: one known by its recipes alone, never visited": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "vendors: the icon out of reach not a vendor's": {
+  "recipe": {
+   "at": "one never opened with the game's vendor icon, out of reach",
+   "part": "smoke"
+  }
+ },
+ "vendors: white with no recipe": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "volume: 0 % still plays": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "volume: a kit's own volume not the game's table's": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "volume: asked of a game that takes none": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "volume: asked of the game at 100 % too": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "volume: asked on the master channel, past the effects volume": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "volume: its slider shows a bare number": {
+  "recipe": {
+   "at": 0,
+   "part": "smoke"
+  }
+ },
+ "volume: loading keeps any number": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "volume: more than full asked": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "volume: the default back at the game's own level, barely heard": {
+  "recipe": {
+   "part": "tests"
+  }
+ },
+ "volume: the percentage asked alone, louder than the kit's own": {
+  "recipe": {
+   "part": "tests"
+  }
+ }
+}

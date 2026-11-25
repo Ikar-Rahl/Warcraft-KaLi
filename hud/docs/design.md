@@ -3057,3 +3057,149 @@ stats, investigate if there is other healing related stats to count".
   `--link` says its breaks were run. The health's and mana's breaks link to the scenario `bases`.
 
 Checked offline: the static checks, the smoke, the scenarios, the new breaks. Not seen in game.
+
+## The breaks made quick, the night of 2026-11-24
+
+Ikar, once 0.9.1 was out: "you have all the night to refactor this nightmarish test break that slow you own
+constantly". The family's tools, for the three addons; nothing of the addons themselves changed.
+
+- **The fake game's frames.** `F.LayoutPass`, at every pass of `F.RunTimers`, read `scrollChild` on every frame ever
+  made, through the frame's metatable: each read a walk of the method prefixes (`isMethodName`), 85 % of KaLi Quest's
+  smoke. Read raw now, and `isMethodName` keeps its answers: the HUD's whole smoke 37 s → 11 s, KaLi Quest's 7 s →
+  half a second, the same results.
+- **Each runner made of parts** (`tools/kali/checks.py`, "The parts of a run"): `--only static`, `tests`, `smoke`,
+  `shared`, `labels` (KaLi Recipe's `restart` too; this addon's `alone`, `scenarios`, each scenario), `--at` the
+  smoke's block or one of the static checks (`api`, `needs`, `effects`...). `shared` and `labels` after a login alone,
+  under a second; a whole run still plays both after the smoke. A smoke's `--at` that no line holds fails now: it had
+  run the whole session, without a word, for seven of this addon's links. Each failure of a smoke says the block it
+  came from (`checks.smoke_run`), a check whose words are made as it runs too.
+- **The game's files read once a process** (`@cache`: Blizzard's source, the API docs, the build's tables, the
+  generators' builds).
+- **`tools/breaks.py`** runs each break against its link only, in workers (`tools/kali/worker.py`: a runner loaded
+  once, on its own copy of the addon), eight side by side. Each link the breaks use runs first on the code as it is,
+  and must pass; a break with no link, one to the whole smoke or to a line gone aborts the run before anything runs; a
+  part that hangs is stopped at ten times its own time. `--link` finds what's missing: the quick parts first, then the
+  whole smoke once, for the block its first failure came from, which must catch the break alone.
+- **Every break linked**, 1,004: KaLi Quest's 67 run in 6 s, KaLi Recipe's 84 in 9 s, the shared code's 95 (257 runs,
+  in each addon it touches) in 28 s, this addon's 758 in 7 minutes, a change's few in seconds. Before, a break of KaLi
+  Quest, KaLi Recipe or the shared code ran its whole runner, and the guard refused all 246; 230 of this addon's had
+  no link or the whole smoke.
+- **Twenty-two breaks no test caught**, the whole run included, the checks having moved from under them. Ten had no
+  link, twelve one to a check that no longer caught them, a whole sweep showed (none had been run since):
+  - « Add-ons » and « Suite », KaLi HUD's folders that aren't locked: « Retirer » in their menu, not « Supprimer le
+    dossier »; renamed, the player's, its role gone and what stood in it by default saved there, its menu without
+    « Retirer » beside its own deletion; and the bar's menu without the macros when one of the player's is on the bar.
+    The smoke's checks ran on a locked folder, whose menu is another's, and on a bar with no macro of the player's
+    (scenario `bundled`).
+  - « Suite » made again from the bar's menu, the folder that takes what doesn't fit (scenario `overflow`).
+  - Blessing of Kings' share in the game's base: since the table splits the base, its rest went to « Forever », which
+    hid a base of 110 (the Kings check now holds the card's sources the same, the game's bonus 11 or 21).
+  - A camp's line without a figure took the next line's (a case beside the lute's).
+  - A class the tables don't have, the only one still to meet the base names « Niveau 23 Humaine Moine » (scenario
+    `noclass`).
+  - The folders' titles in the game's words (scenario `titles`).
+  - The hit chance's « Effets », each kind's; a source of one school on the spell penetration's card, named with it
+    (the spell power's cards are a school each since 2026-11-23); a value nothing changes, its skill all the same and
+    a set's next pieces: the defence, the armour's sources coming from its whole since 2026-11-19, so never unchanged
+    as the smoke's case took it (scenario `rows`).
+  - What would be with an item under the pointer: the attack power's base rows as without it, and the question mark
+    for a buff of no known figure, the smoke's meal now sure of its figure (scenario `would`).
+  - The game's notes: the raid boss's figures above « Effets », not its name alone; an element sent into a folder lit
+    by a flash of its own, the one before having lit the same button; the spell schools' order, held by the smoke's
+    list of the folder, not the scenario `regen` it named.
+  - Three went, the code they broke never reached: `Seeds.lua`'s `sepSpec` for a title given as a function
+    (`Seeds.ContentsOf` gives it the words first), the bar's menu's « reputations » (each reputation lives in its locked
+    folder), and the parts' rest of `sourcesOf` (the attack powers alone have parts and the game's base, and their
+    level's rows put it aside).
+- `tools/run_tests.py` runs the three runners side by side: 34 s for the whole family, where the HUD's run alone had
+  taken over a minute.
+
+Checked offline: each runner whole and part by part, every break against its link. Nothing to see in game.
+
+## The smoke's breaks made quick, 2026-11-25
+
+Ikar, of the night's report (this addon's 758 breaks in 7 minutes): "hud smoke test then ?". 547 of them run against a
+block of the smoke, and each paid first for all that stands between the blocks, 1.96 s; 294 for the block of the bar's
+other items too, 2,949 lines.
+
+- **What stands between the blocks, 1.96 s → 0.88 s.** Five of its sections are blocks of their own, left out when
+  another is asked for: the cartouches' styles, a folder's list with its separators and values, undo and redo (each a
+  `run(function() ... end)`, its own scope already, now a `do`), the borders and backgrounds, and the commands
+  (indented into one). Nothing after them stood on what they leave. What remains is the session's start, whose names
+  the blocks use: the login, the plate following in Edit Mode, the hub and the info bar.
+- **The bar's other items cut in five**: the folders, the skills, the attributes (1,795 lines, 168 breaks, a quarter of
+  a second), the readouts, then the separators, folders and macros. What they share (its folders and macros, the
+  errors kept, an item's text, a folder's members) stands above them; each counts the errors from its own start. No
+  name was lost: the session reads the same 7 globals that aren't there, before and after.
+- **A failure says the line it came from** (`checks.smoke_run`): the session's own line that was running, its check or
+  the call that led to it (« smoke: its first failure from the block at line N, at line M »). `--link` names the
+  block by a text of that statement, which stays with its check when a block is cut up.
+- **64 links found again**:
+  - 18 caught by the sections now blocks, at `--at 0`;
+  - 37 that named the old block by its first line, the text taken when no line held what failed: that line went with
+    what the five share, and they would have run no block, without a word (`stale()` sees a text gone, not one moved
+    out of its block);
+  - 9 whose text went to the attributes, caught all along by a folder's list between the blocks.
+- Each worker's run compiles again only the file the break was planted in (`checks.compile_problems`, 0.15 s a run).
+- **Every break caught**: this addon's 758 in 219 s (416 before), the shared code's 95 in 21 s, KaLi Quest's 67 in
+  5 s, KaLi Recipe's 84 in 9 s.
+
+Checked offline: the three runners whole, each new block alone, every break against its link. Nothing to see in game.
+
+## The whole run made quick, 2026-11-25
+
+Ikar: "Is there time to be saved on runnign tests ?". The family's whole run took 47 s, all of it this addon's runner,
+whose parts ran one after another: the static checks 21 s, the smoke 14 s, the scenarios 10 s. 13 s of the static
+checks went to reading the game's files again at each run: Blizzard's source (4,142 files, 5.8 s, in each of the three
+runners), the API docs' lists (1.7 s) and Effects.lua made again from the build's tables, to hold it against the
+addon's (5.7 s).
+
+- **What is read from the game's files is kept from one run to the next** (`tools/kali/kept.py`, in `tools/.cache/`,
+  which git leaves out). A result is used again only while every file it was made from keeps its path, time and size
+  (a walk of Blizzard's source: 0.26 s) and the code that reads them is the same; anything else makes it again, one
+  slow run. The static checks: 22 s → 4.5 s; KaLi Quest's and KaLi Recipe's, 11 s → 3 s.
+- **A whole run plays its parts side by side**, each in a process of its own (`checks.side_by_side`): as long as the
+  smoke, 12.7 s, not their sum, 46 s. Each part's process hands its problems to the whole run (`--report`), which says
+  them once; one that ends without them (it raised) is said so, its traceback above.
+- **The scenarios run side by side in threads**, each in its own Lua state (lupa lets go of Python's lock while Lua
+  runs): the 25 in 3.5 s, not 9.2.
+
+The family's whole run: 47 s → 18 s. What's left is the smoke: ~12 s alone, ~16 s beside the rest of the run, which
+takes the cores it shares. 40 % of it is this addon's geometry, worked out again at each change of the session's
+settings, 30 % the fake game. Cutting the session into pieces run side by side would lose what each part leaves for the
+next, and the restart check reads the file the whole session writes: not done. Loading the addon precompiled would
+save 0.06 s of the 0.11 s each game's load takes: not done.
+
+Checked offline: the three runners whole, from nothing kept and again; a fault planted in a copy, and a copy whose runs
+crash, each said; 15 breaks against the scenarios, the tests and the smoke, and the 5 against the static checks.
+Nothing to see in game.
+
+## The tests reviewed, 2026-11-25
+
+Ikar: "do a ful lreview of the the tests, see if everything is correct, maintainable, well documented, well
+organized", then "fix everything".
+
+- **The enums check alone** (`--only static --at enums`) took two of KaLi Quest's enums for unknown: Blizzard's own,
+  which it knew only once the api check had read Blizzard's source. It reads them itself now (`game.blizzard_enums`).
+- **The family's runner dropped the options' values**: `tools/run_tests.py quest --only static` handed each runner a
+  bare `--only`, which raised. Every option goes with its value now.
+- **The scenarios' threads each read the build's files again** as they started, eight readings at once. They are read
+  once before the threads start: 2.8 s, was 3.3.
+- **What reads the game's files has a file of its own**, `tools/kali/game.py`: what it reads is kept while it and the
+  files stay the same, so an edit of the checks no longer costs a slow run.
+- **The parts every runner has are the family's** (`checks.tests_part`, `smoke_part`, `after_smoke`, `shared_part`,
+  `labels_part`). The three runners had each their own, which had begun to differ: KaLi Quest's smoke loaded its probe
+  without looking, KaLi HUD said "shared smoke:". One login for them all, the game's first (`PLAYER_ENTERING_WORLD`
+  with `true, false`: no code of the three reads them).
+- **A smoke's blocks are found in one place** (`checks.smoke_layout`), which fails a block that doesn't close on an
+  `end` alone at the margin. A line such as `end)` at the margin ended a block unseen before, the rest of its checks
+  then run as what stands between the blocks.
+- **The links kept for nothing are said** (`breaks.stale`), and `--link` drops them: 34 for breaks gone or renamed and
+  6 for breaks that name their own `test:`, all KaLi HUD's.
+- 15 functions of the fakes that nothing called are gone, with the smoke's two lines that set the pointer's frames for
+  one of them (the addon no longer asks what's under the pointer); a dozen comments gone stale say what is.
+
+Checked offline: the family's whole run, ALL PASS in 19 s; the enums check alone in each addon; the readings kept
+before and after the move, the same; a block cut short, said; the three smokes' blocks, the same as before; every
+deliberate break against its link, 1,004 of 1,004 caught (shared 95, quest 67, recipe 84, hud 758). Nothing to see
+in game.

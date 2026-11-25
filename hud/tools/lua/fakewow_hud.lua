@@ -96,12 +96,8 @@ local function system(name, id, label, left, bottom, width, height)
         return label
     end
     function f:IsInDefaultPosition()
-        return not self.broken
+        return true
     end
-    function f:BreakFromFrameManager()
-        self.broken = true
-    end
-    function f:ClearFrameSnap() end
     return f
 end
 F.System = system
@@ -322,12 +318,8 @@ function MinimapCluster:SetEditModeScale(scale)
     self.MinimapContainer:SetScale(scale)
 end
 MinimapCluster.attached = { Minimap }
--- The frames under the pointer, topmost first: the game's world unless a test says otherwise.
+-- The game's world, the frame under all the others.
 WorldFrame = CreateFrame("Frame", "WorldFrame")
-F.mouseFoci = { WorldFrame }
-function GetMouseFoci()
-    return F.mouseFoci
-end
 
 StatusTrackingBarManager = CreateFrame("Frame", "StatusTrackingBarManager", UIParent)
 -- Its first bar's holder as StatusTrackingBar.xml and ExpBar.xml make it: the bar taking the mouse, its rested tick a
@@ -469,7 +461,7 @@ C_Reputation.SetWatchedFactionByID = function(id)
     end
     F.faction = now or { name = "" }
 end
--- No paragon, renown nor friendship faction watched; honour counts while F.watchHonor says so.
+-- No paragon, renown nor friendship faction watched.
 C_Reputation.IsFactionParagonForCurrentPlayer = function()
     return false
 end
@@ -492,12 +484,6 @@ function GetText(key)
 end
 function UnitSex()
     return 2
-end
-function IsWatchingHonorAsXP()
-    return F.watchHonor == true
-end
-function IsInActiveWorldPVP()
-    return false
 end
 function UnitHonorLevel()
     return 12
@@ -728,9 +714,6 @@ function CreateFrame(...)
     -- a frame ignoring its parent's scale is drawn at its own alone, as in game
     function frame:SetIgnoreParentScale(ignore)
         self.ignoreParentScale = ignore and true or nil
-    end
-    function frame:IsIgnoringParentScale()
-        return self.ignoreParentScale == true
     end
     local effectiveScale = frame.GetEffectiveScale
     function frame:GetEffectiveScale()

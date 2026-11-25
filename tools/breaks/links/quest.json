@@ -1,0 +1,386 @@
+{
+ "API check: the chat link's button taken as part of its key": {
+  "quest": {
+   "at": "holds on the fake:",
+   "part": "smoke"
+  }
+ },
+ "API check: the quest tags looked for where the docs say, not where the game has them": {
+  "quest": {
+   "at": "_ID is nil, the addon reads",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode button: Blizzard's options left open over it": {
+  "quest": {
+   "at": "it closes the options, without the game menu, opens Edit Mode and picks the tracker, its dialog open",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode button: missing from the gear's menu": {
+  "quest": {
+   "at": "and « Mode Édition » opens Edit Mode with the tracker picked, where its size and look are set",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode button: missing from the options page": {
+  "quest": {
+   "at": "it closes the options, without the game menu, opens Edit Mode and picks the tracker, its dialog open",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode button: opens while Blizzard asks about a change waiting": {
+  "quest": {
+   "at": "with a change waiting for « Appliquer », Blizzard asks first and Edit Mode waits",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode button: the tracker not picked": {
+  "quest": {
+   "part": "labels"
+  }
+ },
+ "Edit Mode button: tries though the game refuses": {
+  "quest": {
+   "at": "the game refusing Edit Mode, it says so with the game's own line: nil",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode button: works in a fight": {
+  "quest": {
+   "at": "and not in a fight",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode: Blizzard's dialog left open when the tracker starts": {
+  "quest": {
+   "at": "and the addon's back, Blizzard's box goes, with its dialog",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode: Blizzard's selected frame kept": {
+  "quest": {
+   "at": "a click picks it: its box says its name, its dialog opens, and Blizzard's frame and dialog let go",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode: Blizzard's tracker's box left clickable": {
+  "quest": {
+   "at": "Blizzard's tracker's box is see-through and lets the mouse through while the addon draws the tracker",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode: Edit Mode's save not followed": {
+  "quest": {
+   "at": "after Edit Mode's save, back to what was saved",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode: a box not the rows' size": {
+  "quest": {
+   "at": "its box is the rows' width with the scrollbar's room, zoomed, by the height set: 310 800",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode: a change waits for something else to redraw": {
+  "quest": {
+   "at": "a zoom set there applies at once, and the frame's box grows with the rows",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode: a frame of Blizzard's picked keeps the tracker's dialog": {
+  "quest": {
+   "at": "a frame of Blizzard's picked lets go of it",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode: cancelling keeps the places": {
+  "quest": {
+   "at": "« Annuler les modifications » puts back the settings and places as they were on entering Edit Mode",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode: held by its left corner on the right": {
+  "quest": {
+   "at": "on the right half it's held by its top right, and on a grid line while the grid shows: 1360 -440",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode: moved in a fight": {
+  "quest": {
+   "at": "not in a fight",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode: no box on entering it": {
+  "quest": {
+   "part": "labels"
+  }
+ },
+ "Edit Mode: no snapping to the screen's edges": {
+  "quest": {
+   "at": "with Edit Mode's snapping on, dropped near the screen's corner it lands on it: 6 0",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode: one place for every layout": {
+  "quest": {
+   "at": "each layout keeps its own place, the player's own by name",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode: the arrows ignore Shift": {
+  "quest": {
+   "at": "the arrows move it 1, with Shift 10",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode: the background still Blizzard's": {
+  "quest": {
+   "at": "the background's opacity is the addon's own now",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode: the box keeps Blizzard's own drag, which takes its parent for one of Edit Mode's systems": {
+  "quest": {
+   "at": "local D = ns.DB.DEFAULTS",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode: the dialog over the tracker's side": {
+  "quest": {
+   "at": "the dialog opens beside the tracker, on the side away from the screen's edge",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode: the grid ignored": {
+  "quest": {
+   "at": "on the right half it's held by its top right, and on a grid line while the grid shows: -72 -437",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode: the reset forgets no place": {
+  "quest": {
+   "at": "« Revenir à la position par défaut » puts it back on Blizzard's tracker",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode: the rows usable in combat": {
+  "quest": {
+   "at": "in a fight its rows and buttons wait",
+   "part": "smoke"
+  }
+ },
+ "Edit Mode: the text still Edit Mode's size": {
+  "quest": {
+   "at": "Edit Mode's text size no longer sizes the panel: the rows' own size, 10 under the frame's top, centr",
+   "part": "smoke"
+  }
+ },
+ "area: a place an earlier version learnt on a continent's map kept": {
+  "quest": {
+   "at": "starting, a place an earlier version learnt on a continent's map goes, one on a zone's stays",
+   "part": "smoke"
+  }
+ },
+ "area: a place learnt on a continent's map": {
+  "quest": {
+   "at": "on a continent's map, as before the game knows the zone, progress glows but learns no place",
+   "part": "smoke"
+  }
+ },
+ "area: objectives coming after a loading screen taken for progress": {
+  "quest": {
+   "at": "objectives coming to a quest read without any, as after a loading screen, aren't progress: nothing g",
+   "part": "smoke"
+  }
+ },
+ "filter: Suivi hidden with no match": {
+  "quest": {
+   "part": "tests"
+  }
+ },
+ "filter: a player's group with no match hidden": {
+  "quest": {
+   "part": "tests"
+  }
+ },
+ "filter: a search opens Suivi with no match": {
+  "quest": {
+   "part": "tests"
+  }
+ },
+ "filter: a search opens a player's group with no match": {
+  "quest": {
+   "part": "tests"
+  }
+ },
+ "host: Blizzard's tracker widened to the rows again, so its updates run tainted": {
+  "quest": {
+   "at": "with Blizzard's tracker scaled by another addon, the rows are scaled back and fill their box, and th",
+   "part": "smoke"
+  }
+ },
+ "host: a host held by its middle grows the frame from its left": {
+  "quest": {
+   "at": "held by another corner, the frame stands on the host's top corner on that side: CENTER -> TOPLEFT TO",
+   "part": "smoke"
+  }
+ },
+ "host: the frame on the host's top left whatever corner holds it": {
+  "quest": {
+   "at": "once it has one, the frame stands on its top right, where Blizzard's column holds it, so it grows as",
+   "part": "smoke"
+  }
+ },
+ "host: the frame on the stand-in's top left whatever corner holds it": {
+  "quest": {
+   "at": "one moved in Edit Mode already has its anchors, so a shown stand-in on them places the rows, by the",
+   "part": "smoke"
+  }
+ },
+ "labels: a French label too long for the dialog's two lines": {
+  "quest": {
+   "part": "labels"
+  }
+ },
+ "labels: a label too long in German alone": {
+  "quest": {
+   "part": "labels"
+  }
+ },
+ "languages: Mexican Spanish without Castilian under it": {
+  "quest": {
+   "part": "tests"
+  }
+ },
+ "languages: a German string loses a blank": {
+  "quest": {
+   "part": "tests"
+  }
+ },
+ "languages: a German string missing": {
+  "quest": {
+   "part": "tests"
+  }
+ },
+ "languages: a hint names the right button in words": {
+  "quest": {
+   "part": "tests"
+  }
+ },
+ "languages: a language without strings gets none, not English's": {
+  "quest": {
+   "part": "tests"
+  }
+ },
+ "languages: the German quest headers' names left out": {
+  "quest": {
+   "part": "tests"
+  }
+ },
+ "options page: a box ticked tells no one": {
+  "quest": {
+   "at": "switching the tracker off there gives Blizzard's back",
+   "part": "smoke"
+  }
+ },
+ "options page: auto-tracking set elsewhere draws nothing again": {
+  "quest": {
+   "at": "auto-tracking switched elsewhere: the page's box follows",
+   "part": "smoke"
+  }
+ },
+ "options page: its boxes don't follow what a refresh draws": {
+  "quest": {
+   "at": "auto-tracking switched elsewhere: the page's box follows",
+   "part": "smoke"
+  }
+ },
+ "options page: its rows in the game's own list of settings": {
+  "quest": {
+   "at": "the options page and its tips are frames of the addon's own: nothing in the game's lists of settings",
+   "part": "smoke"
+  }
+ },
+ "options page: the reset row resets nothing": {
+  "quest": {
+   "at": "the reset row puts every check box back to its default, and each shows it: Suivi de KaLi Quest, Suiv",
+   "part": "smoke"
+  }
+ },
+ "options page: the tracker's box doesn't follow /kq tracker": {
+  "quest": {
+   "at": "and back on",
+   "part": "smoke"
+  }
+ },
+ "rows: Ctrl picks even when the player gave it to tracking": {
+  "quest": {
+   "at": "with Ctrl the tracking key, holding it says Suivre, not Multisélection: Multisélection (1 1 1)",
+   "part": "smoke"
+  }
+ },
+ "saved data: a nan written at logout": {
+  "quest": {
+   "part": "tests"
+  }
+ },
+ "saved data: a place held by a corner the tracker never uses kept": {
+  "quest": {
+   "part": "tests"
+  }
+ },
+ "saved data: a version that isn't a whole number read": {
+  "quest": {
+   "part": "tests"
+  }
+ },
+ "saved data: an infinite group ID kept": {
+  "quest": {
+   "part": "tests"
+  }
+ },
+ "saved data: nan tested by comparing an option with itself": {
+  "quest": {
+   "at": "nan",
+   "part": "static"
+  }
+ },
+ "saved data: nothing cleaned at logout": {
+  "quest": {
+   "at": "at logout, the number the file can't hold is taken out",
+   "part": "smoke"
+  }
+ },
+ "scale: the rows keep the host's own scale": {
+  "quest": {
+   "at": "with Blizzard's tracker scaled by another addon, the rows are scaled back and fill their box, and th",
+   "part": "smoke"
+  }
+ },
+ "scale: the timer keeps the host's own scale": {
+  "quest": {
+   "at": "and the \"Temps\" panel keeps the rows' size",
+   "part": "smoke"
+  }
+ },
+ "tracking: a quest giver the game hides read": {
+  "quest": {
+   "at": "secret",
+   "part": "static"
+  }
+ },
+ "tracking: a quest the game already tracks asked for again, its false read as the limit reached": {
+  "quest": {
+   "at": "tracked quests moved from group to group all session, and no refusal noted: AddQuestWatch(12) refuse",
+   "part": "smoke"
+  }
+ },
+ "tracking: a refusal never noted": {
+  "quest": {
+   "at": "a refusal under the game's 25 is named, and kept for the build",
+   "part": "smoke"
+  }
+ }
+}

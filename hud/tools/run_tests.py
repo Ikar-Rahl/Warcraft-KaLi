@@ -8,7 +8,8 @@
    today. --write-needs writes it. KaLiHUD/Data/Effects.lua, what each spell's auras change among the sheet's
    attributes, is the one this build's game data gives (hud/tools/make_effects.py writes it); KaLiHUD/Data/Zones.lua,
    the zones' levels its Group Finder suggests, too (hud/tools/make_zones.py); KaLiHUD/Data/Fishing.lua, the original
-   game's base fishing skill of each area found in this build (hud/tools/make_fishing.py).
+   game's base fishing skill of each area found in this build (hud/tools/make_fishing.py); KaLiHUD/Data/BaseStats.lua,
+   each race and class's base attributes at each level, is its generator's table (hud/tools/make_basestats.py).
 5. No code of the shipped addon tests a value against itself, the usual test for nan, which the game's Lua doesn't
    honour; and every call of a game function whose result the API docs say may come as a secret value (the player's
    speed in a fight) reads it through ns.Plain.
@@ -25,24 +26,34 @@
     guarded, and the saved places are named in the hub's own file alone (handler_problems, places_problems).
 12. Each scenario of hud/tools/lua/scenarios/, a short session from a game started for it alone.
 
-The family's tools/run_tests.py runs this after checking the shared code's copies (tools/sync_shared.py writes them).
-Run alone with: python -I hud/tools/run_tests.py
---only <part>[,<part>] runs parts of it alone (static, tests, smoke, alone, scenarios, a scenario's name; "blocks"
-tries each block of the smoke by itself), --at <text> the smoke's one block whose check says that text: see "The
-parts of a run" below. tools/breaks.py runs each deliberate break against the part linked to it.
+The family's tools/run_tests.py runs this beside the other runners, while it checks the shared code's copies
+(tools/sync_shared.py writes them) and the deliberate breaks. Run alone with: python -I hud/tools/run_tests.py
+A whole run plays its parts side by side, each in a process of its own (checks.side_by_side): it takes the smoke's
+time, not their sum.
+--only <part>[,<part>] runs parts of it alone (static, tests, smoke, alone, scenarios, a scenario's name, shared,
+labels; "blocks" tries each block of the smoke by itself), --at <what> narrows the part: the smoke to its one block
+whose check says that text, the static checks to one (api, globals, methods, enums, needs, package, nan, secret,
+effects, zones, fishing, basestats, places, sounds): see "The parts of a run" below. tools/breaks.py runs each
+deliberate break against the part linked to it.
 --addons <dir> runs on a copy, for experiments: hud/addon is linked into the game.
 """
 import csv
+import importlib
 import re
 import sys
+import time
+from concurrent.futures import ThreadPoolExecutor
+from functools import cache
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 sys.path.insert(0, str(HERE))
-from kali import checks, labels  # noqa: E402
+from kali import checks, game  # noqa: E402
+from kali.kept import files, kept, stamps  # noqa: E402
 
+ADDON = "KaLiHUD"
 HUD_LUA = HERE / "lua"
 NEEDS_FILE = "KaLiHUD/Data/Needs.lua"
 ALLOWED_GLOBALS = {
@@ -56,26 +67,48 @@ ALLOWED_GLOBALS = {
 checks.configure(ADDONS=ROOT / "hud/addon", NEEDS_FILE=NEEDS_FILE, ALLOWED_GLOBALS=ALLOWED_GLOBALS, ENGINE_METHODS={"AddDoubleLine", "IsOwned", "NumLines"})
 lupa, rel = checks.lupa, checks.rel
 ADDONS = checks.ADDONS
+# The dialog whose texts the labels' check measures, and what opens it and the options page after a login alone.
+DIALOG = "KaLiHUDEditModeDialog"
+OPENS = "FakeWoW.EnterEditMode(); KaLiHUDDev.ns.EditFrame.Select(); FakeWoW.RunTimers()"
+
+
+@cache
+def build_words():
+    """This build's French game strings, its classes' names and Blizzard's question mark: (words, classes, mark)."""
+    import make_icons
+    words = make_icons.global_strings("frFR")
+    with open(game.tables() / "ChrClasses.frFR.csv", encoding="utf-8", newline="") as f:
+        classes = {row["Filename"]: row["Name_male_lang"] for row in csv.DictReader(f)}
+    constants = (game.UI_SOURCE / "AddOns/Blizzard_FrameXMLBase/Constants.lua").read_text(encoding="utf-8")
+    question = re.search(r'^QUESTION_MARK_ICON = "(.*)";', constants, re.M)
+    return words, classes, question.group(1).replace("\\\\", "\\") if question else None
+
+
+@cache
+def built(name):
+    """What hud/tools/make_<name>.py gives from this build's tables (its build()), read once a process. The effects',
+    seconds of reading, are kept from one run to the next while the build's tables and their generator stay the same
+    (kali/kept.py)."""
+    make = importlib.import_module(f"make_{name}")
+    if name != "effects":
+        return make.build()
+    return kept("effects", (stamps(make.DB2), files(make.__file__)), make.build)
 
 
 def icons_from_build(lua):
     """Gives the fake what the folders' icon library takes from the game, as this build has it in French, the fake's
     language: the game strings its icons are named by (Data/Icons.lua's `game`), every class's name (DB2 ChrClasses)
     and Blizzard's question mark (Blizzard_FrameXMLBase's Constants.lua), so the API check finds them as in game."""
-    import make_icons
     g = lua.globals()
-    words = make_icons.global_strings("frFR")
+    words, classes, question = build_words()
     icons = (ADDONS / "KaLiHUD/Data/Icons.lua").read_text(encoding="utf-8")
     for name in re.findall(r'\bgame = "(\w+)"', icons):
         if name in words:
             g[name] = words[name]
-    with open(max(checks.DB2.iterdir()) / "ChrClasses.frFR.csv", encoding="utf-8", newline="") as f:
-        for row in csv.DictReader(f):
-            g.LOCALIZED_CLASS_NAMES_MALE[row["Filename"]] = row["Name_male_lang"]
-    constants = (checks.UI_SOURCE / "AddOns/Blizzard_FrameXMLBase/Constants.lua").read_text(encoding="utf-8")
-    question = re.search(r'^QUESTION_MARK_ICON = "(.*)";', constants, re.M)
+    for filename, name in classes.items():
+        g.LOCALIZED_CLASS_NAMES_MALE[filename] = name
     if question:
-        g.QUESTION_MARK_ICON = question.group(1).replace("\\\\", "\\")
+        g.QUESTION_MARK_ICON = question
 
 
 def runtime():
@@ -100,11 +133,10 @@ def runtime():
 def sound_problems(lua):
     """Every sound the addon plays (Init.lua's FOLD_SOUNDS and FOLDER_SOUNDS) is a kit of this build's SoundKit table,
     by number or by its name in Blizzard's SOUNDKIT."""
-    text = (checks.UI_SOURCE / "AddOns/Blizzard_SharedXML/Mainline/SoundKitConstants.lua").read_text(encoding="utf-8")
     names = {}
-    for name, kit in re.findall(r"^\s*(\w+)\s*=\s*(\d+)", text, re.M):
+    for name, kit in re.findall(r"^\s*(\w+)\s*=\s*(\d+)", game.SOUNDKITS.read_text(encoding="utf-8"), re.M):
         names.setdefault(name, kit)
-    with open(max(checks.DB2.iterdir()) / "SoundKit.csv", encoding="utf-8", newline="") as f:
+    with open(game.tables() / "SoundKit.csv", encoding="utf-8", newline="") as f:
         kits = {row["ID"] for row in csv.DictReader(f)}
     ns = lua.eval("KaLiHUDDev.ns")
     problems, count = [], 0
@@ -228,10 +260,10 @@ def alone_problems():
 
 # ---------- Scenarios ----------
 # A scenario is a file of hud/tools/lua/scenarios/: a short session of its own, from a game started for it alone, so
-# what it finds depends on nothing another left behind (the smoke is one session of six thousand lines, each part of
-# it living on what the parts before it left: the review of 2026-11-18). New cases go here. --scenario <word> runs
-# those whose name holds the word and nothing else, in seconds: a deliberate break names the one that must catch it
-# (tools/breaks.py), "tests" for KaLiHUD_Tests alone.
+# what it finds depends on nothing another left behind (the smoke is one long session, each part of it living on what
+# the parts before it left: the review of 2026-11-18). New cases go here. --only <word> runs those whose name holds
+# the word and nothing else, in seconds: a deliberate break names the one that must catch it (tools/breaks.py),
+# "tests" for KaLiHUD_Tests alone.
 SCENARIOS = HUD_LUA / "scenarios"
 PRELUDE = r'''
 local F = FakeWoW
@@ -350,174 +382,88 @@ def places_problems(shipped):
 
 
 def scenario_problems(word=None):
-    """Each scenario in a game of its own: what it expected and didn't find, an error of its own, and its handlers."""
-    problems, ran = [], 0
-    for path in sorted(SCENARIOS.glob("*.lua")):
-        if word and word not in path.stem:
-            continue
-        ran += 1
-        lua, load_addon = runtime()
-        load_addon("KaLiHUD")
-        lua.execute(PRELUDE)
-        try:
-            lua.execute(path.read_text(encoding="utf-8"))
-        except Exception as error:  # a scenario that raises proves nothing: said, with its first line
-            problems.append(f"scenario {path.stem}: error: {str(error).splitlines()[0]}")
-        problems += [f"scenario {path.stem}: {failure}" for failure in lua.globals().FAILURES.values()]
-        problems += handler_problems(lua)[0]
-    return problems, ran
+    """Each scenario in a game of its own, side by side in threads (lupa lets go of Python's lock while a Lua state
+    runs, so each runs on a core of its own: all of them in about the time of the slowest few, not their sum): its
+    problems, in the scenarios' order."""
+    paths = [path for path in sorted(SCENARIOS.glob("*.lua")) if not word or word in path.stem]
+    # what every game takes from the build's files, read once before the threads start: each would read it itself
+    build_words(), game.modified_click_defaults(), game.map_types()
+    with ThreadPoolExecutor(max(1, min(8, len(paths)))) as pool:
+        found = list(pool.map(scenario_run, paths))
+    return [problem for problems in found for problem in problems], len(paths)
+
+
+def scenario_run(path):
+    """A scenario in a game of its own: what it expected and didn't find, an error of its own, and its handlers."""
+    lua, load_addon = runtime()
+    load_addon("KaLiHUD")
+    lua.execute(PRELUDE)
+    problems = []
+    try:
+        lua.execute(path.read_text(encoding="utf-8"))
+    except Exception as error:  # a scenario that raises proves nothing: said, with its first line
+        problems.append(f"scenario {path.stem}: error: {str(error).splitlines()[0]}")
+    problems += [f"scenario {path.stem}: {failure}" for failure in lua.globals().FAILURES.values()]
+    return problems + handler_problems(lua)[0]
 
 
 # ---------- The parts of a run ----------
-# A whole run is its parts one after the other. --only <part>[,<part>...] runs those alone, after the compile: "static"
-# (what the code names against this build's game, the package, the lists made from the code), "tests" (KaLiHUD_Tests),
-# "smoke" (the long session, with what reads its game after it: the shared code's check, the labels, the handlers, the
-# restart), "alone" (a first run with no other addon), "scenarios" (all of them), or a word a scenario's name holds.
+# A whole run plays its parts side by side (WHOLE). --only <part>[,<part>...] runs those alone, after the compile: "static"
+# (what the code names against this build's game, the package, the lists made from the code; --at one of its checks),
+# "tests" (KaLiHUD_Tests), "smoke" (the long session, with what reads its game after it: the shared code's check, the
+# labels, the handlers, the restart; --at the block of one of its checks), "alone" (a first run with no other addon),
+# "scenarios" (all of them), a word a scenario's name holds, "shared" and "labels" (their checks after a login alone).
 # A deliberate break is linked to the part that must catch it (tools/breaks.py), and runs that alone.
-PARTS = ("static", "tests", "smoke", "alone", "scenarios")
+PARTS = ("static", "tests", "smoke", "alone", "scenarios", "shared", "labels", "blocks")
+SMOKE = HUD_LUA / "smoke.lua"
 
 
-def compile_problems():
-    lua = lupa.LuaRuntime(unpack_returned_tuples=True)
-    sources, problems = sorted(ADDONS.rglob("*.lua")), []
-    for path in sources:
-        result = lua.globals().loadstring(path.read_text(encoding="utf-8"), "@" + rel(path))
-        if isinstance(result, tuple) and result[1]:
-            problems.append(f"compile: {result[1]}")
-    print(f"compile: {len(sources)} files")
-    return problems, sources
-
-
-def part_static(sources):
-    problems = []
-    called_by_blizzard, defined_by_blizzard, methods_by_blizzard, defined_in, templates_in, fonts_in = checks.ui_source_names()
-    unknown, known = checks.unknown_api_calls(sources, called_by_blizzard)
-    print(f"api: {known} documented C_ functions, {len(unknown)} unknown names used")
-    problems += [f"api not in this build's docs: {u}" for u in unknown]
-    unknown_globals = checks.unknown_global_calls(sources, defined_by_blizzard)
-    print(f"globals: {len(unknown_globals)} unknown global functions called")
-    problems += [f"global function not in the game: {u}" for u in unknown_globals]
-    unknown_methods = checks.unknown_method_calls(sources, methods_by_blizzard)
-    print(f"methods: {len(unknown_methods)} unknown method names called")
-    problems += [f"method not in the game: {u}" for u in unknown_methods]
-    used_enums = checks.addon_enums(sources)
-    enums = checks.enum_problems(used_enums, checks.documented_enums())
-    print(f"enums: {len(used_enums)} named, {len(enums)} not in this build's docs nor Blizzard's code")
-    problems += enums
-
+def part_static(sources, at):
     needs_path = ADDONS / NEEDS_FILE
     shipped = [p for p in sorted((ADDONS / "KaLiHUD").rglob("*.lua")) if p != needs_path]
-    found = checks.needs(shipped, checks.documented_functions(called_by_blizzard), defined_in, templates_in, fonts_in)
-    expected = checks.needs_lua(found)
-    if "--write-needs" in sys.argv:
-        needs_path.parent.mkdir(parents=True, exist_ok=True)
-        needs_path.write_text(expected, encoding="utf-8", newline="\n")
-    elif not needs_path.exists() or needs_path.read_text(encoding="utf-8") != expected:
-        problems.append(f"needs: {rel(needs_path)} is out of date: run hud/tools/run_tests.py --write-needs")
-    print(f"needs: {len(found['globals'])} globals, {len(found['events'])} events, {len(found['atlases'])} atlases, "
-          f"{len(found['templates'])} templates, {len(found['cvars'])} CVars, {len(found['strings'])} strings")
-    import make_effects
-    effects, spells = make_effects.build()
-    effects_path = ADDONS / "KaLiHUD/Data/Effects.lua"
-    if not effects_path.exists() or effects_path.read_text(encoding="utf-8") != effects:
-        problems.append(f"effects: {rel(effects_path)} isn't this build's: run hud/tools/make_effects.py")
-    print(f"effects: {spells} spells whose auras change the sheet's attributes")
-    import make_zones
-    zones, zone_maps = make_zones.build()
-    zones_path = ADDONS / "KaLiHUD/Data/Zones.lua"
-    if not zones_path.exists() or zones_path.read_text(encoding="utf-8") != zones:
-        problems.append(f"zones: {rel(zones_path)} isn't this build's: run hud/tools/make_zones.py")
-    print(f"zones: {zone_maps} zone maps with the levels Forever's Group Finder suggests")
-    import make_fishing
-    fishing, (fishing_zones, fishing_subzones, fishing_instances) = make_fishing.build()
-    fishing_path = ADDONS / "KaLiHUD/Data/Fishing.lua"
-    if not fishing_path.exists() or fishing_path.read_text(encoding="utf-8") != fishing:
-        problems.append(f"fishing: {rel(fishing_path)} isn't this build's: run hud/tools/make_fishing.py")
-    print(f"fishing: {fishing_zones} zone maps, {fishing_subzones} sub-zones and {fishing_instances} dungeons with the"
-          " original game's base fishing skill")
+    found = checks.static_checks("KaLiHUD", sources, shipped, needs_path, "hud/tools/run_tests.py")
+
+    def table(name, file, says, said):
+        def check():
+            text, count = built(name)
+            path = ADDONS / f"KaLiHUD/Data/{file}"
+            print(said(count))
+            if not path.exists() or path.read_text(encoding="utf-8") != text:
+                return [f"{name}: {rel(path)} isn't {says}: run hud/tools/make_{name}.py"]
+            return []
+        return name, check
+
+    def places():
+        problems = places_problems(shipped)
+        print(f"places: {len(problems)} mentions of the saved places outside the hub's own file")
+        return problems
+
+    def sounds():
+        lua, load_addon = runtime()
+        load_addon("KaLiHUD")
+        problems, played = sound_problems(lua)
+        print(f"sounds: {played} kits played, {len(problems)} not in this build")
+        return problems
+
     import make_basestats
-    basestats, pairs = make_basestats.build()
-    basestats_path = ADDONS / "KaLiHUD/Data/BaseStats.lua"
-    if not basestats_path.exists() or basestats_path.read_text(encoding="utf-8") != basestats:
-        problems.append(f"basestats: {rel(basestats_path)} isn't its table's: run hud/tools/make_basestats.py")
-    print(f"basestats: {pairs} classes' base attributes at levels 1 to 60, the original game's, and "
-          f"{len(make_basestats.OFFSETS)} races' offsets")
-    package, count = checks.package_problems("KaLiHUD")
-    print(f"package: {count} files, {len(package)} problems")
-    problems += package
-    nan = checks.self_compare_problems(shipped)
-    print(f"nan: {len(nan)} values compared with themselves in the shipped addon")
-    problems += nan
-    secret, hidden = checks.secret_problems(shipped)
-    print(f"secret: {hidden} calls whose result the game may hide, {len(secret)} not read through ns.Plain")
-    problems += secret
-    places = places_problems(shipped)
-    print(f"places: {len(places)} mentions of the saved places outside the hub's own file")
-    problems += places
-    return problems
-
-
-def part_tests():
-    lua, load_addon = runtime()
-    load_addon("KaLiHUD")
-    load_addon("KaLiHUD_Tests")
-    report = lua.eval("KaLiHUDTests.Run()")
-    print(report.text)
-    return [f"tests: {report.summary}"] if report.failed > 0 else []
-
-
-def smoke_session(at=None):
-    """The smoke's session, whole; or, for a text one of its checks says (`at`), with only the block that holds that
-    check: the session's blocks (each a line `do` alone, to its `end`) are scopes of their own, so one left out takes
-    no name another needs, and what stands between the blocks is always run (a block the rest stands on says so after
-    its `do`, and is never left out). Whether a block can stand without those before it is for who asks to know:
-    `--only blocks` tries each on the code as it is, and tools/breaks.py the one it means to use. A text no block
-    holds, among what's always run: no block at all. `at` a number: the block that starts at that line.
-    Returns the source, and the lines of the blocks kept (none: an empty list); None for the whole session."""
-    text = (HUD_LUA / "smoke.lua").read_text(encoding="utf-8")
-    if at is None or at == "":
-        return text, None
-    if isinstance(at, str):
-        # what a check says often ends in what it found ("...: 3 for 2"): the longest start of the text that the
-        # session's source holds, a score of letters at the least
-        while len(at) > 20 and at not in text:
-            at = at[:-1]
-    lines = text.split("\n")
-    starts = [i for i, line in enumerate(lines) if line == "do"]
-    # every block that says the text: two checks may say the same words
-    kept = []
-    for start in starts:
-        end = next(j for j in range(start + 1, len(lines)) if lines[j].startswith("end"))
-        if start + 1 == at or isinstance(at, str) and any(at in line for line in lines[start:end + 1]):
-            kept.append(start)
-    if not kept and not (at == 0 or isinstance(at, str) and any(at in line for line in lines)):
-        return text, None
-    for start in starts:
-        if start not in kept:
-            lines[start] = "if false then"
-    return "\n".join(lines), [start + 1 for start in kept]
-
-
-def smoke_blocks():
-    """The lines the session's blocks start at (smoke_session), 0 first for none of them."""
-    lines = (HUD_LUA / "smoke.lua").read_text(encoding="utf-8").split("\n")
-    return [0] + [i + 1 for i, line in enumerate(lines) if line == "do"]
+    return checks.run_static(found + [
+        table("effects", "Effects.lua", "this build's", lambda n: f"effects: {n} spells whose auras change the sheet's attributes"),
+        table("zones", "Zones.lua", "this build's", lambda n: f"zones: {n} zone maps with the levels Forever's Group Finder suggests"),
+        table("fishing", "Fishing.lua", "this build's", lambda n: f"fishing: {n[0]} zone maps, {n[1]} sub-zones and {n[2]} dungeons"
+              " with the original game's base fishing skill"),
+        table("basestats", "BaseStats.lua", "its table's", lambda n: f"basestats: {n} classes' base attributes at levels 1 to 60,"
+              f" the original game's, and {len(make_basestats.OFFSETS)} races' offsets"),
+        ("places", places), ("sounds", sounds)], at)
 
 
 def part_blocks():
     """Each block of the smoke's session alone, with what's always run: one that fails so stands on a block before
-    it, and a deliberate break whose check it holds runs the whole session (tools/breaks.py). Not part of a whole
-    run: some minutes."""
+    it, and a deliberate break whose check it holds can't be linked to it (tools/breaks.py). Not part of a whole
+    run."""
     problems = []
-    for block in smoke_blocks():
-        lua, load_addon = runtime()
-        load_addon("KaLiHUD")
-        if (ADDONS / "KaLiHUD_Probe").exists():
-            load_addon("KaLiHUD_Probe")
-        try:
-            failures = list(lua.execute(smoke_session(block)[0]).values())
-        except Exception as error:
-            failures = [f"error: {str(error).splitlines()[0]}"]
+    for block in checks.smoke_blocks(SMOKE):
+        lua, _ = checks.with_probe(runtime, ADDON)
+        failures = checks.smoke_run(lua, SMOKE, block)[0]
         where = f"line {block}" if block else "none"
         print(f"block {where}: {'alone' if not failures else 'NOT ALONE: ' + failures[0][:90]}", flush=True)
         problems += [f"blocks: the block at {where} doesn't pass alone: {failures[0][:120]}"] if failures else []
@@ -525,82 +471,60 @@ def part_blocks():
 
 
 def part_smoke(at=None):
-    problems = []
-    lua, load_addon = runtime()
-    load_addon("KaLiHUD")
-    sounds, played = sound_problems(lua)
-    print(f"sounds: {played} kits played, {len(sounds)} not in this build")
-    problems += sounds
-    if (ADDONS / "KaLiHUD_Probe").exists():
-        load_addon("KaLiHUD_Probe")
-    session, blocks = smoke_session(at)
-    failures = list(lua.execute(session).values())
-    print(f"smoke: {'PASS' if not failures else 'FAIL'}"
-          + (f" (the block at line {', '.join(map(str, blocks))} alone)" if blocks
-             else " (no block, what stands between them)" if blocks is not None else ""))
-    problems += [f"smoke: {f}" for f in failures]
+    lua, load_addon, problems, blocks = checks.smoke_part(runtime, ADDON, SMOKE, at)
     if blocks is not None:
         return problems
-    shared_failures = checks.shared_smoke(lua, "KaLiHUD")
-    print(f"shared smoke: {'PASS' if not shared_failures else 'FAIL'}")
-    problems += shared_failures
-    misfits, measured = labels.problems(lua, "KaLiHUDDev", "KaLiHUDEditModeDialog")
-    print(measured)
-    problems += misfits
-    leaks = sorted(set(lua.globals().KALI_LEAKS.values()))
-    problems += [f"global written: {leak}" for leak in leaks]
+    problems += checks.after_smoke(lua, ADDON, DIALOG)
     bare, handed = handler_problems(lua)
     print(f"handlers: {handed} of the addon's own handed to the game in the session, {len(bare)} not guarded")
-    problems += bare
     restart = restart_problems(lua, load_addon)
     print(f"restart: {len(restart)} problems")
-    problems += restart
-    return problems
+    return problems + bare + restart
+
+
+# A whole run's parts, each in a process of its own, side by side, in the order the run says them.
+WHOLE = (["--only", "static"], ["--only", "tests"], ["--only", "smoke"], ["--only", "alone"], ["--only", "scenarios"])
 
 
 def main():
-    import time
-    only = sys.argv[sys.argv.index("--only") + 1].split(",") if "--only" in sys.argv else None
-    problems, sources = compile_problems()
-
-    def part(name, run):
-        if only is None or name in only:
-            started = time.time()
-            found = run()
-            problems.extend(found)
-            print(f"[{name}: {time.time() - started:.1f} s]")
-
-    part("static", lambda: part_static(sources))
-    part("tests", part_tests)
-    # --at <text>: of the smoke, the block whose check says that text alone (smoke_session)
-    at = sys.argv[sys.argv.index("--at") + 1] if "--at" in sys.argv else None
-    at = int(at) if at and at.isdigit() else at
-    part("smoke", lambda: part_smoke(at))
-    if only and "blocks" in only:
-        part("blocks", part_blocks)
+    run = checks.Run(PARTS, words=lambda word: any(word in path.stem for path in SCENARIOS.glob("*.lua")))
+    problems, sources = checks.compile_problems(say=run.report is None)
+    run.problems += problems
+    if run.only is None:  # a whole run: as long as its longest part, the smoke
+        started = time.time()
+        for said, found in checks.side_by_side(__file__, WHOLE):
+            print(said, flush=True)
+            run.problems += found
+        print(f"[side by side: {time.time() - started:.1f} s]")
+        run.end()
+        return
+    run.part("static", lambda: part_static(sources, run.at))
+    run.part("tests", lambda: checks.tests_part(runtime, ADDON))
+    run.part("smoke", lambda: part_smoke(run.at))
+    if run.only and "blocks" in run.only:
+        run.part("blocks", part_blocks)
 
     def alone():
         found = alone_problems()
         print(f"alone: {len(found)} problems")
         return found
 
-    part("alone", alone)
+    run.part("alone", alone)
     # the scenarios: all of them, or those a word names
-    words = [word for word in only or [] if word not in PARTS and word != "blocks"]
-    if only is None or "scenarios" in only or words:
+    words = [word for word in run.only or [] if word not in PARTS]
+    if run.only is None or "scenarios" in run.only or words:
         started = time.time()
-        for word in ([None] if only is None or "scenarios" in only else words):
+        for word in ([None] if run.only is None or "scenarios" in run.only else words):
             found, ran = scenario_problems(word)
             print(f"scenarios{' ' + word if word else ''}: {ran} run, {len(found)} problems")
-            problems.extend(found if ran else [f"scenarios: none named {word}"])
+            # (a word no scenario's name holds: checks.Run has said so)
+            run.problems.extend(found)
         print(f"[scenarios: {time.time() - started:.1f} s]")
-
-    print()
-    if problems:
-        print("\n".join(problems))
-        print(f"\nFAIL: {len(problems)} problem(s)")
-        sys.exit(1)
-    print("ALL PASS")
+    # in a whole run, both after the smoke, on what it left (part_smoke)
+    if run.only:
+        run.part("shared", lambda: checks.shared_part(runtime, ADDON))
+        run.part("labels", lambda: checks.labels_part(runtime, ADDON, DIALOG, OPENS))
+    run.end()
 
 
 if __name__ == "__main__":

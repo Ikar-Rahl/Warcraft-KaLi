@@ -1,6 +1,7 @@
 -- Just enough of the WoW API to load the KaLi addons and their probes outside the game, for their runners (the family's
--- checks are tools/kali/checks.py; KaLi Recipe adds recipe/tools/lua/fakewow_recipe.lua). Where the game's answer is
--- known from this build's files, the fake gives that answer, not one of its own.
+-- checks are tools/kali/checks.py; KaLi Recipe adds recipe/tools/lua/fakewow_recipe.lua, KaLi HUD
+-- hud/tools/lua/fakewow_hud.lua). Where the game's answer is known from this build's files, the fake gives that
+-- answer, not one of its own.
 -- State lives in FakeWoW so tests can set up a quest log, combat and CVars, and fire events.
 FakeWoW = { frames = {}, timers = {}, cvars = { autoQuestWatch = "1", showQuestDifficultyColor = "1", ActionButtonUseKeyDown = "1" },
     combat = false, entries = {}, watched = {},
@@ -222,9 +223,6 @@ function frameMethods:ClearFocus()
         F.focus = nil
     end
 end
-function frameMethods:HasFocus()
-    return F.focus == self
-end
 function frameMethods:HighlightText()
     self.highlighted = true
 end
@@ -398,17 +396,11 @@ end
 function frameMethods:StartMoving()
     self.moving, self.userPlaced = true, true
 end
-function frameMethods:StartSizing(point)
-    self.sizing, self.userPlaced = point or true, true
-end
 function frameMethods:StopMovingOrSizing()
     self.moving, self.sizing = nil, nil
 end
 function frameMethods:SetUserPlaced(placed)
     self.userPlaced = placed and true or false
-end
-function frameMethods:IsUserPlaced()
-    return self.userPlaced == true
 end
 function frameMethods:SetDontSavePosition(dont)
     self.dontSavePosition = dont and true or false
@@ -491,16 +483,25 @@ local TEMPLATE_ONLOAD = {
     DialogBorderTranslucentTemplate = dialogBorder,
     DialogBorderOpaqueTemplate = dialogBorder,
 }
+-- Each name's answer kept: a frame's missing field is asked for again and again (2026-11-25: 85% of a smoke's time).
+local methodNames = {}
 local function isMethodName(key)
     if type(key) ~= "string" then
         return false
     end
+    local known = methodNames[key]
+    if known ~= nil then
+        return known
+    end
+    known = false
     for _, prefix in ipairs(METHOD_PREFIXES) do
         if key:sub(1, #prefix) == prefix and (#key == #prefix or key:sub(#prefix + 1, #prefix + 1):match("[A-Z]")) then
-            return true
+            known = true
+            break
         end
     end
-    return false
+    methodNames[key] = known
+    return known
 end
 
 function CreateFrame(kind, name, parent, template)
@@ -635,10 +636,11 @@ C_Timer = {
     end,
 }
 
--- The game measures scroll ranges after the frame's code has run, then fires OnScrollRangeChanged.
+-- The game measures scroll ranges after the frame's code has run, then fires OnScrollRangeChanged. The field read raw:
+-- through a frame's metatable, every frame ever made, at every pass, was most of a session's time (2026-11-25).
 function F.LayoutPass()
     for _, frame in ipairs(F.frames) do
-        if frame.scrollChild then
+        if rawget(frame, "scrollChild") then
             local range = frame:GetVerticalScrollRange()
             if range ~= frame.lastRange then
                 frame.lastRange = range
@@ -1269,20 +1271,6 @@ end
 local function control(setting)
     F.settingsLayout:AddInitializer({ setting = setting })
 end
--- As Blizzard's SettingMixin: the default goes through SetValue, so its callback runs, changed or not.
-local function withDefault(setting, default)
-    function setting:GetDefaultValue()
-        return default
-    end
-    function setting:SetValueToDefault()
-        if default == nil then
-            return false
-        end
-        self:SetValue(default)
-        return true
-    end
-    return setting
-end
 Settings = {
     VarType = { Boolean = "boolean" },
     Default = { True = true, False = false },
@@ -1299,7 +1287,7 @@ Settings = {
         return category, F.settingsLayout
     end,
     RegisterAddOnSetting = function(category, variable, key, tbl, _, name, default)
-        local setting = withDefault({ key = key, tbl = tbl, name = name }, default)
+        local setting = { key = key, tbl = tbl, name = name }
         function setting:SetValueChangedCallback(fn)
             self.callback = fn
         end
@@ -1399,9 +1387,6 @@ function F.PageRow(page, name)
         end
     end
 end
-function CreateSettingsListSectionHeaderInitializer(text)
-    return { header = text }
-end
 function CreateSettingsButtonInitializer(name, buttonText, buttonClick, tooltip, addSearchTags)
     assert(addSearchTags ~= nil, "CreateSettingsButtonInitializer needs addSearchTags, as Blizzard's asserts")
     return { name = name, buttonText = buttonText, buttonClick = buttonClick, tooltip = tooltip }
@@ -1446,9 +1431,6 @@ ScrollUtil = {
                 fn(owner, ...)
             end
         end
-        function bar:GetScrollPercentage()
-            return self.scrollPercentage
-        end
         function bar:SetScrollPercentage(percentage)
             self.scrollPercentage = saturate(percentage)
             if self.callbacks.OnScroll then
@@ -1460,9 +1442,6 @@ ScrollUtil = {
         end
         function bar:SetScrollAllowed(allowed)
             self.allowScroll = allowed
-        end
-        function bar:IsScrollAllowed()
-            return self.allowScroll
         end
         function bar:ScrollStepInDirection(direction)
             if self.allowScroll then
@@ -2103,9 +2082,6 @@ Settings.CreateControlTextContainer = function()
     function container:Add(value, label)
         self.data[#self.data + 1] = { value = value, label = label }
     end
-    function container:GetData()
-        return self.data
-    end
     return container
 end
 -- A slider keeps its range on its setting, so the smoke test can compare it with what loading allows.
@@ -2119,7 +2095,7 @@ Settings.CreateSlider = function(_, setting, options)
     control(setting)
 end
 Settings.RegisterProxySetting = function(category, variable, _, name, default, get, set)
-    local setting = withDefault({ name = name }, default)
+    local setting = { name = name }
     function setting:SetValueChangedCallback(fn)
         self.callback = fn
     end

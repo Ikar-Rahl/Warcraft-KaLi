@@ -41,7 +41,9 @@ committed, so what is tested is what ships.
    session.
 4. A fix worth keeping proven goes in `tools/breaks/shared.py`; `python -I tools/breaks.py tools/breaks/shared.py`
    checks every addon's tests catch each break (a break names the addons where it changes anything, when it isn't
-   all three). Each addon's own fixes have theirs, `tools/breaks/quest.py`, `recipe.py` and `hud.py`.
+   all three), each against its link in that addon, most often the shared code's checks after a login alone
+   (`--only shared`); `--link` finds a new break's. Each addon's own fixes have theirs, `tools/breaks/quest.py`,
+   `recipe.py` and `hud.py`.
 
 The dialog and the options page draw their texts in rooms of Blizzard's sizes, where the game cuts what doesn't fit:
 `tools/kali/labels.py` measures each text an addon gives them, in every language it speaks, with the game's own font
