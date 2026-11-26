@@ -13,8 +13,9 @@ armour, 2 holy to 64 arcane); 30 and 98 a skill by points (its misc the skill li
 its attribute, every other for the skills' own tooltips, UI/Hub/Infos/Skills.lua; Ikar 2026-11-18: "for fishing, I
 see only bonus +5, not the source");
 34, 230 and 250 the health by points, 133 by a share; 35 a power by points (its misc the power's kind, 0 mana); 13
-the spells' damage by points (its misc their schools, kept with one at least, the weapons' alone not), 135 their
-healing; 123 the targets' resistances (the spell penetration, its points below 0), on one magic school at least; 54
+the damage by points (its misc its schools: the spells', and the weapons' physical, which the weapons' lines follow
+under the pointer, Ikar 2026-11-26: "Everything should follow, every, single, line"), 79 by a share (the same misc),
+135 their healing; 123 the targets' resistances (the spell penetration, its points below 0), on one magic school at least; 54
 and 55 the chance to hit with weapons and spells, 52 and 57 to strike critically with them, 290 with both, 49 to
 dodge, 47 to parry, 51 to block, by points of a percent; the haste by a share, each kind its attacks' (Ikar
 2026-11-19: "the haste value seems doubled": one buff's melee and ranged haste are two effects, not twice the
@@ -220,10 +221,13 @@ def kept(aura, misc, second=0):
         return misc & ARMOR_AND_SCHOOLS != 0
     if aura in (30, 98):
         return misc > 0
-    if aura == 13:
-        return misc & MAGIC != 0
+    if aura in (13, 79):
+        return misc & (MAGIC | 1) != 0
     if aura == 123:
         return misc & (MAGIC | 1) != 0
+    if aura == 280:
+        # the armour ignored by a share (Serrated Blades, Weapon Mastery): named on the armour penetration's card
+        return True
     if aura == 174:
         return misc & MAGIC == MAGIC and 0 <= second <= 4
     if aura in (175, 598):

@@ -428,7 +428,13 @@ local SOURCES = {
     -- the armour lowered
     EXPERTISE = { gear = { "ITEM_MOD_EXPERTISE_RATING_SHORT" }, rating = function() return CR_EXPERTISE or 24 end,
         flat = { [240] = true }, percent = true, noBase = true },
-    ARMORPEN = { gear = {}, flat = { [123] = true }, negate = true, misc = schools(0), noBase = true },
+    -- (280 the armour ignored by a share, Serrated Blades', Weapon Mastery's: named, whether the game's figure holds it
+    -- not known, the design's open question; Ikar 2026-11-26, "fix the gaps")
+    ARMORPEN = { gear = {}, flat = { [123] = true }, shareOnly = { [280] = true }, negate = true, noBase = true,
+        misc = (function()
+            local armour = schools(0)
+            return function(misc, kind) return kind == 280 or armour(misc) end
+        end)() },
 }
 -- Values with no base of their own, nothing but their sources: what those leave of them is « Autres », not a base
 -- (sourcesOf).
@@ -780,12 +786,13 @@ for _, r in ipairs({
             end
             return raised(effective, bonus), changedBy(effective, bonus)
         end,
-        -- its sources from its whole, as the armour's
+        -- its sources from its whole, as the armour's; an item's resistance to every school too (Forever's stat 124)
         total = function()
             local _, _, effective = ns.Plain(UnitResistance("player", class))
             return effective
         end,
-        sources = { gear = { "RESISTANCE" .. class .. "_NAME" }, flat = { [22] = true, [83] = true },
+        sources = { gear = { "RESISTANCE" .. class .. "_NAME", "ITEM_MOD_SPELL_RESISTANCE_ALL_SCHOOLS_SHORT" },
+            flat = { [22] = true, [83] = true },
             share = { [101] = true }, misc = schools(class), noBase = true } }
 end
 
@@ -795,7 +802,8 @@ end
 -- (CharacterSpellBonusDamage_OnEnter's SpellSchoolIcon), its card titled with the sheet's word; its
 -- sources those of its school (13's misc a mask of them), an item's spell power or spell damage and a share of an
 -- attribute or of the whole all six's, so that what they leave is « Autres » (a school's alone had named its sources
--- with their schools and left nothing said).
+-- with their schools and left nothing said); an item's damage of that school alone too, Forever's « Dégâts de feu »
+-- (its items' stats 84 to 89: the Inferno Robe's, the Icicle Rod's; Ikar 2026-11-26, "fix the gaps").
 for _, r in ipairs({ { "ARCANE", 7, "Arcane" }, { "FIRE", 3, "Fire" }, { "FROST", 5, "Frost" },
     { "NATURE", 4, "Nature" }, { "SHADOW", 6, "Shadow" }, { "HOLY", 2, "Holy" } }) do
     local school, inSchool = r[2], schools(r[2] - 1)
@@ -810,7 +818,8 @@ for _, r in ipairs({ { "ARCANE", 7, "Arcane" }, { "FIRE", 3, "Fire" }, { "FROST"
             return v and number(v)
         end,
         total = function() return ns.Plain(GetSpellBonusDamage(school)) end,
-        sources = { gear = SOURCES.SPELLPOWER.gear, flat = { [13] = true }, ofStat = { [174] = true },
+        sources = { gear = { "ITEM_MOD_SPELL_POWER_SHORT", "ITEM_MOD_SPELL_DAMAGE_DONE_SHORT",
+            "ITEM_MOD_" .. r[3]:upper() .. "_DAMAGE_DONE_SHORT" }, flat = { [13] = true }, ofStat = { [174] = true },
             share = { [317] = true }, noBase = true,
             misc = function(misc, kind) return kind ~= 13 or inSchool(misc) end } }
 end
@@ -1564,6 +1573,67 @@ end
 -- combat's, nothing in the main hand its unarmed's: its value with its bonus, the level's most (five a level), its
 -- name; false with no weapon of a skill there (no ranged weapon, a fishing pole), nil when it can't be read. The
 -- weapon tried in the slot while what would be is read (wornLink): an axe tried in place of a mace, the axes' skill.
+-- What the items tried would change of the skill line `line`, against those worn in the slots they would take: Forever's
+-- items' weapon skills (their stats 90 to 105, « +3 Dagues »; Ikar 2026-11-26, "fix the gaps"); 0 while nothing is
+-- tried. The fists' the fist weapons'.
+Tried.SKILL_STATS = { [43] = "ITEM_MOD_SWORDS_SHORT", [44] = "ITEM_MOD_AXES_SHORT", [45] = "ITEM_MOD_BOWS_SHORT",
+    [46] = "ITEM_MOD_GUNS_SHORT", [54] = "ITEM_MOD_MACES_SHORT", [55] = "ITEM_MOD_TWOHANDED_SWORDS_SHORT",
+    [136] = "ITEM_MOD_STAVES_SHORT", [160] = "ITEM_MOD_TWOHANDED_MACES_SHORT", [162] = "ITEM_MOD_FIST_WEAPONS_SHORT",
+    [172] = "ITEM_MOD_TWOHANDED_AXES_SHORT", [173] = "ITEM_MOD_DAGGERS_SHORT", [176] = "ITEM_MOD_THROWN_SHORT",
+    [226] = "ITEM_MOD_CROSSBOWS_SHORT", [228] = "ITEM_MOD_WANDS_SHORT", [229] = "ITEM_MOD_POLEARMS_SHORT" }
+function Tried.SkillChange(line)
+    local key = Tried.SKILL_STATS[line]
+    local links = WOULD and WOULD.links
+    if not (key and links) then
+        return 0
+    end
+    local function of(link)
+        local stats = link and C_Item.GetItemStats(link)
+        return type(stats) == "table" and tonumber(stats[key]) or 0
+    end
+    local change = 0
+    for slot, link in pairs(links) do
+        change = change + of(link or nil) - of(GetInventoryItemLink("player", slot))
+    end
+    return change
+end
+-- The quiver or the ammunition pouch worn in a bag's slot (an item of the kind « Carquois », 11), its link and slot; the
+-- one tried in its place while what would be is read (`quiver`, itemTried).
+function Tried.WornQuiver()
+    for bag = 1, NUM_BAG_SLOTS or 4 do
+        local slot = C_Container and C_Container.ContainerIDToInventoryID
+            and ns.Call(C_Container.ContainerIDToInventoryID, bag)
+        local link = type(slot) == "number" and GetInventoryItemLink("player", slot)
+        local ok, _, _, _, _, _, class = pcall(C_Item.GetItemInfoInstant, link or "")
+        if link and ok and class == (Enum.ItemClass and Enum.ItemClass.Quiver or 11) then
+            return link, slot
+        end
+    end
+end
+function Tried.Quiver()
+    if WOULD and WOULD.quiver then
+        return WOULD.quiver
+    end
+    return (Tried.WornQuiver())
+end
+-- The spells of what what is tried would take off (Data/Effects.lua's ITEM_SPELLS), which the game may show as auras:
+-- theirs no more (the worn items replaced or emptied, the worn quiver for one tried; Ikar 2026-11-26, "fix the gaps").
+function Tried.TakenOff()
+    local off = {}
+    local function drop(link)
+        local id = link and tonumber(link:match("item:(%-?%d+)"))
+        for spell in (id and ns.ITEM_SPELLS and ns.ITEM_SPELLS[id] or ""):gmatch("%d+") do
+            off[tonumber(spell)] = true
+        end
+    end
+    for slot in pairs(WOULD and WOULD.links or {}) do
+        drop(GetInventoryItemLink("player", slot))
+    end
+    if WOULD and WOULD.quiver then
+        drop((Tried.WornQuiver()))
+    end
+    return off
+end
 local SKILL_OF_WEAPON = { Sword1H = 43, Axe1H = 44, Bows = 45, Guns = 46, Mace1H = 54, Sword2H = 55, Staff = 136,
     Mace2H = 160, Axe2H = 172, Dagger = 173, Thrown = 176, Crossbow = 226, Wand = 228, Polearm = 229, Unarmed = 162 }
 local function weaponSkill(slot)
@@ -1595,7 +1665,8 @@ local function weaponSkill(slot)
     if type(rank) ~= "number" then
         return nil
     end
-    return rank + (ns.Plain(info.modifier) or 0), (UnitLevel("player") or 0) * 5, ns.Plain(info.name) or "?", info
+    return rank + (ns.Plain(info.modifier) or 0) + Tried.SkillChange(line), (UnitLevel("player") or 0) * 5,
+        ns.Plain(info.name) or "?", info
 end
 -- A shield's block as its tooltip writes it (SHIELD_BLOCK_TEMPLATE, « Bloquer : %s »; Forever's data has no field of
 -- it, the client working it out): the worn one's, the one tried's by its link; nil for none, an off hand that isn't a
@@ -1664,6 +1735,39 @@ function Tried.ManaFromSpirit()
     end
     local sum = Tried.SPIRIT_MANA
     return v * (sum[1] + max(0, spirit + more) * sum[2]) / (sum[1] + spirit * sum[2])
+end
+-- The health the spirit gives a second (GetHealthRegenFromSpirit, the game's at the spirit now), what is tried's change
+-- of the spirit followed while what would be is read, an estimate (Ikar 2026-11-26: "Everything should follow, every,
+-- single, line. Not a single exception"): no sum of Forever's is known (neither sim models it), and the original
+-- server's isn't Ikar's dwarf shaman's (spirit x 0.28 - 3.6 a tick of 2 s, 34 in 5 s standing at 64 spirit where he
+-- had 33); its slope for the class, a point of spirit's share of a tick, added to the game's figure. What it gives the
+-- lines says the game's question mark after it (wouldBe's `estimate`); a class the original server hasn't, the
+-- spirit's question alone. The spirit read, what it stands on (Tried.leaned): an attribute's change that can't be said
+-- is its question.
+Tried.SPIRIT_HEALTH = { WARRIOR = 1.26, ROGUE = 0.84, HUNTER = 0.43, SHAMAN = 0.28, PALADIN = 0.25, PRIEST = 0.15,
+    WARLOCK = 0.12, MAGE = 0.11, DRUID = 0.11 }
+function Tried.HealthFromSpirit()
+    local v = ns.Plain(GetHealthRegenFromSpirit())
+    if type(v) ~= "number" then
+        return nil
+    end
+    if Tried.leaned then
+        Tried.leaned[5] = true
+    end
+    local more = WOULD and WOULD.attributes and WOULD.attributes[5] or 0
+    if more == 0 then
+        return v
+    end
+    local slope = Tried.SPIRIT_HEALTH[select(2, UnitClass("player")) or ""]
+    return slope and max(0, v + slope / 2 * more) or v
+end
+-- Whether what is tried (`tried`: Tried.With's) changes the spirit, the health it gives then an estimate: "estimate",
+-- "unknown" for a class the original server hasn't (no slope: its figure as it is, the question alone); nil else.
+function Tried.SpiritGuess(tried)
+    if not (tried and tried.attributes and (tried.attributes[5] or 0) ~= 0) then
+        return nil
+    end
+    return Tried.SPIRIT_HEALTH[select(2, UnitClass("player")) or ""] and "estimate" or "unknown"
 end
 -- The dodge the agility gives, a share of one (GetDodgeChanceFromAttribute, the game's at the agility now): what is
 -- tried's change of the agility followed point for point.
@@ -1762,7 +1866,7 @@ local PARTS = {
     -- out of a fight, standing, as the sheet takes it: three quarters of what the spirit gives
     HEALTH_REGEN = function()
         local list = {}
-        local v = ns.Plain(GetHealthRegenFromSpirit())
+        local v = Tried.HealthFromSpirit()
         part(list, 5, v and floor(v * 0.75 * 5 + 1e-6))
         return list
     end,
@@ -2036,18 +2140,21 @@ local function sourcesOf(s, withNext, full)
     if not changes then
         return #list > 0 and list or nil, channel
     end
-    -- the auras first, so that a spell met as one isn't named again as a talent's or a passive's
-    local auraList = {}
+    -- the auras first, so that a spell met as one isn't named again as a talent's or a passive's; not those of what is
+    -- tried takes off (Tried.TakenOff)
+    local auraList, off = {}, WOULD and Tried.TakenOff() or {}
     for _, filter in ipairs(FILTERS) do
         for i = 1, 255 do
             local aura = ns.Plain(C_UnitAuras.GetAuraDataByIndex("player", i, filter))
             if type(aura) ~= "table" then
                 break
             end
-            auraList[#auraList + 1] = aura
             local spell = ns.Plain(aura.spellId)
-            if spell then
-                t.seen[spell] = true
+            if not off[spell] then
+                auraList[#auraList + 1] = aura
+                if spell then
+                    t.seen[spell] = true
+                end
             end
         end
     end
@@ -2105,6 +2212,23 @@ local function sourcesOf(s, withNext, full)
                 setOrder[#setOrder + 1] = set
             end
             sets[set] = (sets[set] or 0) + 1
+        end
+    end
+    -- the quiver's or the ammunition pouch's own spells, in a bag's slot (its arrows' « Hâte », 557), the one tried in
+    -- its place (Tried.Quiver; Ikar 2026-11-26, "fix the gaps"): one row, as an item's
+    local quiver = Tried.Quiver()
+    local quiverId = quiver and tonumber(quiver:match("item:(%-?%d+)"))
+    if quiverId then
+        t.slot = nil
+        local row = { name = itemName(quiver, select(2, Tried.WornQuiver())), kind = "gear", item = true }
+        for spell in (ns.ITEM_SPELLS and ns.ITEM_SPELLS[quiverId] or ""):gmatch("%d+") do
+            spell = tonumber(spell)
+            if not t.seen[spell] and needsMet(spell) then
+                addSpell(t, spell, row.name, ownPoints, row)
+            end
+        end
+        if row.points or row.share or row.unsure then
+            list[#list + 1] = row
         end
     end
     -- the weapons' oils and stones, theirs for a while (the permanent ones are the items' links')
@@ -2889,8 +3013,9 @@ local GIVES = {
         end
         return list
     end,
-    -- standing, as the sheet takes it: three quarters of the spirit's health; what the spirit tried would give of it
-    -- the game's question, its share given at the spirit now alone (untold), the mana's followed (Tried.ManaFromSpirit)
+    -- standing, as the sheet takes it: three quarters of the spirit's health; what the spirit tried would give of it an
+    -- estimate, the game's question after it (Tried.HealthFromSpirit; alone for a class the original server hasn't),
+    -- the mana's followed (Tried.ManaFromSpirit)
     SPIRIT = function()
         local list = {}
         -- both figures stand on the spirit, the mana's or not: a change of it that can't be said is their question
@@ -2898,14 +3023,16 @@ local GIVES = {
         if Tried.leaned then
             Tried.leaned[5] = true
         end
-        local health = ns.Plain(GetHealthRegenFromSpirit())
+        local health = Tried.HealthFromSpirit()
         local caption = G("ITEM_MOD_HEALTH_REGEN_SHORT", "Health per 5 sec.")
-        if WOULD and WOULD.attributes and (WOULD.attributes[5] or 0) ~= 0 then
-            tile(list, ask(L.STAT_WHY_SPIRIT), caption)
-        else
-            -- (cut to a whole as the sheet's « %d » writes them, the regenerations' cards the same)
-            tile(list, whole(health and floor(health * 0.75 * 5 + 1e-6)), caption)
+        -- (cut to a whole as the sheet's « %d » writes them, the regenerations' cards the same)
+        local figure, guess = whole(health and floor(health * 0.75 * 5 + 1e-6)), Tried.SpiritGuess(WOULD)
+        if guess == "unknown" or (guess and not figure) then
+            figure = ask(L.STAT_WHY_SPIRIT)
+        elseif guess then
+            figure = figure .. " " .. ask(L.STAT_WHY_SPIRIT)
         end
+        tile(list, figure, caption)
         if hasMana() then
             local manaOf = Tried.ManaFromSpirit()
             tile(list, whole(manaOf and floor(manaOf * 5 + 1e-6)), G("MANA_REGEN", "Mana Regen"))
@@ -3098,16 +3225,35 @@ do
         ratio(lines, G("DEFENSE", "Defense"), PERCENT_PER_DEFENSE, what,
             { percent = true, point = true, around = level() * 5 })
     end
-    local function weapon(lines, speed, low, high)
+    -- (the hand `slot`'s with what is tried on the card kept open, Tried.what: its speed and its damage a second as
+    -- they would be, the figure as it is greyed, the arrow, the blue; Tried.Hand; Ikar 2026-11-26: "Everything should
+    -- follow, every, single, line")
+    local function weapon(lines, speed, low, high, slot)
         if type(speed) ~= "number" or speed <= 0 then
             return
         end
+        local wouldLow, wouldHigh, wouldSpeed
+        if slot and Tried.what and not ns.InCombat() then
+            local was = WOULD
+            WOULD = Tried.Full()
+            local ok, a, b, c = pcall(Tried.Hand, slot)
+            WOULD = was
+            if not ok then
+                error(a, 0)
+            elseif type(a) == "number" then
+                wouldLow, wouldHigh, wouldSpeed = a, b, c
+            end
+        end
+        local function said(now, tried)
+            return tried and tried ~= now and Stats.Became(now, tried) or white(now)
+        end
         local label = G("STAT_FORMAT", "%s:")
         lines[#lines + 1] = string.format(label, G("ATTACK_SPEED_SECONDS", "Attack Speed (seconds)")) .. " "
-            .. white(Format.Decimal(speed, 2))
+            .. said(Format.Decimal(speed, 2), wouldSpeed and Format.Decimal(wouldSpeed, 2))
         if type(low) == "number" and type(high) == "number" then
             lines[#lines + 1] = string.format(label, G("DAMAGE_PER_SECOND", "Damage per second")) .. " "
-                .. white(Format.Decimal((low + high) / 2 / speed, 1))
+                .. said(Format.Decimal((low + high) / 2 / speed, 1),
+                    wouldLow and Format.Decimal((wouldLow + wouldHigh) / 2 / wouldSpeed, 1))
         end
     end
     RATIOS.STRENGTH = function(lines)
@@ -3170,20 +3316,20 @@ do
     end
     RATIOS.MAINHAND_DAMAGE = function(lines)
         local low, high = ns.Plain(UnitDamage("player"))
-        weapon(lines, (ns.Plain(UnitAttackSpeed("player"))), low, high)
+        weapon(lines, (ns.Plain(UnitAttackSpeed("player"))), low, high, 16)
         skill(lines, 16)
     end
     RATIOS.OFFHAND_DAMAGE = function(lines)
         local _, _, low, high = ns.Plain(UnitDamage("player"))
         local _, speed = ns.Plain(UnitAttackSpeed("player"))
-        weapon(lines, speed, low, high)
+        weapon(lines, speed, low, high, 17)
         if type(speed) == "number" and speed > 0 then
             skill(lines, 17)
         end
     end
     RATIOS.RANGED_DAMAGE = function(lines)
         local speed, low, high = ns.Plain(UnitRangedDamage("player"))
-        weapon(lines, speed, low, high)
+        weapon(lines, speed, low, high, 18)
         skill(lines, 18)
     end
     -- a resistance's: its points for 1 % of average resistance, against one of the character's level
@@ -4062,15 +4208,17 @@ function Tried.With(what)
     return tried
 end
 
--- A value the sources can't follow a change of: the health's regeneration, the game giving the spirit's share of it
--- at the spirit now alone, and no sum of Forever's known to follow it with (the original server's, its shamans'
--- spirit x 0.28 - 3.6 a tick, isn't Ikar's dwarf shaman's: 33 in 5 s standing at 64 spirit, where it gives 34); the
--- question, the spirit's own where its change can't be said (the share being the game's figure, the regeneration's
--- readings never ask for the spirit, wouldBe's `stands`). The mana's follows it (Tried.ManaFromSpirit).
+-- A value the sources follow a change of by an estimate alone: the health's regeneration, the game giving the spirit's
+-- share of it at the spirit now alone (Tried.HealthFromSpirit, the original server's slope): "estimate", its figure
+-- said with the game's question after it (Ikar 2026-11-26: "Everything should follow, every, single, line"); its
+-- question alone for a class the original server hasn't, the spirit's own where its change can't be said
+-- (Tried.DoubtOf: the regeneration's readings ask for the spirit). The mana's follows it (Tried.ManaFromSpirit).
 local function untold(s, tried)
-    if s.key == "HEALTH_REGEN" and (tried.attributes[5] ~= 0 or tried.doubts[5]) then
-        return tried.doubts[5] or L.STAT_WHY_SPIRIT
+    local guess = s.key == "HEALTH_REGEN" and Tried.SpiritGuess(tried)
+    if guess == "unknown" then
+        return L.STAT_WHY_SPIRIT
     end
+    return nil, guess == "estimate"
 end
 
 -- The value `s` with `what` in place (`tried`: Tried.With's of it, when already had): nil when nothing of it would
@@ -4087,7 +4235,8 @@ local function wouldBe(s, what, tried)
     if not ok then
         error(delta, 0)
     end
-    unsure = unsure or Tried.DoubtOf(tried, stands) or untold(s, tried)
+    local question, estimate = untold(s, tried)
+    unsure = unsure or Tried.DoubtOf(tried, stands) or question
     -- what the game's sums leave over is the value's as it is: the same in both
     for _, e in ipairs(nowList) do
         if e.other then
@@ -4108,7 +4257,7 @@ local function wouldBe(s, what, tried)
         return nil
     end
     return { list = wouldList, now = nowList, delta = delta or 0, value = effective and delta and effective + delta,
-        unsure = unsure }
+        unsure = unsure, estimate = estimate and not unsure or nil }
 end
 
 -- A row's figure without its colours, for one that is said in one colour whole.
@@ -4124,6 +4273,7 @@ Stats.ARROW = ARROW
 local function became(old, new)
     return Infos.Color(old, WAS_HEX) .. " " .. ARROW .. " " .. Infos.Color(new, WOULD_HEX)
 end
+Stats.Became = became
 
 -- The rows as they would be, beside those as they are (a row is the same by its name, or by what it is where its name
 -- holds a figure of what is tried: `match`, the armour of the damage reduction, the defence in a sum): one that would
@@ -4395,13 +4545,13 @@ do
         end
         local mana, states = key == "REGEN", r.states
         local inner = mana and "cast" or "fight"
-        -- the spirit's part out of casting or standing, seated (the game's call, the sheet's three quarters); the
-        -- mana's with the spirit tried, while the table tried is read (regenTried)
+        -- the spirit's part out of casting or standing, seated (the game's call, the sheet's three quarters); with the
+        -- spirit tried, while the table tried is read (regenTried), the mana's and the health's (its estimate)
         local spirit
         if mana then
             spirit = Tried.ManaFromSpirit()
         else
-            spirit = ns.Plain(GetHealthRegenFromSpirit())
+            spirit = Tried.HealthFromSpirit()
         end
         spirit = (type(spirit) == "number" and spirit or 0) * 5
         local base = mana and spirit or spirit * 0.75
@@ -4446,13 +4596,16 @@ do
         local rows, gear, sets, rest, rests = {}, {}, {}, {}, {}
         for i, e in ipairs(list) do
             if e.base and not e.other and not e.mistake then
-                -- the spirit's: out of casting or standing, seated a third more (asked), 0 in casting or a fight
+                -- the spirit's: out of casting or standing, seated a third more (asked), 0 in casting or a fight; the
+                -- health's by the spirit tried an estimate, asked standing too (Tried.HealthFromSpirit)
                 local cells = {}
                 for n, state in ipairs(states) do
                     if state == "seat" then
                         cells[n] = figure(key, spirit) .. " " .. ask(L.STAT_WHY_SEATED)
                     elseif state == inner then
                         cells[n] = figure(key, 0)
+                    elseif not mana and Tried.SpiritGuess(WOULD) == "estimate" then
+                        cells[n] = figure(key, base) .. " " .. ask(L.STAT_WHY_SPIRIT)
                     else
                         cells[n] = figure(key, base)
                     end
@@ -4551,6 +4704,7 @@ do
         end
         rows[#rows + 1] = { left = L.STAT_TOTAL, cells = cells, total = true }
         return { rows = rows, totals = r.totals, game = r.game, gains = r.gains, states = states, named = named,
+            spirit = spirit,
             within = within,
             keptSum = keptSum, captions = mana and { L.STAT_COL_OUT_CAST, L.STAT_COL_CASTING }
                 or { L.STAT_COL_STANDING, L.STAT_COL_SEATED, L.STAT_COL_FIGHT } }
@@ -4583,6 +4737,10 @@ do
         for i, state in ipairs(tried.states) do
             local change = state == inner and (tried.named - now.named + tried.keptSum - now.keptSum)
                 or (would and would.delta or 0)
+            -- (seated, the spirit's part whole where standing has three quarters of it: RegenTotals' seat)
+            if state == "seat" then
+                change = change + (tried.spirit - now.spirit) * 0.25
+            end
             totals[state] = tried.totals[state] + change
             tried.rows[#tried.rows].cells[i] = figure(s.key, totals[state])
         end
@@ -4605,7 +4763,11 @@ do
             return UNKNOWN
         end
         local text = Stats.RegenText(s.key, tried.states, totals)
-        return text ~= Stats.RegenText(s.key, now.states, now.totals) and Infos.Color(text, WOULD_HEX) or nil
+        if text == Stats.RegenText(s.key, now.states, now.totals) then
+            return nil
+        end
+        -- (an estimate, the health's by the spirit tried: the game's question after it)
+        return Infos.Color(text, WOULD_HEX) .. (would and would.estimate and " " .. UNKNOWN or "")
     end
 
     -- The card's table, and what `what` would make of it on a card kept open: its rows beside the table now (the
@@ -4626,8 +4788,8 @@ do
         if unsure then
             data.regenWould = { value = ask(unsure), detail = was }
         else
-            data.regenWould = { value = Infos.Color(Stats.RegenText(s.key, tried.states, totals), WOULD_HEX),
-                detail = was }
+            data.regenWould = { value = Infos.Color(Stats.RegenText(s.key, tried.states, totals), WOULD_HEX)
+                .. (would and would.estimate and " " .. ask(L.STAT_WHY_SPIRIT) or ""), detail = was }
         end
         return true
     end
@@ -4785,8 +4947,10 @@ local function cardSources(data, s, what, again)
 end
 
 -- What is under the pointer, for the card kept open (nil: nothing to try). An item that could be worn: in its slot
--- (a ring's, a trinket's, a one-handed weapon's first), a two-handed one emptying the off hand; none for one worn
--- already. A consumable, a meal: the spells it puts on whoever uses it, where the data has some for the sheet
+-- (a ring's, a trinket's, a one-handed weapon's first), a two-handed one emptying the off hand, a shield, an off-hand
+-- weapon or a held item taking a two-handed weapon worn off with it (as the game's comparison shows both; Ikar
+-- 2026-11-26: "when hovering a shield, does it also take into account the new main weapon ? in case you had a 2h
+-- weapon ?"); none for one worn already. A consumable, a meal: the spells it puts on whoever uses it, where the data has some for the sheet
 -- (Data/Effects.lua's ITEM_USES, a meal's buff followed from its eating); one without changes nothing. A talent: at
 -- its next rank, a rank of one for one not bought.
 local EQUIP_SLOTS = {
@@ -4805,6 +4969,10 @@ local function itemTried(link)
         return nil
     end
     local slot = EQUIP_SLOTS[info[10] or ""]
+    -- (a quiver or an ammunition pouch, in a bag's slot: in the worn one's place, Tried.Quiver)
+    if info[13] == (Enum.ItemClass and Enum.ItemClass.Quiver or 11) then
+        return link ~= Tried.WornQuiver() and { quiver = link } or nil
+    end
     if slot then
         for worn = FIRST_SLOT, LAST_SLOT do
             if GetInventoryItemLink("player", worn) == link then
@@ -4814,6 +4982,12 @@ local function itemTried(link)
         local links = { [slot] = link }
         if info[10] == "INVTYPE_2HWEAPON" then
             links[17] = false
+        elseif slot == 17 then
+            local worn = GetInventoryItemLink("player", 16)
+            local ok, _, _, _, equip = pcall(C_Item.GetItemInfoInstant, worn or "")
+            if worn and ok and equip == "INVTYPE_2HWEAPON" then
+                links[16] = false
+            end
         end
         return { links = links }
     end
@@ -4965,6 +5139,15 @@ local function showCard(owner, s, keep, again)
         else
             data.detail = Infos.Color(change, WOULD_HEX)
         end
+    elseif keep and text and s.would and Tried.what and not ns.InCombat() then
+        -- (a hand's: what its line would say, the game's question after an estimate, said at the foot)
+        local figure = s.would(Tried.Full())
+        if figure then
+            if figure:find(UNKNOWN, 1, true) then
+                ask(L.STAT_WHY_HAND)
+            end
+            data.value, data.detail = figure, Infos.Color(plainText(text), WAS_HEX) .. " " .. ARROW
+        end
     end
     if s.tip then
         data.about[#data.about + 1] = { text = s.tip(), color = Infos.GREY }
@@ -5076,6 +5259,9 @@ Tried.FIGURES = {
 -- blue, the game's question mark where it can't be said, nil where it wouldn't change, or where the line's
 -- figure wouldn't (a change smaller than its tenth or its whole: the card kept open says it).
 function Tried.LineOf(s, tried)
+    if s.would then
+        return s.would(tried)
+    end
     local w = wouldBe(s, Tried.what, tried)
     if Stats.IsRegen(s) then
         return Stats.RegenLineWould(s, tried, w)
@@ -5109,6 +5295,227 @@ function Tried.LineOf(s, tried)
     return Infos.Color(plainText(figure), WOULD_HEX)
 end
 
+-- ---------- The weapons' lines, what they would be ----------
+-- (Ikar 2026-11-26: "Everything should follow, every, single, line. Not a single exception. Under no cisrcumstances";
+-- of the damage's share, "would degat infliger change weapon DPS ?") A hand's hits as the sheet takes them, the game's
+-- figures (UnitDamage, UnitRangedDamage) changed by what is tried: its attack power's change (Tried.Change), a point a
+-- second for 14 a hit at the weapon's speed (the sheet's ATTACK_POWER_MAGIC_NUMBER, POWER_PER_DAMAGE); a weapon tried
+-- in the hand, its damage and its speed for the worn one's, what the base holds beside them kept (an enchantment's
+-- damage, the ammunition's: the game's question after the figure, it may go with the weapon); the off hand by the
+-- share of the hits the game gives it now (a first weapon there, the game's half: asked, its talents unknown). The off
+-- hand or the ranged left empty, or given what is no weapon (a shield, a relic): « Aucune »; the main hand emptied, a
+-- two-handed weapon taken off with what goes in the off hand, its fists (Tried.FISTS, asked). A druid in a form
+-- strikes with its paws, its weapon nothing to them.
+
+-- A weapon's damage and speed as its tooltip writes them, the one worn in `slot` or the item `link`: the line whose
+-- right says its speed (« Vitesse 2,60 », SPEED) and whose left its damage (« Dégâts : 32 - 45 », DAMAGE_TEMPLATE, or
+-- with its school); nil where none says them (no weapon, not read yet).
+function Tried.WeaponOf(slot, link)
+    if not C_TooltipInfo then
+        return nil
+    end
+    local data
+    if link then
+        data = ns.Call(C_TooltipInfo.GetHyperlink, link)
+    else
+        data = ns.Call(C_TooltipInfo.GetInventoryItem, "player", slot)
+    end
+    local word = G("SPEED", "Speed")
+    for _, line in ipairs(type(data) == "table" and type(data.lines) == "table" and data.lines or {}) do
+        local left = type(line) == "table" and ns.Plain(line.leftText)
+        local right = type(line) == "table" and ns.Plain(line.rightText)
+        if type(left) == "string" and type(right) == "string" and right:find(word, 1, true) then
+            local low, high = left:match("(%d+)[%s\194\160]*%-[%s\194\160]*(%d+)")
+            local speed = tonumber(((right:match("(%d+[%.,]?%d*)") or ""):gsub(",", ".")))
+            if low and speed and speed > 0 then
+                return { low = tonumber(low), high = tonumber(high), speed = speed }
+            end
+        end
+    end
+end
+-- A main hand emptied, its fists: the original server's 1 - 2 at 2,00, Forever's unknown (asked).
+Tried.FISTS = { low = 1, high = 2, speed = 2 }
+-- The ammunition a ranged weapon shoots, by its kind: arrows, bullets, none (thrown, a wand).
+function Tried.Ammo(link)
+    local ok, _, _, _, _, _, _, subclass = pcall(C_Item.GetItemInfoInstant, link or "")
+    local kinds = Enum.ItemWeaponSubclass or {}
+    if not ok then
+        return nil
+    elseif subclass == kinds.Bows or subclass == kinds.Crossbow then
+        return "arrow"
+    elseif subclass == kinds.Guns then
+        return "bullet"
+    end
+    return "none"
+end
+
+-- The physical damage's own changes (Data/Effects.lua's 13 by points and 79 by a share, on the physical school; Ikar
+-- 2026-11-26: "would degat infliger change weapon DPS ?"): what is tried would make of them beside what they make now,
+-- the share of each hit a product (they multiply each other), the points a sum; and whether one tried has no figure.
+function Tried.IsPhysical(misc)
+    return misc % 2 == 1
+end
+Tried.PHYSICAL = { key = "PHYSICAL", sources = { gear = { "ITEM_MOD_PHYSICAL_DAMAGE_DONE_SHORT" }, flat = { [13] = true },
+    noBase = true,
+    misc = Tried.IsPhysical } }
+Tried.PHYSICAL_SHARE = { key = "PHYSICAL_SHARE", sources = { gear = {}, flat = { [79] = true }, percent = true,
+    noBase = true, multiplies = true, misc = Tried.IsPhysical } }
+function Tried.Physical(what)
+    local function tally(s, with)
+        local share, points, unknown = 1, 0, 0
+        for _, e in ipairs((tallyWith(s, with))) do
+            if type(e.points) == "number" then
+                share, points = share * (1 + e.points / 100), points + e.points
+            elseif not e.next then
+                unknown = unknown + 1
+            end
+        end
+        return share, points, unknown
+    end
+    local nowShare, _, nowUnknown = tally(Tried.PHYSICAL_SHARE, nil)
+    local wouldShare, _, wouldUnknown = tally(Tried.PHYSICAL_SHARE, what)
+    local _, nowPoints, nowMissing = tally(Tried.PHYSICAL, nil)
+    local _, wouldPoints, wouldMissing = tally(Tried.PHYSICAL, what)
+    return wouldShare / nowShare, wouldPoints - nowPoints, wouldUnknown > nowUnknown or wouldMissing > nowMissing
+end
+
+-- What the hand `slot` (16, 17, 18) would hit for with what is tried in place (WOULD): its low, its high, its speed,
+-- the line's bonuses and multiplier (damage()), and whether it is an estimate; "none" where it would hold no weapon,
+-- "unknown" where the weapon tried says no damage yet; nil where the game hides its figures or the hand has none and
+-- gets none. The physical damage's changes tried on every hit (Tried.Physical).
+function Tried.Hand(slot)
+    local low, high, speed, pos, neg, pct
+    if slot == 18 then
+        -- (as the line: its multiplier only, GetRangedDamage leaving the bonuses out)
+        speed, low, high = ns.Plain(UnitRangedDamage("player"))
+        pct, pos, neg = select(6, ns.Plain(UnitRangedDamage("player"))), 0, 0
+    else
+        local mainLow, mainHigh, offLow, offHigh, p, n, q = ns.Plain(UnitDamage("player"))
+        local mainSpeed, offSpeed = ns.Plain(UnitAttackSpeed("player"))
+        if slot == 16 then
+            low, high, speed = mainLow, mainHigh, mainSpeed
+        else
+            low, high, speed = offLow, offHigh, offSpeed
+        end
+        pos, neg, pct = p or 0, n or 0, q
+    end
+    if type(pct) ~= "number" or pct <= 0 then
+        return nil
+    end
+    local has = type(low) == "number" and type(high) == "number" and type(speed) == "number" and speed > 0 and high > 0
+    local tried = WOULD and WOULD.links and WOULD.links[slot]
+    -- (the main hand emptied, a two-handed weapon taken off with what goes in the off hand: its fists, asked)
+    local fists = slot == 16 and tried == false
+    if tried == false and not fists then
+        return "none"
+    elseif tried and not fists then
+        local ok, _, _, _, _, _, class = pcall(C_Item.GetItemInfoInstant, tried)
+        if not ok or class ~= (Enum.ItemClass and Enum.ItemClass.Weapon or 2) then
+            return "none"
+        end
+    end
+    local power
+    if slot == 18 then
+        power = { ns.Plain(UnitRangedAttackPower("player")) }
+    else
+        power = { ns.Plain(UnitAttackPower("player")) }
+    end
+    if type(power[1]) ~= "number" then
+        return nil
+    end
+    local ap = power[1] + (power[2] or 0) + (power[3] or 0)
+    local more = Tried.Change(slot == 18 and "RANGED_ATTACK_AP" or "ATTACK_AP")
+    local factor, points, asked = 1, 0, false
+    -- (its speed by what is tried's change of that kind's haste, a quiver's, an elixir's: the game's sum of its shares)
+    local quick = 1
+    if WOULD then
+        factor, points, asked = Tried.Physical(WOULD)
+        local melee, ranged = hasteBy()
+        local now = slot == 18 and ranged or melee
+        local faster = Tried.Change("HASTE", slot == 18 and "r" or "m")
+        if type(now) == "number" and faster ~= 0 then
+            quick = (100 + now) / (100 + now + faster)
+        end
+    end
+    -- (the line's bonuses with the points tried, the ranged line's none, as its own; the multiplier with the share's)
+    local plus = slot == 18 and 0 or max(points, 0)
+    local minus = slot == 18 and 0 or min(points, 0)
+    local after = pct * factor
+    local paws = slot ~= 18 and select(2, UnitClass("player")) == "DRUID" and (ns.Call(GetShapeshiftForm) or 0) ~= 0
+    local old = has and not paws and Tried.WeaponOf(slot)
+    local baseLow, baseHigh = has and low / pct - pos - neg, has and high / pct - pos - neg
+    -- the off hand's share of its weapon's hits and of the power's, the game's now
+    local share = 1
+    if slot == 17 and old then
+        share = (baseLow + baseHigh) / (old.low + old.high + 2 * ap * old.speed / POWER_PER_DAMAGE)
+    end
+    if (not tried and not fists) or paws then
+        if not has then
+            return nil
+        end
+        local hit = more / POWER_PER_DAMAGE * (old and old.speed or speed) * (slot == 17 and old and share or 1)
+        return (baseLow + hit + pos + neg + points) * after, (baseHigh + hit + pos + neg + points) * after,
+            speed * quick, pos + plus, neg + minus, after, asked or (slot == 17 and not old and more ~= 0)
+    end
+    local new = fists and Tried.FISTS or Tried.WeaponOf(nil, tried)
+    if not new then
+        return "unknown"
+    end
+    local enchanted = not fists and tried:match("item:%d+:(%d*)") or ""
+    local estimate = fists or (enchanted ~= "" and enchanted ~= "0")
+    local restLow, restHigh, hasted = 0, 0, 1
+    if has and old then
+        local part = ap * old.speed / POWER_PER_DAMAGE
+        restLow, restHigh = baseLow - (old.low + part) * share, baseHigh - (old.high + part) * share
+        hasted = speed / old.speed
+        if slot == 18 then
+            -- (the ammunition's by the speed, as the game adds it; another kind's unknown)
+            local kept = Tried.Ammo(GetInventoryItemLink("player", 18)) == Tried.Ammo(tried)
+            estimate = estimate or (not kept and (restLow >= 0.5 or restLow <= -0.5))
+            restLow, restHigh = restLow * new.speed / old.speed, restHigh * new.speed / old.speed
+        else
+            estimate = estimate or restLow >= 0.5 or restLow <= -0.5 or restHigh >= 0.5 or restHigh <= -0.5
+        end
+    elseif slot == 17 then
+        share, estimate = 0.5, true
+    elseif slot == 18 and Tried.Ammo(tried) ~= "none" then
+        -- (a first bow or gun: the ammunition it would shoot unknown)
+        estimate = true
+    elseif has and GetInventoryItemLink("player", slot) then
+        estimate = true
+    end
+    local part = (ap + more) * new.speed / POWER_PER_DAMAGE
+    return ((new.low + part) * share + restLow + pos + neg + points) * after,
+        ((new.high + part) * share + restHigh + pos + neg + points) * after, new.speed * hasted * quick, pos + plus,
+        neg + minus, after, estimate or asked
+end
+-- The line of a hand as Tried.Hand would make it: in the blue, the game's question after an estimate; nil where it
+-- wouldn't change.
+function Tried.HandLine(s, slot, tried)
+    local was = WOULD
+    WOULD = tried
+    local ok, low, high, _, pos, neg, pct, estimate = pcall(Tried.Hand, slot)
+    WOULD = was
+    if not ok then
+        error(low, 0)
+    end
+    local figure
+    if low == "none" then
+        figure = G("NONE", "None")
+    elseif low == "unknown" then
+        return UNKNOWN
+    elseif type(low) == "number" then
+        figure = damage(low, high, pos, neg, pct)
+    end
+    if not figure or plainText(figure) == plainText((read(s))) then
+        return nil
+    end
+    return Infos.Color(plainText(figure), WOULD_HEX) .. (estimate and " " .. UNKNOWN or "")
+end
+STAT_BY_KEY.MAINHAND_DAMAGE.would = function(tried) return Tried.HandLine(STAT_BY_KEY.MAINHAND_DAMAGE, 16, tried) end
+STAT_BY_KEY.OFFHAND_DAMAGE.would = function(tried) return Tried.HandLine(STAT_BY_KEY.OFFHAND_DAMAGE, 17, tried) end
+STAT_BY_KEY.RANGED_DAMAGE.would = function(tried) return Tried.HandLine(STAT_BY_KEY.RANGED_DAMAGE, 18, tried) end
+
 -- Whether the line of `s` shows: its own button (the attributes' folder open), or a copy's; whether any does. Asked
 -- at each of the game's tooltips of an item or a spell, with no saved data too (refused, as a newer version's is, all
 -- session long, or not loaded yet: Core/Main.lua): no copy then.
@@ -5127,7 +5534,7 @@ function Tried.Shown(s)
 end
 function Tried.AnyShown()
     for _, s in ipairs(LIST) do
-        if s.sources and Tried.Shown(s) then
+        if (s.sources or s.would) and Tried.Shown(s) then
             return true
         end
     end
@@ -5137,7 +5544,7 @@ end
 -- What the line of `s` says of what is tried: its figure (LineOf's), false for nothing, WAIT while it isn't worked
 -- out yet (`work`: worked out now).
 function Tried.Line(s, work)
-    if not Tried.what or not s.sources or Tried.broken[s.key] or ns.InCombat() then
+    if not Tried.what or not (s.sources or s.would) or Tried.broken[s.key] or ns.InCombat() then
         return false
     end
     local got = Tried.lines[s.key]
@@ -5205,7 +5612,7 @@ local function try(what)
         if s.line then
             Hub.Set(s.item, "text", s.line)
         end
-        if what and s.sources and not ns.InCombat() and Tried.Shown(s) then
+        if what and (s.sources or s.would) and not ns.InCombat() and Tried.Shown(s) then
             Tried.Queue(s)
         end
     end

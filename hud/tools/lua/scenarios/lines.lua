@@ -344,26 +344,33 @@ expect(text("REGEN") == blue("REGEN", ns.Stats.RegenText("REGEN", r.states,
 gone()
 -- a helm of 10 spirit (Ikar 2026-11-25: "mana regen seems also to have hard time showing the new values"): the mana's
 -- line out of casting by the spirit's share at 50, Forever's 6.25 + spirit / 8 a second by its ratio to the game's
--- figure at 40 (Tried.ManaFromSpirit), the share cut to a whole as the game writes it; the health's asked, the game
--- giving its share at the spirit now alone; the spirit's card kept open the same, its mana and its health
+-- figure at 40 (Tried.ManaFromSpirit), the share cut to a whole as the game writes it; the health's an estimate (Ikar
+-- 2026-11-26: "Everything should follow, every, single, line"), the game giving its share at the spirit now alone: the
+-- original server's slope for a warrior, 1.26 a point a tick of 2 s, standing three quarters of it, the game's
+-- question after it (Tried.HealthFromSpirit); the spirit's card kept open the same, its mana and its health
 F.items[2008] = { class = 4, subclass = 4, equip = "INVTYPE_HEAD" }
 F.itemStats[47] = { ITEM_MOD_SPIRIT_SHORT = 10 }
 local spirit = select(2, UnitStat("player", 5))
 local function share(v)
     return math.floor(6.5 * (6.25 + v / 8) / (6.25 + spirit / 8) * 5 + 1e-6)
 end
+local hr = ns.Stats.RegenTotals("HEALTH_REGEN")
+local function standing(more)
+    return math.floor((1.5 + 1.26 / 2 * more) * 0.75 * 5 + 1e-6)
+end
 hover(2008, 47)
 local manaLine, healthLine = text("REGEN"), text("HEALTH_REGEN")
 gone()
 expect(manaLine == blue("REGEN", ns.Stats.RegenText("REGEN", r.states,
     { out = r.totals.out + share(spirit + 10) - share(spirit), cast = r.totals.cast }))
-    and healthLine == object("HEALTH_REGEN").label .. " " .. ns.Stats.UNKNOWN,
+    and healthLine == blue("HEALTH_REGEN", ns.Stats.RegenText("HEALTH_REGEN", hr.states, { stand = hr.totals.stand
+        + standing(10) - standing(0), fight = hr.totals.fight })) .. " " .. ns.Stats.UNKNOWN,
     "the regenerations' lines don't follow a helm's spirit: " .. manaLine .. " / " .. healthLine)
 shown = card("SPIRIT", 2008, 47)
 expect(shown:find(became("+" .. share(spirit), "+" .. share(spirit + 10)) .. "\n" .. ns.G("MANA_REGEN", "Mana Regen"),
     1, true)
-    and shown:find("|cff808080+" .. math.floor(1.5 * 0.75 * 5) .. "|r " .. ns.Stats.ARROW .. " " .. ns.Stats.UNKNOWN
-        .. "\n" .. ns.G("ITEM_MOD_HEALTH_REGEN_SHORT", "Health per 5 sec."), 1, true),
+    and shown:find(became("+" .. standing(0), "+" .. standing(10) .. " " .. ns.Stats.UNKNOWN) .. "\n"
+        .. ns.G("ITEM_MOD_HEALTH_REGEN_SHORT", "Health per 5 sec."), 1, true),
     "the spirit's card kept open doesn't say what a helm's spirit would give: " .. shown)
 F.items[2008], F.itemStats[47] = nil, nil
 -- a buff of no known figure on the spirit: the question on both regenerations (their spirit's share the game's figure,

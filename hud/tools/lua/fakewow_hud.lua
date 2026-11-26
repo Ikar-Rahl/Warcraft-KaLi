@@ -516,6 +516,10 @@ end
 -- Bags: { slots, free, family }; the third is a profession bag, which the count leaves out.
 F.bags = { [0] = { 16, 4 }, [1] = { 12, 2 }, [2] = { 12, 0, 8 } }
 C_Container = {
+    -- (a bag's own slot among the character's, the four past the backpack's)
+    ContainerIDToInventoryID = function(bag)
+        return 30 + bag
+    end,
     GetContainerNumSlots = function(bag)
         return F.bags[bag] and F.bags[bag][1] or 0
     end,
@@ -545,13 +549,20 @@ end
 -- slot, type 15: Enum.TooltipDataLineType.ItemEnchantmentPermanent).
 F.enchantLines = {}
 -- Its other lines, as the game words them (F.itemLines by slot, a list of texts, type 0: a fishing rod's skill, a
--- shield's block); an item's not worn by its link (F.linkLines: one tried on a card kept open).
+-- shield's block; a pair, its left and its right: a weapon's damage and speed); an item's not worn by its link
+-- (F.linkLines: one tried on a card kept open).
 F.itemLines, F.linkLines = {}, {}
+local function tooltipLine(text)
+    if type(text) == "table" then
+        return { type = 0, leftText = text[1], rightText = text[2] }
+    end
+    return { type = 0, leftText = text }
+end
 C_TooltipInfo = {
     GetHyperlink = function(link)
         local lines = {}
         for _, text in ipairs(F.linkLines[link] or {}) do
-            lines[#lines + 1] = { type = 0, leftText = text }
+            lines[#lines + 1] = tooltipLine(text)
         end
         return { lines = lines }
     end,
@@ -561,7 +572,7 @@ C_TooltipInfo = {
             lines[1] = { type = 15, leftText = F.enchantLines[slot] }
         end
         for _, text in ipairs(F.itemLines[slot] or {}) do
-            lines[#lines + 1] = { type = 0, leftText = text }
+            lines[#lines + 1] = tooltipLine(text)
         end
         return { repairCost = F.durability[slot] and 120 or 0, lines = lines }
     end,
@@ -588,8 +599,9 @@ C_TooltipInfo = {
 -- An item's skill line as Forever's French client words it (GlobalStrings: a no-break space before the colon).
 TOOLTIP_ITEM_STAT_SKILL_FISHING_INCREASE = "Équiper\194\160: pêche augmentée de %1$d."
 TOOLTIP_ITEM_STAT_SKILL_FISHING_DECREASE = "Équiper\194\160: pêche réduite de %1$d."
--- A shield's block, as its tooltip writes it.
+-- A shield's block, as its tooltip writes it; a weapon's speed, at the right of its damage's line (« Vitesse 2,60 »).
 SHIELD_BLOCK_TEMPLATE = "Bloquer\194\160: %s"
+SPEED = "Vitesse"
 function GetNetStats()
     return 0, 0, 42, 54
 end

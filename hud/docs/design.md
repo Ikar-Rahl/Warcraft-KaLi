@@ -3406,3 +3406,44 @@ menu", and "remove any dead code".
   nothing reads: `Format` in Social.lua and World.lua, `GREY` in SetWindow.lua, `LEFT_CLICK` in esMX.lua, KaLi
   Recipe's minimap button's `L`, the info bar's `he` set to nil. Its empty branches, each saying why nothing is done
   there, stay.
+
+**Every line follows, the same day.** Ikar, of the lines under the pointer: "Everything should follow, every, single,
+line. Not a single exception. Under no cisrcumstances, is that clear ?"; then "would degat infliger change weapon DPS
+?". The scenario `follow` hovers a chest of every stat an item carries, weapons, real consumables for what only an
+effect changes (Data/Effects.lua's ITEM_USES: 941, 21670, 19344, 211815, 4420, 19337, 5206) and the chest again as a
+mana user, and fails on any line none turned blue, a line to come included.
+
+- **The hands** (`Tried.Hand`, `Tried.HandLine`; the three weapon lines had no sources and never followed): the game's
+  figures changed by what is tried. The attack power's change, a point a second for 14 a hit at the weapon's speed
+  (`POWER_PER_DAMAGE`); a weapon tried in the hand, its damage and speed read from its tooltip (`Tried.WeaponOf`: the
+  line whose right holds « Vitesse » and a number, whose left two numbers with a dash, whatever the template) for the
+  worn one's, what the base holds beside it kept, asked when it isn't 0 (an enchantment's, which may go with the
+  weapon); the ranged's ammunition by the new speed, asked for another kind or a first bow; the off hand by the share
+  the game gives it now, a first weapon there the game's half, asked (its talents unknown); a two-handed weapon or a
+  shield tried, « Aucune ». A druid in a form strikes with its paws: its weapon nothing to its hits. The physical
+  damage's own changes (`Tried.Physical`: 13 by points and 79 by a share on the physical school, which
+  `tools/make_effects.py` now keeps) on every hit, the share by the product they would make beside the one they make
+  now. Their cards kept open follow, the head as the line, the speed and the damage a second in the blue.
+- **The health's regeneration by the spirit** (`Tried.HealthFromSpirit`): it said the game's question alone. Now the
+  game's figure at the spirit now plus the original server's slope for the class, a point's share of a tick of 2 s (a
+  warrior's 1.26 ... a mage's 0.11), the question after it on the line, the card's head, its spirit row standing and
+  the spirit's card (Ikar 2026-11-19: "no lying"; the mark said at the foot, `STAT_WHY_SPIRIT` rewritten); seated, the
+  whole spirit's share. A class the original server hasn't: the question alone.
+- **Physical damage in the data**: `kept` keeps 13 and 79 on the physical school (the weapons' lines follow them); no
+  spell power's or resistance's tally reads them (their school filters).
+- **A shield over a two-handed weapon** (Ikar: "when hovering a shield, does it also take into account the new main
+  weapon ? in case you had a 2h weapon ? wow show you "come with" tooltip."): it didn't, the two-handed weapon's stats
+  kept. What goes in the off hand (a shield, an off-hand weapon, a held item) takes a two-handed weapon worn off with
+  it (`itemTried`'s links[16] false), every line without its stats; the main hand its fists, the original server's 1 -
+  2 at 2,00, asked (`Tried.FISTS`).
+- **The gaps** (Ikar: "fix the gaps", after the survey of the stats the panel missed): what Forever's items
+  (ItemSparse's stats, the game's BonusStatIndex names) and talents carry that the lines didn't read. Each school's
+  spell power its school's own item damage (84 to 89, `ITEM_MOD_FIRE_DAMAGE_DONE_SHORT`...); the hands' physical
+  points an item's physical damage (83); each resistance an item's to every school (124); the weapon skill what the
+  items tried change of it (90 to 105, `Tried.SkillChange`), the critical strike following it; the quiver or
+  ammunition pouch in a bag's slot (class 11, `Tried.WornQuiver`, `Tried.Quiver`): its spells read as an item's, one
+  hovered tried in its place, the hands' speeds following the haste tried (`Tried.Hand`'s `quick`); what is tried
+  takes off, its own spells no more counted as auras (`Tried.TakenOff`: an item's effect the game shows as a buff);
+  the armour ignored by a share (280, Serrated Blades, Weapon Mastery, now kept by `make_effects.py`) named on the
+  armour penetration, its figure asked, the open question of 2026-11-20 still open. The scenario `follow` a case each,
+  ten breaks.
