@@ -21,6 +21,11 @@ local made = Hub.Made("separators")
 local GOLD, GREY = { 1, 0.82, 0 }, { 0.5, 0.5, 0.5 }
 
 local objects = {}
+-- Whether a separator made for a locked folder shows now (Seeds.Title's `when`), by id: the code's, never saved.
+local whens = {}
+function Separators.SetWhen(id, when)
+    whens[id] = when
+end
 
 local function all()
     return ns.db.separators
@@ -153,6 +158,10 @@ function Separators.Object(id)
     if not o then
         local name = Separators.Name(id)
         o = { type = "data source", isSeparator = true, label = name or L.SEPARATOR, noHints = true }
+        o.available = function()
+            local when = whens[id]
+            return not when or when() == true
+        end
         o.OnTooltipShow = function(tooltip)
             tooltip:SetText(name or L.SEPARATOR, GOLD[1], GOLD[2], GOLD[3])
             if name then

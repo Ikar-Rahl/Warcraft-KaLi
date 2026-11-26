@@ -32,17 +32,20 @@ end
 local function blue(key, figure)
     return object(key).label .. " " .. BLUE .. figure .. "|r"
 end
+-- (a line the character hasn't, no button: Main gauche without two weapons, left out)
 local function all()
     local t = {}
     for _, s in ipairs(ns.Stats.LIST) do
-        t[s.key] = text(s.key)
+        if object(s.key) then
+            t[s.key] = text(s.key)
+        end
     end
     return t
 end
 local function changed(before)
     local out = {}
     for _, s in ipairs(ns.Stats.LIST) do
-        if text(s.key) ~= before[s.key] then
+        if object(s.key) and text(s.key) ~= before[s.key] then
             out[#out + 1] = s.key .. " " .. text(s.key)
         end
     end
@@ -305,12 +308,13 @@ expect(text("STAMINA") == object("STAMINA").label .. " " .. ns.Stats.UNKNOWN
     "a buff of no known figure on the stamina doesn't ask on its lines alone: " .. changed(before))
 gone()
 
--- the healing taken by points, a value its sources alone make: read again with a consumable's 50
+-- the healing taken by points, a value its sources alone make: read again with a consumable's 50, on the healing
+-- taken's line, its points (« A % + B », Ikar 2026-11-26)
 ns.EFFECTS[999005] = "1,1;115:0:0:0:50"
 ns.ITEM_USES[3006] = "999005"
 F.items[3006] = { class = 0, subclass = 2 }
 hover(3006, 82)
-expect(text("HEALTAKEN_FLAT") == blue("HEALTAKEN_FLAT", "+50"),
+expect(text("HEALTAKEN") == blue("HEALTAKEN", "+50"),
     "the healing taken by points doesn't say what a consumable would make of it: " .. changed(before))
 gone()
 

@@ -515,6 +515,7 @@ function GetGameTime()
 end
 -- Bags: { slots, free, family }; the third is a profession bag, which the count leaves out.
 F.bags = { [0] = { 16, 4 }, [1] = { 12, 2 }, [2] = { 12, 0, 8 } }
+NUM_BAG_SLOTS = 4
 C_Container = {
     -- (a bag's own slot among the character's, the four past the backpack's)
     ContainerIDToInventoryID = function(bag)
@@ -1684,6 +1685,14 @@ end
 function GetSpellHitModifier()
     return stat(3.5)
 end
+-- An item's own level (each the bags' and the worn's, as GetItemInfo's).
+C_Item.GetDetailedItemLevelInfo = function()
+    return 60
+end
+-- The equipment's average item level, the best the bags hold then the worn's (the game's sheet's).
+function GetAverageItemLevel()
+    return 25, 24
+end
 -- One weapon: no off hand's speed.
 function UnitAttackSpeed()
     return stat(2.6, nil)
@@ -1893,6 +1902,8 @@ end
 -- { class, subclass, set, equip, quality }; armour, cloth, no set, no slot, uncommon by default), its returns in the
 -- documentation's order.
 F.items = {}
+-- (a bow in the ranged slot: the attributes' Distance shows, as it does with a ranged weapon alone)
+F.items[1018] = { class = 2, subclass = 2, equip = "INVTYPE_RANGED" }
 C_Item.GetItemInfo = function(id)
     if type(id) == "string" then
         local item, slot = tonumber(id:match("item:(%d+)")), id:match("%[Objet (%d+)%]")

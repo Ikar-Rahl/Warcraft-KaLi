@@ -30,7 +30,8 @@ local function refresh()
 end
 local P = ns.Format.Percent
 
-expect(value("HEALTAKEN") == P(0) and value("HEALTAKEN_FLAT") == "0",
+-- (a « A % + B » line with neither: « 0 », Ikar 2026-11-26)
+expect(value("HEALTAKEN") == "0" and value("HEALTAKEN_FLAT") == "0",
     "with nothing on the character, the healing taken isn't 0: " .. value("HEALTAKEN") .. " / " .. value("HEALTAKEN_FLAT"))
 
 F.auras.HARMFUL[1] = { name = "Frappe mortelle", spellId = 12294 }
@@ -55,7 +56,7 @@ refresh()
 -- The healing done (Ikar 2026-11-24: "heal power should count only when it affect all spels. Or the main spells at
 -- least"): Purification, +10 % on every shaman's main heal, counts; Improved Renew, Renew's alone, doesn't; Power
 -- Infusion's +20 % multiplies with it, +32 %.
-expect(value("HEALDONE") == P(0), "with nothing, the healing done isn't 0: " .. value("HEALDONE"))
+expect(value("HEALDONE") == "0", "with nothing, the healing done isn't 0: " .. value("HEALDONE"))
 F.talents = { { spell = 16178, rank = 5, ranks = 5 }, { spell = 14908, rank = 3, ranks = 3 } }
 F.spellNames[16178], F.spellNames[14908] = "Purification", "Rénovation améliorée"
 F.Fire("PLAYER_TALENT_UPDATE")

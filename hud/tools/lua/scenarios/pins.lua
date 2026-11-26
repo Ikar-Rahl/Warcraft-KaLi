@@ -66,7 +66,8 @@ expect(not Card.Pinned("STAMINA") and Card.Pinned("STRENGTH") and Card.Pinned("A
     "a click on an attribute whose card is kept open doesn't shut it alone, or moves the others")
 -- as many as there is room: once the right is full, the columns go to the left of the first
 for _, s in ipairs(ns.Stats.LIST) do
-    if not Card.Pinned(s.key) then
+    -- (a line the character hasn't, no button: Main gauche without two weapons)
+    if ns.Hub.Object("KaLiHUD_Attr_" .. s.key) and not Card.Pinned(s.key) then
         click(s.key)
     end
 end

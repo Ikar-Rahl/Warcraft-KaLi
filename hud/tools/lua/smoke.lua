@@ -3052,12 +3052,14 @@ do
     local before = errors()
     -- attributes: the sheet's, its categories apart; buffed green; hidden in a fight, they keep their last text
     local stats = Folders.ByRole("stats")
-    local sheet = "^| Attr_HEALTH Attr_POWER Attr_MOVESPEED | Attr_STRENGTH Attr_AGILITY Attr_STAMINA Attr_INTELLECT "
-        .. "Attr_SPIRIT | Attr_MAINHAND_DAMAGE"
-    local sheetEnd = "Attr_REGEN | Attr_DEFENSE Attr_DODGE Attr_BLOCK Attr_BLOCKVALUE Attr_PARRY Attr_ARMOR "
-        .. "Attr_ARMORCUT Attr_MISSED Attr_AVOIDANCE Attr_CRITTAKEN | Attr_SPELLHEALING Attr_HEALDONE Attr_HEALTAKEN Attr_HEALTAKEN_FLAT | Attr_SPELLPOWER_ARCANE Attr_SPELLPOWER_FIRE "
-        .. "Attr_SPELLPOWER_FROST Attr_SPELLPOWER_NATURE Attr_SPELLPOWER_SHADOW Attr_SPELLPOWER_HOLY | Attr_ARCANE "
-        .. "Attr_FIRE Attr_FROST Attr_NATURE Attr_SHADOW$"
+    -- (five columns since 2026-11-26: the off hand's line with two weapons alone, the creature types' with a bonus)
+    local sheet = "^| Attr_ILVL Attr_HEALTH Attr_POWER Attr_MOVESPEED | Attr_STRENGTH Attr_AGILITY Attr_STAMINA "
+        .. "Attr_INTELLECT Attr_SPIRIT | Attr_PHYSICAL Attr_THORNS | Attr_MAINHAND_DAMAGE Attr_MELEE_DPS Attr_ATTACK_AP | "
+        .. "Attr_RANGED_DAMAGE Attr_RANGED_DPS Attr_RANGED_ATTACK_AP | | Attr_HITCHANCE"
+    local sheetEnd = "Attr_THREAT Attr_HEALTH_REGEN Attr_REGEN | Attr_HEALDONE Attr_HEALTAKEN | Attr_DEFENSE Attr_MISSED "
+        .. "Attr_DODGE Attr_PARRY Attr_AVOIDANCE Attr_CRITTAKEN | Attr_ARMOR Attr_ARMORCUT Attr_DAMAGETAKEN Attr_BLOCK "
+        .. "Attr_BLOCKVALUE | Attr_SPELLPOWER_ARCANE Attr_SPELLPOWER_FIRE Attr_SPELLPOWER_FROST Attr_SPELLPOWER_NATURE "
+        .. "Attr_SPELLPOWER_SHADOW Attr_SPELLPOWER_HOLY | Attr_ARCANE Attr_FIRE Attr_FROST Attr_NATURE Attr_SHADOW$"
     expect(names(stats):find(sheet) and names(stats):find(sheetEnd), "the attributes' folder: " .. names(stats))
     -- the sheet's: defence out of the level's most, a resistance raised green with its school's icon, its spell
     -- power's (Ikar 2026-11-23: "why spell damage and resistance have different icons ?"), the speed one can go
@@ -3816,8 +3818,9 @@ do
         F.auras.HELPFUL[1] = { name = "Fureur sanguinaire", spellId = 20572, points = { 10, 10, 10 } }
         local power = card("SPELLPOWER_SHADOW")
         local fromSpirit = power:find("Direction spirituelle", 1, true) and power:find(Color("+2", GOOD), 1, true)
-            and power:find("Fureur sanguinaire\n" .. Color("+" .. ns.Format.Percent(0.1), GOOD) .. " ("
-                .. Color("+2", GOOD) .. ")", 1, true) and not power:find(L.STAT_OTHER, 1, true)
+            and power:find("Fureur sanguinaire\n" .. Color("-", "ff808080") .. "\n" .. Color("+"
+                .. ns.Format.Percent(0.1), GOOD) .. " (" .. Color("+2", GOOD) .. ")", 1, true)
+            and not power:find(L.STAT_OTHER, 1, true)
         F.auras.HELPFUL[1] = nil
         local healing = card("SPELLHEALING")
         GetSpellBonusDamage, GetSpellBonusHealing = bonusDamage, bonusHealing
@@ -5257,7 +5260,7 @@ do
         -- the bar's menu lists their folder, not each of them: it is locked (UI/Hub/Seeds.lua), its box stands for
         -- what it holds
         F.RunScript(InfoBar.frame, "OnMouseUp", "RightButton")
-        expect(F.MenuItem(L.CAT_reputations) == nil and F.MenuItem("Darnassus") == nil
+        expect(F.MenuItem("Darnassus") == nil
             and F.MenuItem(Folders.Get(reps).name, F.MenuItem(L.CAT_folders)) ~= nil,
             "the bar's menu lists the reputations one by one, or not their folder")
         ns.StatusBars.Refresh()
@@ -6025,7 +6028,7 @@ do
     F.RunTimers()
     local G = ns.G
     expect(said(stats) == made[stats] and said(stats):find("^" .. G("STAT_CATEGORY_GENERAL", "General") .. ",")
-        and said(stats):find(G("STAT_CATEGORY_WEAPONS", "Weapons") .. ">", 1, true)
+        and said(stats):find(G("SPELL_SCHOOL0_CAP", "Physical") .. ">", 1, true)
         and said(stats):find(G("STAT_CATEGORY_DEFENSE", "Defense") .. ">", 1, true)
         and Hub.InFolder(stats)[1].isSeparator and sf.perLine == Seeds.STATS_PER_LINE and sf.align and sf.dim,
         "an attributes' folder made before hasn't the sheet's titles, its columns, its values set apart: " .. said(stats)

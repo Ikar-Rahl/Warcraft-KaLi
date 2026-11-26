@@ -1278,6 +1278,15 @@ end
 -- when it doesn't show): ours as buttons in the list, Blizzard's widgets and other addons' map buttons over it. The
 -- list shows while the folder is open.
 function Folders.Layout(id, members, owner)
+    -- (a section's title while its lines don't show: left out of the list, kept in the folder, Seeds.Title's `when`)
+    local kept = {}
+    for _, e in ipairs(members) do
+        if not (e.isSeparator and type(e.obj) == "table" and type(e.obj.available) == "function"
+            and not e.obj.available()) then
+            kept[#kept + 1] = e
+        end
+    end
+    members = kept
     local p = panel(id)
     local S = Hub.IconSize()
     local icons = Folders.Setting(id, "style") == "icons"

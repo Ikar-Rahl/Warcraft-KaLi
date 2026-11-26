@@ -127,7 +127,13 @@ ANY = {133, 135, 34, 230, 250, 54, 55, 52, 57, 290, 49, 47, 51, 319, 192, 140, 3
        32, 130, 172, 58, 240, 317, 9, 557, 466, 178, 161, 88, 116, 272, 274,
        # the healing taken, 118 by a share, 115 by points on each heal (Ikar 2026-11-24: "add the healing taken"); the
        # healing done by a share, 136 (Power Infusion), with the talents of HEAL_TALENTS
-       118, 115, 136}
+       118, 115, 136,
+       # the panel of 2026-11-26 (Ikar: "add the threat and damage reduction", "add camo", "add epine", "a whole row
+       # maybe for attack againt a type"): 10 the threat by a share (its misc the schools), 87 the damage taken by a
+       # share and 14 by points (the same misc), 15 the damage done back to who strikes (thorns, spikes), 154 the
+       # stealth's level and 17 its detection, 102 and 131 the melee and ranged attack power against a creature type
+       # (its misc a mask of the types), 180 the spells' damage against one
+       10, 87, 14, 15, 154, 17, 102, 131, 180}
 # The classes' main heals, by their first rank, under their class's number in SpellClassOptions (6 the priest's, 7 the
 # druid's, 11 the shaman's, 10 the paladin's): a talent that raises healing by a share (108, on the amount, misc 0, or
 # over time, 22) counts as healing done (136) when its effects' spell codes take in every one of them (Ikar 2026-11-24:

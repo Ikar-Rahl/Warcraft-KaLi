@@ -1033,9 +1033,9 @@
    "part": "smoke"
   }
  },
- "healing: no heading of its own, the spell healing gone from the folder": {
+ "healing: no heading of its own, the healing gone from the folder": {
   "hud": {
-   "at": "the attributes' folder: | Attr_HEALTH Attr_POWER Attr_MOVESPEED | Attr_STRENGTH Attr_AGILITY Attr_ST",
+   "at": "the attributes' folder:",
    "part": "smoke"
   }
  },
@@ -2126,6 +2126,18 @@
    "part": "smoke"
   }
  },
+ "panel: a retired line kept in the folder": {
+  "hud": {
+   "at": "the attributes' folder:",
+   "part": "smoke"
+  }
+ },
+ "panel: a « A % + B » line's card a column of its points alone": {
+  "hud": {
+   "at": "local BAD, Color = ns.Infos.BAD, ns.Infos.Color",
+   "part": "smoke"
+  }
+ },
  "per line: a slider handed back to the menu still sets its folder": {
   "hud": {
    "at": "a slider handed back to the menu still sets the folder",
@@ -2840,7 +2852,7 @@
  },
  "schools: holy first, unlike the resistances' order": {
   "hud": {
-   "at": "Attr_ARMORCUT Attr_MISSED Attr_AVOIDANCE Attr_CRITTAKEN | Attr_SPELLHEALING Attr_HEALDONE Attr_HEALT",
+   "at": "the attributes' folder:",
    "part": "smoke"
   }
  },
@@ -2956,13 +2968,13 @@
    "part": "smoke"
   }
  },
- "seeds: the attributes' values aligned but not grey": {
+ "seeds: the attributes' physical damage not from a column of its own": {
   "hud": {
    "at": "an attributes' folder made before hasn't the sheet's titles, its columns, its values set apart:",
    "part": "smoke"
   }
  },
- "seeds: the attributes' weapons not from a column of their own": {
+ "seeds: the attributes' values aligned but not grey": {
   "hud": {
    "at": "an attributes' folder made before hasn't the sheet's titles, its columns, its values set apart:",
    "part": "smoke"

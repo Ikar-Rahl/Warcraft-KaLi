@@ -21,8 +21,10 @@ local ANGLES = {
     { 270, L.ANGLE_BOTTOM }, { 225, L.ANGLE_BL }, { 180, L.ANGLE_LEFT }, { 135, L.ANGLE_TL },
 }
 local SHOW_MODES = { "always", "hover" }
-local CATEGORIES = { "folders", "macros", "world", "time", "character", "stats", "skills", "social", "group", "system",
-    "minimap", "addons" }
+-- (not the attributes' nor the reputations': each stands in its locked folder, whose box stands for it; the review of
+-- 2026-11-26: a retired attribute, out of its folder, had been listed alone)
+local CATEGORIES = { "folders", "macros", "world", "time", "character", "skills", "social", "group", "system", "minimap",
+    "addons" }
 
 -- Usable out of a fight only; the menu asks again while it's open (a function: Blizzard's menu polls it), so one open
 -- as a fight starts greys too.

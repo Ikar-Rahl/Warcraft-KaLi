@@ -2,6 +2,16 @@
 
 ## 0.9.2 (not released yet)
 
+- **The Attributes folder, reorganised in five columns:**
+  - **General** with **iLvl** (the game's average item level; its card lists each item worn) and **Stealth** or **Stealth Detection** when your items or talents give some (in the game's points, 5 a level); then the primary attributes.
+  - **Physical**: **Damage**, your physical share and points (« +10 % + 3 »), and **Thorns**, the damage done back to whoever strikes you. Then **Melee**: **Two-Hand** with a two-handed weapon, else **Main Hand**, and **Off Hand** with two weapons alone, the **DPS** of both hands, the attack power. **Ranged** only with a ranged weapon, with its DPS. **Against a Creature Type**, only the types you have a bonus against (the Argent Dawn's against the undead), each card its attack power and its spells' sources in two columns.
+  - **Modifiers** with **Threat** (your weapons'; its card gives a school's apart where one differs: Righteous Fury's holy), then **Healing**: **Healing Done** and **Healing Taken**, each a share and points (Spell Healing and Healing Taken per Heal are in them now; a copy of either on your bar stays).
+  - **Defense**: Defense, Missed, Dodge, Parry, **Avoidance** (missed, dodged or parried: a block no longer counts, it still lands), Crit Taken. Then **Mitigation**: Armor, Damage Reduction, **Damage Taken** (a share and points), Block, Block Value.
+  - **Spell Power**: each school a share and points (« +10 % + 7 »); then the resistances.
+- A share-and-points line's card shows **Share** and **Points** in two columns, each source in its column, the total under them.
+- In a fight, each school's spell power and **Healing Done** keep following the game's points; their share, which the game hides from addons then, stays as it was before the fight, with the question mark.
+- The Critical Strike card gives the spells' chance by school where a talent sets one apart.
+- Every new line follows what you hover, as the others do.
 - With the attributes' folder open, or an attribute copied onto the bar, hovering an item, a talent or a consumable shows on each line what it would change: the new figure in **blue**, as the card kept open already did. A figure that can't be known shows the question mark.
 - Everything worked out from another value follows what you hover too:
   - **Damage Reduction** follows the armor it would give;

@@ -3447,3 +3447,80 @@ mana user, and fails on any line none turned blue, a line to come included.
   the armour ignored by a share (280, Serrated Blades, Weapon Mastery, now kept by `make_effects.py`) named on the
   armour penetration, its figure asked, the open question of 2026-11-20 still open. The scenario `follow` a case each,
   ten breaks.
+
+**The panel of 2026-11-26.** Over ten sketches drawn the same day (the last ones from the add-on's own screenshots and
+StatCard.lua's layout: Ikar, "stick to existing patern, don't reinvent"), the attributes' folder in five columns,
+built as sketch 10 ("yes, but keep the style").
+
+- **The columns** (`ORDER`): Général (iLvl, Vie, Mana, Vitesse, Camouflage and its detection with some) and the
+  attributes; Physique (Dégâts, Épines), Mêlée (« Deux mains » alone with a two-handed weapon, Main gauche with two
+  weapons alone, the damage a second of both hands, the attack power), Distance with a ranged weapon alone ("keep it
+  only when you have a ranged weapon"), Contre un type de créature with a bonus alone ("a whole row" first, a section
+  at the foot of the column once Ikar saw the folder can't mix rows and columns); Modificateurs with the threat, Soins
+  under them ("heal bellow modifier, let's reduce the space"); Défense (what doesn't land: Défense, Raté, Esquive,
+  Parade, Évitement, Critique subi) and Atténuation (what lands less: Armure, Réduction des dégâts, Dégâts subis,
+  Blocage, Valeur de blocage; "make armor first", "feels better"); the spells' damage and the resistances.
+- **What shows when** (`available`, the hub's: a line the character hasn't left out; a section's title by
+  `Seeds.Title`'s `when`, kept in the folder and left out of its list by `Folders.Layout`, a hidden one taken out of
+  the hub's entries having been made again at each login): asked again as the gear or the auras change, out of a fight
+  (`Tried.Availability`), never under the pointer, where the list would jump.
+- **« A % + B »** ("note the 7 magic, healing done, healing received and physical damage as A% + B simply"): a share
+  and points, a part at 0 left out, « 0 » for none (`Tried.DualText`). The physical damage the game's (UnitDamage's
+  multiplier and bonuses), its sources Forever's 79 and 13 on the physical school; each school its 79 share and its
+  spell power; the healing done its 136 share and the spell healing; the healing taken its 118 share and 115 points;
+  the damage taken its 87 share and 14 points (counted: the game gives none). Shares multiply. The old Soins des sorts
+  and Soins reçus par soin retired (`retired`): out of the folder, a copy on the bar kept. Their card a table of «
+  Part » and « Points », the regenerations' pattern, a total under it (`Tried.DualCard`).
+- **The new lines**: Menace (10, the share on the physical, counted), Épines (15, counted), Camouflage (154) and its
+  detection (17), the creature types (102 and 180, Forever's items' stats 125 to 140), the damage a second (the game's
+  sheet's: the average hit by the speed, both hands; `Tried.DpsOf` on `Tried.Hand`), iLvl (the game's
+  `GetAverageItemLevel`, "always iLvl, in all languages"; what it would be over as many slots as give the game's
+  figure, sixteen or with the ranged's, asked where neither; its card the items worn, `rows`, no effects: "inputs all
+  the equipement. no output"). The critical strike's card the spells' chance by school where one differs ("where a
+  specialisation exist"). Évitement without the block ("block seems verry different from the other 3"); the crushing
+  blows' sums keep all four.
+- Checked offline: the scenario `follow` (every line followed, the hidden ones shown once the character has them;
+  then, Ikar asking "why the tests gaps ?", each branch the first checks had left: the spells' critical strike by
+  school on the card, the avoidance without the block, a creature type's attack power from an item, the item level's
+  two-handed weapon counted twice, the damage taken lowered in green, a hidden title drawn nowhere), the smoke's
+  folder, titles and card; 20 breaks. Not seen in game.
+
+**The review of 2026-11-26.** Ikar: "review, in depth, all the changes you have made". The eight commits not pushed
+read again, the data's auras (SpellEffect) beside the lines that read them. Found and fixed:
+
+- **The traps' detection** (17's misc 1: the rogues' Detect Traps, a passive of 70) counted as the stealth's: misc 0
+  alone, the stealth's too (`Tried.OfStealth`).
+- **A creature type's card** had the attack power's sources alone: a caster's spell damage against the undead on the
+  line, none of it on the card. Now `Tried.DualCard`'s table, the game's « Puissance d'attaque » and « Sorts » a
+  column each, their totals under them (`columns`, `totals`).
+- **What a line working out its own figure stands on** (the hands, the damage a second, « A % + B », the sums): a
+  figure where that can't be said (an elixir of no known strength: the attack power asked, the main hand a figure; "no
+  lying"). `Tried.Would` asks the question of what its readings lean on (`Tried.Leaning`), as wouldBe does; a value's
+  change kept (`Tried.Change`) keeps its attributes' question with its own, read again from what is kept; the hand's
+  card's speed and damage a second asked so too.
+- **A « A % + B » card under the pointer** dropped « Autres » (what the game's figure has that the sources don't name,
+  which wouldBe keeps as it is): kept. Its card seen is kept for the bug report again (`StatCheck.Note`), as the spell
+  power's was before the panel.
+- **The retired lines** (Soins des sorts, Soins reçus par soin), out of their folder, were listed under «
+  Caractéristiques » in the bar's menu, a category every line's locked folder had left empty, as the reputations'
+  (dead code, the same day): it goes, its strings with it.
+- **Which lines show** was compared with the last asking: an item's data come at login between the hub's list and that
+  asking had left a line out till the next change. Now with what the hub was told (`s.told`), asked again on a talent
+  learnt too (CHARACTER_POINTS_CHANGED).
+- **The thorns' tip** named shield spikes, a block's proc the line doesn't count: Thorns, Retribution Aura, fire
+  shields, the spikes said left out. The changelog: Main Hand with one weapon too, « Spell Power » the section's word
+  in English. A smoke check empty since the reputations' category went (`L.CAT_reputations`, nil): its other half
+  kept.
+- Asked of Ikar, answered the same day: the stealth's points stay, "no, but add a note that 1 level correspond to 5
+  points" (`STAT_STEALTH_LEVEL`, on both cards); "Why does it ignore haste ?": a weapon tried in an empty hand (a
+  first bow, a first off-hand weapon, the fists) took none, its speed compared with no worn weapon there; now the
+  game's own haste of that kind (`hasteBy`).
+- Then "1. agreed": the threat's line stays the physical's (each threat effect names its schools), its card each
+  school whose share differs, the critical strike's way (`STAT_THREAT_SCHOOLS`: a paladin's Righteous Fury, the
+  holy's). "3. agreed" (of "every single stat change during combat, if it is possible and permitted by blizard"): the
+  game's documentation makes the auras' data secret in a fight (SecretWhenUnitAuraRestricted), the game's own figures
+  maybe (SecretWhenUnitStatsRestricted, when not said: to see in game). A « A % + B » line whose points are the game's
+  (the spells' schools, the healing done) keeps its share as it was before the fight, the points live, the question
+  after it (`Tried.keptShare`, `STAT_WHY_FIGHT_SHARE`); the physical's, both the game's, already followed; the lines
+  counted whole keep their last text, as every line the game hides.
+- Checked offline: the scenario `follow`, a case each; 15 breaks new, 2 changed. Not seen in game.

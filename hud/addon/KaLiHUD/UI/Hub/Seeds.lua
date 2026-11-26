@@ -31,8 +31,10 @@ local Hub, L = ns.Hub, ns.L
 Seeds.SEP = "|"
 -- A separator with a title, starting a line of the list or not (UI/Hub/Separators.lua): `name` gives its title, in
 -- the game's words where it has them, taken as the folder is made, as a folder's name is.
-function Seeds.Title(name, line)
-    return { sep = true, name = name, line = line or nil }
+-- `when`: whether its section shows (the attributes' « Distance » with a ranged weapon alone, Ikar 2026-11-26): the
+-- separator kept, left out of its folder's list while not (UI/Hub/Separators.lua's SetWhen, Folders.Layout).
+function Seeds.Title(name, line, when)
+    return { sep = true, name = name, line = line or nil, when = when }
 end
 -- Whether an entry of the contents is a separator, plain or with a title; the fields it's made with.
 local function isSep(entry)
@@ -166,7 +168,7 @@ function Seeds.ContentsOf(role)
                 name = name()
             end
             list[#list + 1] = { sep = true, name = type(name) == "string" and name ~= "" and name or nil,
-                line = entry.line }
+                line = entry.line, when = entry.when }
         elseif type(entry) == "table" then
             list[#list + 1] = { name = entry.name, icon = entry.icon, text = entry.text, right = entry.right,
                 leftDesc = entry.leftDesc, rightDesc = entry.rightDesc,
@@ -343,6 +345,7 @@ local function sync(id, role)
             else
                 name = ns.Separators.Make(sepSpec(entry))
             end
+            ns.Separators.SetWhen(name, type(entry) == "table" and entry.when or nil)
             add(name)
         elseif type(entry) == "table" then
             local name = bySeed[entry.seed]
