@@ -12,6 +12,7 @@
 - **Mana Regen** follows the Spirit you hover, by Forever's sum for every class (6.25 + Spirit / 8 mana a second). **Health Regeneration** keeps the question mark: the game gives its Spirit share only at your Spirit now, and no sum of Forever's is known for it.
 - That blue, on the lines and on the cards, is darker: the game's own rare blue, no longer easy to take for the green of a raised value.
 - Folders open a fourth way, **On click, stays open**: a click elsewhere leaves the list open; a click on the folder closes it, as does opening another folder. The Attributes folder opens this way, so it stays beside your bags while you compare items.
+- **Escape** shuts an open folder list, as it does any menu, one that stays open too; in a fight, when the game lets no addon hide a list, Escape is the game's own.
 - The built-in folders' menu has **Opening** too: choose how each opens, as for your own folders. Your choice stays through updates; their contents and other settings remain KaLi HUD's.
 - A buff of unknown amount on one attribute (an elixir of stamina) puts the question mark only on what depends on it (health, stamina), no longer on every value: the cards kept open too.
 - Fixed: a drink or a food whose regeneration has no known amount showed the regeneration as it is on its card kept open, in blue; it shows the question mark.

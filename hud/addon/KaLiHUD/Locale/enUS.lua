@@ -186,7 +186,6 @@ OWN.enUS = {
     CAT_time = "Time",
     CAT_stats = "Attributes",
     CAT_skills = "Skills",
-    CAT_reputations = "Reputations",
     REP_WATCH = "Show on the progress bar",
     CAT_social = "Social",
     CAT_group = "Group",

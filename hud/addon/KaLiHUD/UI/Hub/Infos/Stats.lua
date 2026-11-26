@@ -1960,8 +1960,8 @@ local function speedOf(s, t)
     end
 end
 
--- What a value is made of, out of a fight. First what it stands on (PARTS), the rest of a base the game gives named
--- after where it comes from (baseRow: the race's, the class's, the level's), when anything is named of it. Then what changes it: each item that
+-- What a value is made of, out of a fight. First what it stands on (PARTS), a base the game gives named after where
+-- it comes from (baseRow: the race's, the class's, the level's). Then what changes it: each item that
 -- carries some of it, by how much, in the slots' order, with its enchantment; the sets' bonuses; each buff then each
 -- debuff whose spell changes it, by its points or its share (with what that share comes to when it's the one share of
 -- the whole, or a share of the base); each talent at its rank, each passive spell of the race or the class known; a
@@ -2013,18 +2013,11 @@ local function sourcesOf(s, withNext, full)
         items = 0 }
     local list = t.list
     local parts = s.parts and s.parts(channel)
+    -- (the game's base beside them, the attack powers': their level's rows, named after it, set below: levelPart)
     if parts and #parts > 0 then
-        local named = 0
         for _, p in ipairs(parts) do
             list[#list + 1] = { name = p.name, points = p.points, percent = p.percent == true, base = true,
                 item = p.item, slot = p.slot, asks = p.asks, tip = p.tip, match = p.match }
-            if not p.percent then
-                named = named + p.points
-            end
-        end
-        local rest = base and floor(base - named + 0.5)
-        if rest and rest ~= 0 and not WOULD then
-            list[#list + 1] = baseRow(spec, rest)
         end
     end
     -- nothing changes it: what it stands on alone, its base where nothing is named of it (Ikar 2026-11-19: "defense

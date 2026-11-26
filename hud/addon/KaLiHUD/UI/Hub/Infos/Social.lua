@@ -4,7 +4,7 @@
 -- markers). A list of people is a tooltip's and a menu's, never items that come and go in a folder.
 local _, ns = ...
 
-local Infos, Hub, L, Format = ns.Infos, ns.Hub, ns.L, ns.Format
+local Infos, Hub, L = ns.Infos, ns.Hub, ns.L
 
 local SEP = ns.Seeds.SEP
 -- At most this many people in a tooltip or a menu.

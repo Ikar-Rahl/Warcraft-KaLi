@@ -72,6 +72,42 @@ F.RunTimers()
 expect(fight, "in a fight, a folder that stays open doesn't shut once left, as « "
     .. L.OPT_FOLDER_COMBAT .. " » says")
 
+-- Escape shuts the open lists as it does any menu, the ones that stay open too (Ikar 2026-11-26: "menu that stay open,
+-- or stat windows, should close on esc, as any menu"); in a fight, when no addon may hide a secure list, it is the
+-- game's own, the list left as it is
+local function escape()
+    -- (the game's Escape: each of its special windows that shows, hidden)
+    for _, name in ipairs(UISpecialFrames) do
+        local f = _G[name]
+        if f and f:IsShown() then
+            f:Hide()
+        end
+    end
+    F.RunTimers()
+end
+local escaper = _G.KaLiHUDFolderEscape
+click(stats)
+local armed = escaper ~= nil and escaper:IsShown()
+escape()
+local gone = not sp:IsShown() and not Folders.IsOpen(stats) and not (escaper and escaper:IsShown())
+click(infos)
+escape()
+local infosGone = not ip:IsShown()
+click(stats)
+F.EnterCombat()
+F.RunTimers()
+local aside = not (escaper and escaper:IsShown())
+escape()
+local kept = sp:IsShown()
+F.LeaveCombat()
+F.RunTimers()
+local back = escaper ~= nil and escaper:IsShown()
+escape()
+expect(armed and gone and infosGone and aside and kept and back and not sp:IsShown(),
+    "Escape doesn't shut an open list, one that stays open or one opening on a click, or takes it in a fight, or is "
+    .. "not back after it: " .. tostring(armed) .. tostring(gone) .. tostring(infosGone) .. tostring(aside)
+    .. tostring(kept) .. tostring(back))
+
 -- a locked folder's way of opening is the player's all the same (Ikar 2026-11-25: "users shoudl be able to set opening
 -- behaviour, even on locked folders"): its menu offers the four, its spec's ticked; « Au clic » chosen, it holds
 -- through the code making the folder again (a login's Seeds.Sync), and a press elsewhere shuts it; its spec's way

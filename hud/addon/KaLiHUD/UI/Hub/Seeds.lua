@@ -43,11 +43,7 @@ local function sepSpec(entry)
     if type(entry) ~= "table" then
         return nil
     end
-    local name = entry.name
-    if type(name) == "function" then
-        name = name()
-    end
-    return { name = name, line = entry.line }
+    return { name = entry.name, line = entry.line }
 end
 -- What each folder made here holds, in its order, filled by the files that make the items (UI/Hub/Infos/*.lua): an
 -- item's name, Seeds.SEP or a Seeds.Title, or a macro's fields { name, icon, text, seed }, its seed its key among its

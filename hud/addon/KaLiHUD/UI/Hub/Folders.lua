@@ -491,10 +491,49 @@ function Folders.IsOpen(id)
 end
 
 -- Its list shown or hidden by our code (the layout, a drag), which isn't the folder opening or shutting.
+-- Escape shuts the open lists, as it does any menu (Ikar 2026-11-26: "menu that stay open, or stat windows, should
+-- close on esc, as any menu"), the ones that stay open too: a frame among the game's special windows (UISpecialFrames,
+-- which its Escape hides), shown while a list is, its hiding shutting them as a press elsewhere does. Out of a fight
+-- only: the game lets no addon hide a secure list in one, so Escape goes on to the game's own then.
+local escaper = CreateFrame("Frame", "KaLiHUDFolderEscape", UIParent)
+escaper.quiet = true
+escaper:Hide()
+escaper.quiet = false
+escaper:SetScript("OnHide", ns.Guarded(function(self)
+    if self.quiet or InCombatLockdown() then
+        return
+    end
+    for id, p in pairs(panels) do
+        if p:IsShown() then
+            Folders.SetOpen(id, false)
+        end
+    end
+end))
+tinsert(UISpecialFrames, "KaLiHUDFolderEscape")
+-- Shown while a list is, out of a fight.
+local function escapeSync()
+    local want = false
+    if not InCombatLockdown() then
+        for _, p in pairs(panels) do
+            if p:IsShown() then
+                want = true
+                break
+            end
+        end
+    end
+    if want ~= (escaper:IsShown() == true) then
+        escaper.quiet = true
+        escaper:SetShown(want)
+        escaper.quiet = false
+    end
+end
+Folders.EscapeSync = escapeSync
+
 local function showList(p, shown)
     quiet = true
     p:SetShown(shown)
     quiet = false
+    escapeSync()
 end
 
 -- The player opened or shut it (a click, the pointer, the game's auto-hide), in combat too: it's open while its list
@@ -504,6 +543,7 @@ local function shownOrHidden(id)
     if quiet or not (f and p) then
         return
     end
+    escapeSync()
     local open = p:IsShown() or nil
     if f.opened == open then
         return
@@ -585,6 +625,10 @@ end
 -- auto-hide, its button and the lists open inward from it, to shut once the pointer has been on it and left it; as it
 -- ends, back to staying open (one opened in the fight too).
 local function fightStarts()
+    -- (Escape the game's own while it lasts: the lockdown not on yet, the escaper put aside now)
+    escaper.quiet = true
+    escaper:Hide()
+    escaper.quiet = false
     if not ns.db.options.folderCombatClose or InCombatLockdown() then
         return
     end
@@ -616,6 +660,7 @@ local function fightEnds()
             p.hideAt = nil
         end
     end
+    escapeSync()
 end
 
 -- A press of the mouse anywhere but on an open list shuts the open lists (Ikar 2026-11-17: "when opening a menu, a click

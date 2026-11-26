@@ -186,7 +186,6 @@ OWN.deDE = {
     CAT_time = "Zeit",
     CAT_stats = "Attribute",
     CAT_skills = "Fertigkeiten",
-    CAT_reputations = "Ruf",
     REP_WATCH = "Auf dem Fortschrittsbalken anzeigen",
     CAT_social = "Soziales",
     CAT_group = "Gruppe",

@@ -19,7 +19,7 @@ ns.SetWindow = Window
 local NAME = "KaLiHUDSetWindow"
 local WIDTH, PAD, GAP, BOX, BUTTON_HEIGHT = 360, 18, 8, 26, 22
 local NAME_LETTERS = 32
-local GOLD, GREY, WARN = { 1, 0.82, 0 }, { 0.6, 0.6, 0.6 }, { 1, 0.5, 0.25 }
+local GOLD, WARN = { 1, 0.82, 0 }, { 1, 0.5, 0.25 }
 
 local frame
 -- What it shows: { label, settings, set (one kept, else nil), backup (the settings as they were) }

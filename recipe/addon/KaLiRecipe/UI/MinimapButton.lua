@@ -10,7 +10,6 @@
 -- background, the icon), so it sits among them and button collectors gather it by its name. Dragged, it goes round the
 -- minimap's edge, round or square: SexyMap and the like say which through GetMinimapShape. Its place is kept in ui.minimap.
 local _, ns = ...
-local L = ns.L
 
 local Button = {}
 ns.MinimapButton = Button

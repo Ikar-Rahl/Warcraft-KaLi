@@ -4,7 +4,7 @@
 -- alarm, and the game's own stopwatch, a countdown started from its menu. The windows are the game's.
 local _, ns = ...
 
-local Infos, Hub, L, Format = ns.Infos, ns.Hub, ns.L, ns.Format
+local Infos, Hub, L = ns.Infos, ns.Hub, ns.L
 
 -- ---------- The zone's PvP state ----------
 

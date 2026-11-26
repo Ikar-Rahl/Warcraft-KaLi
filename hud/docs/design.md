@@ -3390,3 +3390,19 @@ once, not only those named. Three things found, each confirmed in the code or by
   nothing. The code is right as it is; the break undoes both guards now, the defect it is named for.
 
 Not seen in game, as the rest.
+
+**Escape and dead code, the same day.** Ikar: "also, menu that stay open, or stat windows, should close on esc, as any
+menu", and "remove any dead code".
+
+- **Escape shuts the open lists** (`UI/Hub/Folders.lua`'s escaper): a frame among the game's special windows
+  (`UISpecialFrames`, which its Escape hides), shown while a list is, its hiding shutting them as a press elsewhere
+  does, the ones that stay open too. Out of a fight only: the game lets no addon hide a secure list in one, so it is
+  put aside as a fight starts (the lockdown not on yet) and back once over, Escape the game's own meanwhile. The cards
+  kept open were among the special windows already (StatCard.lua, 2026-11-19), each of them. The scenario `persist`'s
+  case and four breaks.
+- **Dead code gone**: the three bits the review of 2026-11-25 found unreached (`Seeds.lua`'s title given as a
+  function, the bar menu's « reputations » with its four strings, the parts' rest of `sourcesOf`, which the attack
+  powers' level part always takes out: they alone have parts and the game's base), and what luacheck found that
+  nothing reads: `Format` in Social.lua and World.lua, `GREY` in SetWindow.lua, `LEFT_CLICK` in esMX.lua, KaLi
+  Recipe's minimap button's `L`, the info bar's `he` set to nil. Its empty branches, each saying why nothing is done
+  there, stay.

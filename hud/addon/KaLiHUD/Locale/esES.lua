@@ -188,7 +188,6 @@ OWN.esES = {
     CAT_time = "Tiempo",
     CAT_stats = "Atributos",
     CAT_skills = "Habilidades",
-    CAT_reputations = "Reputaciones",
     REP_WATCH = "Mostrar en la barra de progreso",
     CAT_social = "Social",
     CAT_group = "Grupo",

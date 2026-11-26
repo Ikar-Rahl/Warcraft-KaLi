@@ -191,7 +191,6 @@ OWN.frFR = {
     CAT_time = "Temps",
     CAT_stats = "Caractéristiques",
     CAT_skills = "Compétences",
-    CAT_reputations = "Réputations",
     REP_WATCH = "Afficher sur la barre de progression",
     CAT_social = "Social",
     CAT_group = "Groupe",

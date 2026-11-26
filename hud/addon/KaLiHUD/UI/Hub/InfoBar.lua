@@ -555,7 +555,7 @@ local function fit()
     local home = ns.Folders.Overflow()
     local he = home and Hub.Entry(home)
     if not he or he.side == "hidden" or InfoBar.OffBar(he) then
-        home, he = nil, nil
+        home = nil
     end
     -- « Suite »'s own button on the bar: none while it holds nothing and the padlock is shut, unless it's about to
     -- take something

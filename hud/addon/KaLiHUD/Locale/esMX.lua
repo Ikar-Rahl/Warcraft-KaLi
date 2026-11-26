@@ -1,6 +1,6 @@
 local _, ns = ...
 local OWN = ns.STRINGS
-local LEFT_CLICK, RIGHT_CLICK = ns.LEFT_CLICK, ns.RIGHT_CLICK
+local RIGHT_CLICK = ns.RIGHT_CLICK
 
 -- Mexican Spanish: Castilian's strings, except where the game's own Mexican words differ (Modo de edición, Costo,
 -- Barra de posturas, Marcador de mapa) and for numbers, written there as in English.
