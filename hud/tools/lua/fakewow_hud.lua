@@ -1689,6 +1689,24 @@ end
 C_Item.GetDetailedItemLevelInfo = function()
     return 60
 end
+-- An item's link by its instance (a bag's item, as a tooltip's data names it).
+F.guidLinks = {}
+C_Item.GetItemLinkByGUID = function(guid)
+    return F.guidLinks[guid]
+end
+-- The game's comparison of the item under the pointer with what it would replace (its shopping tooltips): by the item's
+-- link or instance, F.comparisons' { method, additionalItems }, the items from the bags it pairs it with (a two-handed
+-- weapon worn: a one-handed one hovered with an off-hand item, a shield with a weapon); nothing for any other.
+Enum.TooltipComparisonMethod = { Single = 0, WithBothHands = 1, WithBagMainHandItem = 2, WithBagOffHandItem = 3 }
+F.comparisons = {}
+-- (the comparison's state, Blizzard_SharedXMLGame's: what it compares now and the pairing it shows, none here)
+TooltipComparisonManager = {}
+C_TooltipComparison = {
+    GetItemComparisonInfo = function(item)
+        local c = type(item) == "table" and F.comparisons[item.guid or item.hyperlink or ""]
+        return c and { method = c.method, item = c.item or {}, additionalItems = c.additionalItems or {} } or nil
+    end,
+}
 -- The equipment's average item level, the best the bags hold then the worn's (the game's sheet's).
 function GetAverageItemLevel()
     return 25, 24
@@ -1739,6 +1757,8 @@ end
 -- kind of thing does ("Item" with { id, hyperlink }, "Spell" with { id }).
 Enum.TooltipDataType = Enum.TooltipDataType or { Item = 0, Spell = 1 }
 F.tooltipPosts = {}
+-- The window an item's or a spell's link opens (a click on it in the chat), its cross shutting it.
+ItemRefTooltip = CreateFrame("GameTooltip", "ItemRefTooltip", UIParent)
 TooltipDataProcessor = {
     AddTooltipPostCall = function(kind, fn)
         F.tooltipPosts[kind] = F.tooltipPosts[kind] or {}
@@ -1748,9 +1768,10 @@ TooltipDataProcessor = {
 TooltipUtil = TooltipUtil or {}
 function TooltipUtil.GetDisplayedItem()
 end
-function F.Hover(kind, data)
+-- (in `tooltip` where given: ItemRefTooltip, the window an item's or a spell's link opens)
+function F.Hover(kind, data, tooltip)
     for _, fn in ipairs(F.tooltipPosts[Enum.TooltipDataType[kind]] or {}) do
-        fn(GameTooltip, data)
+        fn(tooltip or GameTooltip, data)
     end
 end
 -- C_EncodingUtil, as far as a set of settings goes there and back (Core/Sets.lua): a value written as Lua, "deflated"

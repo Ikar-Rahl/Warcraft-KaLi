@@ -9,8 +9,12 @@ local BLUE = "|c" .. ns.Stats.WOULD_HEX
 local function object(key)
     return ns.Hub.Object("KaLiHUD_Attr_" .. key)
 end
-local function text(key)
+-- (its figure alone: the arrow after it, which way, checked apart below; `raw` with it)
+local function raw(key)
     return tostring(object(key).text)
+end
+local function text(key)
+    return (raw(key):gsub(" |A:UI%-HUD%-ActionBar%-Page%a+Arrow%-Up:[^|]*|a", ""):gsub(" |cffffd100±|r", ""))
 end
 local function link(id, name)
     return "|cffffffff|Hitem:" .. id .. ":::::::::60:::::|h[Objet " .. name .. "]|h|r"
@@ -214,7 +218,65 @@ local bare, weaker = text("MAINHAND_DAMAGE"), text("STRENGTH")
 local twoHand = object("MAINHAND_DAMAGE").label
 gone()
 expect(twoHand == ns.G("INVTYPE_2HWEAPON", "Two-Hand"), "a two-handed weapon's line isn't named so: " .. twoHand)
+-- (a one-handed weapon tried in its place: the two-handed one's strength gone with it, the main hand the sword's)
+hover(3002, 62)
+local swapped, swappedStrength = text("MAINHAND_DAMAGE"), text("STRENGTH")
+gone()
+-- (paired as the game's comparison pairs them from the bags: the sword with the shield in the off hand, the shield with
+-- the sword in the main hand, named by its instance, the shield's 8 stamina on both; the second pairing where the
+-- comparison shows it, Shift cycling them, another shield's 5. Ikar 2026-11-26, in game: "hovering a 1h weapon while
+-- having a 2h do not update as if there is the shield. And same with the shield")
+F.itemStats[67], F.items[3008], F.itemStats[68] = { ITEM_MOD_STAMINA_SHORT = 8, RESISTANCE0_NAME = 642 },
+    { class = 4, subclass = 6, equip = "INVTYPE_SHIELD" }, { ITEM_MOD_STAMINA_SHORT = 5 }
+F.comparisons[link(3002, 62)] = { method = Enum.TooltipComparisonMethod.WithBagOffHandItem,
+    additionalItems = { { hyperlink = link(3007, 67) }, { hyperlink = link(3008, 68) } } }
+F.comparisons[link(3007, 67)] = { method = Enum.TooltipComparisonMethod.WithBagMainHandItem,
+    additionalItems = { { guid = "Item-3002" } } }
+F.guidLinks["Item-3002"] = link(3002, 62)
+hover(3002, 62)
+local withShield, shieldArmor = text("STAMINA"), text("ARMOR")
+gone()
+hover(3007, 67)
+local withSword, armed, swordArmor = text("STAMINA"), text("MAINHAND_DAMAGE"), text("ARMOR")
+gone()
+local comparing = TooltipComparisonManager
+TooltipComparisonManager = { comparisonItem = { hyperlink = link(3002, 62) }, comparisonIndex = 2 }
+hover(3002, 62)
+local withSecond = text("STAMINA")
+gone()
+TooltipComparisonManager = comparing
+F.itemStats[67], F.items[3008], F.itemStats[68], F.comparisons, F.guidLinks = nil, nil, nil, {}, {}
+local function stamina(more)
+    return object("STAMINA").label .. " " .. BLUE .. (select(2, UnitStat("player", 3)) + more) .. "|r"
+end
+-- (the armour too, as Ikar's screenshot: the shield's 642 counted with the sword hovered, as the game's « +642 Armure »)
+local function armour(more)
+    return object("ARMOR").label .. " " .. BLUE .. ns.Format.Number(select(2, UnitArmor("player")) + more) .. "|r"
+end
+expect(withShield == stamina(8) and withSword == stamina(8) and withSecond == stamina(5)
+    and shieldArmor == armour(642) and swordArmor == armour(642)
+    and armed:find(BLUE, 1, true) and armed:sub(-#ns.Stats.UNKNOWN) ~= ns.Stats.UNKNOWN,
+    "a weapon or a shield tried over a two-handed one isn't paired as the game's comparison pairs it: " .. withShield
+    .. " / " .. shieldArmor .. " / " .. withSword .. " / " .. swordArmor .. " / " .. withSecond .. " / " .. armed)
 F.mainHand.equip, F.itemStats[16] = nil, nil
+-- a weapon and a shield worn (the shield's 642 armour and 8 stamina), a two-handed weapon tried: it replaces both, the
+-- shield's armour and stamina gone with it, on the lines (Ikar 2026-11-26: "if I have the shield and a weapon and hover
+-- a 2h, it should replace both"; the card kept open's in the smoke)
+F.items[1017], F.itemStats[17] = { class = 4, subclass = 6, equip = "INVTYPE_SHIELD" },
+    { RESISTANCE0_NAME = 642, ITEM_MOD_STAMINA_SHORT = 8 }
+F.Fire("PLAYER_EQUIPMENT_CHANGED")
+F.RunTimers()
+hover(3004, 64)
+local bothArmor, bothStamina = text("ARMOR"), text("STAMINA")
+gone()
+F.items[1017], F.itemStats[17] = nil, nil
+F.Fire("PLAYER_EQUIPMENT_CHANGED")
+F.RunTimers()
+expect(bothArmor == armour(-642) and bothStamina == stamina(-8),
+    "a two-handed weapon tried over a weapon and a shield keeps the shield: " .. bothArmor .. " / " .. bothStamina)
+expect(swapped:find(BLUE, 1, true) and swappedStrength == object("STRENGTH").label .. " " .. BLUE
+    .. (select(2, UnitStat("player", 1)) - 10) .. "|r",
+    "a one-handed weapon tried over a two-handed one isn't followed: " .. swapped .. " / " .. swappedStrength)
 expect(bare:find(BLUE, 1, true) and bare:sub(-#ns.Stats.UNKNOWN) == ns.Stats.UNKNOWN
     and weaker == object("STRENGTH").label .. " " .. BLUE .. (select(2, UnitStat("player", 1)) - 10) .. "|r",
     "a shield tried doesn't take the two-handed weapon worn off with it: " .. bare .. " / " .. weaker)
@@ -539,6 +601,91 @@ F.auras.HELPFUL[#F.auras.HELPFUL] = nil
 refresh()
 expect(taken == object("DAMAGETAKEN").label .. " " .. ns.Infos.Color(ns.Format.Percent(-0.1), ns.Infos.GOOD) .. " "
     .. ns.Infos.Color("- 5", ns.Infos.GOOD), "the damage taken lowered isn't green: " .. taken)
+
+-- the auction house's refresh, five times a second: its tooltip hidden (SetOwner) and the same item shown again in the
+-- same frame; the lines stay as they are (Ikar 2026-11-26, in game: "when I hover an item in the auction house. It
+-- cycle back and forth")
+hover(3001, 61)
+local held = text("STRENGTH")
+F.RunScript(GameTooltip, "OnHide")
+F.Hover("Item", { id = 3001, hyperlink = link(3001, 61) })
+local between = text("STRENGTH")
+F.RunTimers()
+local settled = text("STRENGTH")
+gone()
+expect(held:find(BLUE, 1, true) and between == held and settled == held,
+    "the same item hidden and shown again in a frame turns the lines back and forth: " .. held .. " / " .. between
+    .. " / " .. settled)
+
+-- an item's window opened from a chat link (ItemRefTooltip, its cross shutting it), which the game compares as the
+-- pointer's: tried the same while the pointer is on it alone, not while it is merely open (Ikar 2026-11-26: "It should
+-- count the same when hovered", then "It should be only when hovered I said")
+F.Hover("Item", { id = 3001, hyperlink = link(3001, 61) }, ItemRefTooltip)
+F.RunTimers()
+local linkOpen = text("STRENGTH")
+F.RunScript(ItemRefTooltip, "OnEnter")
+F.RunTimers()
+local onLink = text("STRENGTH")
+F.RunScript(ItemRefTooltip, "OnLeave")
+F.RunTimers()
+local offLink = text("STRENGTH")
+F.RunScript(ItemRefTooltip, "OnEnter")
+F.RunScript(ItemRefTooltip, "OnHide")
+F.RunTimers()
+local linkShut = text("STRENGTH")
+-- (shut by its cross under the pointer, opened again from the chat, the pointer elsewhere: not tried)
+F.Hover("Item", { id = 3001, hyperlink = link(3001, 61) }, ItemRefTooltip)
+F.RunTimers()
+local reopened = text("STRENGTH")
+F.RunScript(ItemRefTooltip, "OnHide")
+F.RunTimers()
+expect(not linkOpen:find(BLUE, 1, true) and onLink:find(BLUE, 1, true) and not offLink:find(BLUE, 1, true)
+    and not linkShut:find(BLUE, 1, true) and not reopened:find(BLUE, 1, true),
+    "an item's window from a link isn't tried while the pointer is on it alone: " .. linkOpen .. " / " .. onLink
+    .. " / " .. offLink .. " / " .. linkShut .. " / " .. reopened)
+
+-- every lowering red (Ikar 2026-11-26: "All lowering should be red"): a debuff of 2 % of dodge and 200 armour, both
+-- lines red, the armour's green where the game says it's raised (its own sheet never red); as they were once it's gone
+local function plain(v)
+    return (v:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
+end
+local dodgeWas, armorWas, dodgeOf, armorOf = text("DODGE"), text("ARMOR"), GetDodgeChance, UnitArmor
+ns.EFFECTS[900070] = "2,2;49:0:0:0:-2;22:1:1:1:-200"
+F.auras.HARMFUL[#F.auras.HARMFUL + 1] = { name = "Faiblesse", spellId = 900070, icon = 1, applications = 0,
+    auraInstanceID = 9601 }
+GetDodgeChance = function()
+    return 3.1
+end
+UnitArmor = function()
+    return 1200, 1140, 1140, 140
+end
+refresh()
+local dodgeLow, armorLow = text("DODGE"), text("ARMOR")
+F.auras.HARMFUL[#F.auras.HARMFUL] = nil
+GetDodgeChance, UnitArmor = dodgeOf, armorOf
+refresh()
+expect(dodgeLow == object("DODGE").label .. " " .. ns.Infos.Color(ns.Format.PercentOf(3.1, 1), ns.Infos.BAD)
+    and armorLow == object("ARMOR").label .. " " .. ns.Infos.Color(ns.Format.Number(1140), ns.Infos.BAD)
+    and not plain(dodgeWas):find("|", 1, true) and text("DODGE") == dodgeWas and text("ARMOR") == armorWas,
+    "a lowered line isn't red, or stays so: " .. dodgeLow .. " / " .. armorLow .. " / " .. text("DODGE"))
+
+-- which way, after the figure (Ikar 2026-11-26: "Show up or down icon, and a third for when the stat is not strictly
+-- superior or inferior", "Give the arrows"): the chest's strength up, a green arrow up; its defence's critical strikes
+-- taken down, better, a green arrow down; a consumable of +10 % of fire and 5 points less, both ways, the yellow ±
+hover(3001, 61)
+local upStrength, downTaken = raw("STRENGTH"), raw("CRITTAKEN")
+gone()
+made(3037, "2,2;79:4:0:0:10;13:4:1:1:-5")
+drunk(3037)
+local bothFire = raw("SPELLPOWER_FIRE")
+gone()
+local function ends(v, tail)
+    return tail ~= "" and v:sub(-#tail) == tail
+end
+expect(ends(upStrength, ns.Stats.Arrow(1)) and ends(downTaken, ns.Stats.Arrow(-1, true))
+    and ns.Stats.Arrow(-1, true) ~= ns.Stats.Arrow(-1) and ends(bothFire, ns.Stats.Arrow("mixed")),
+    "a line under the pointer doesn't say which way it would go: " .. upStrength .. " / " .. downTaken .. " / "
+    .. bothFire)
 
 -- what the review of 2026-11-26 found
 -- the traps' detection (17's misc 1: the rogues' Detect Traps, 70) isn't the stealth's

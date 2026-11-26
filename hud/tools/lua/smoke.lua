@@ -4698,7 +4698,7 @@ do
             F.items[2005] = { class = 4, subclass = 4, equip = "INVTYPE_CHEST" }
             F.itemStats[42] = { RESISTANCE0_NAME = 450, ITEM_MOD_AGILITY_SHORT = 10 }
             local t = hover("Item", { id = 2005, hyperlink = link(2005, 42) })
-            expect(lines[2] == Color(Number(1510), BLUE) and lines[3] == Color(Number(1340), WAS) .. " "
+            expect(lines[2] == Color(Number(1510), BLUE) .. " " .. ns.Stats.Arrow(1) and lines[3] == Color(Number(1340), WAS) .. " "
                 .. Color("+" .. Number(170), BLUE) .. " " .. ARROW and t:find(L.STAT_WOULD_HINT, 1, true),
                 "the card kept open doesn't say what the value would be with the item under the pointer: " .. t)
             expect(after("Objet 5", became(Number(300), "0")) and after("|cff1eff00Objet 42|r", Color(Number(450), BLUE))
@@ -4745,7 +4745,7 @@ do
             ns.ITEM_USES[3001] = "14803"
             F.items[3001] = { class = 0, subclass = 2 }
             t = hover("Item", { id = 3001, hyperlink = link(3001, 77) })
-            expect(after("Objet 77", Color("+200", BLUE)) and lines[2] == Color(Number(1540), BLUE)
+            expect(after("Objet 77", Color("+200", BLUE)) and lines[2] == Color(Number(1540), BLUE) .. " " .. ns.Stats.Arrow(1)
                 and not t:find(ns.Stats.UNKNOWN, 1, true),
                 "a consumable under the pointer isn't tried on the card kept open, or its fixed figure is marked: "
                 .. t)
@@ -4767,7 +4767,7 @@ do
                 "a meal under the pointer isn't tried as any consumable, or one with no buff is said to change the "
                 .. "value: " .. t .. " / " .. plain)
             lines = mealLines
-            expect(after("Objet 78", Color("+200", BLUE)) and mealLines[2] == Color(Number(1540), BLUE)
+            expect(after("Objet 78", Color("+200", BLUE)) and mealLines[2] == Color(Number(1540), BLUE) .. " " .. ns.Stats.Arrow(1)
                 and not t:find(ns.Stats.UNKNOWN, 1, true),
                 "a meal's buff, the data's figure, is marked as unknown: " .. t)
             ns.ITEM_USES[3002], F.items[3002], F.items[3003] = nil, nil, nil
@@ -4789,7 +4789,7 @@ do
             -- 4 % at 80 of agility, 4.5 % at 90 with an item's 10, the dodge 5.1 % then 5.6 %, no question
             pin("KaLiHUD_Attr_DODGE")
             t = hover("Item", { id = 2005, hyperlink = link(2005, 42) })
-            expect(lines[2] == Color(ns.Format.PercentOf(5.6, 2), BLUE), "the dodge isn't worked out with an item's "
+            expect(lines[2] == Color(ns.Format.PercentOf(5.6, 2), BLUE) .. " " .. ns.Stats.Arrow(1), "the dodge isn't worked out with an item's "
                 .. "agility: " .. t)
             gone()
             -- a talent (13712: 2 % of dodge a rank) at its next rank: 2 of 3 would be 3 of 3; nothing at its last; one
@@ -4828,7 +4828,7 @@ do
             pin("KaLiHUD_Attr_ATTACK_AP")
             F.items[2006], F.itemStats[43] = { equip = "INVTYPE_FINGER" }, { ITEM_MOD_ATTACK_POWER_SHORT = 10 }
             t = hover("Item", { id = 2006, hyperlink = link(2006, 43) })
-            expect(lines[2] == Color(Number(329), BLUE),
+            expect(lines[2] == Color(Number(329), BLUE) .. " " .. ns.Stats.Arrow(1),
                 "what would be beside a share of an attribute in the game's base is off by it: " .. t)
             gone()
             F.items[2006], F.itemStats[43], F.talents, F.spellNames[415140] = nil, nil, {}, nil

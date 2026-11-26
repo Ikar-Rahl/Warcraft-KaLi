@@ -814,7 +814,7 @@ BREAKS = [
     # What an item, a talent or a consumable under the pointer would change (Ikar 2026-11-19: "even better, update with
     # a different color on an item, talent, consumable hover", "go for the light blue")
     ("would be: an item under the pointer tried on nothing", STATS,
-     "            try(itemTried(link))\n", ""),
+     "            Tried.Ask(tooltip, itemTried(link, data))\n", ""),
     ("would be: the item tried not read in its slot", STATS,
      "    if link ~= nil then\n        return link or nil\n    end\n", ""),
     ("would be: what the item's attributes give left out", STATS,
@@ -833,7 +833,7 @@ BREAKS = [
      "    elseif data.would then\n        local w, percents = data.would, s.sources.percent\n",
      "    elseif false then\n        local w, percents = data.would, s.sources.percent\n"),
     ("would be: still said once the tooltip has gone", STATS,
-     "    GameTooltip:HookScript(\"OnHide\", ns.Guarded(function()\n        try(nil)\n    end))\n", ""),
+     "            Tried.Ask(tooltip, nil)\n        end))\n", "        end))\n"),
     ("would be: an item worn already tried in another's place", STATS,
      "            if GetInventoryItemLink(\"player\", worn) == link then\n                return nil\n            end\n",
      ""),
@@ -857,7 +857,7 @@ BREAKS = [
      "    if type(v) == \"number\" and type(now) == \"number\" and now > 0 and agility and agility ~= now then\n",
      "    if false then\n"),
     ("would be: a talent under the pointer tried on nothing", STATS,
-     "            try(talentTried(ns.Plain(data.id)))\n", ""),
+     "            Tried.Ask(tooltip, talentTried(ns.Plain(data.id)))\n", ""),
     ("would be: a talent at its last rank tried at one more", STATS,
      "            if talent.rank >= talent.ranks then\n                return nil\n            end\n", ""),
     ("would be: a talent not bought not tried", STATS,
@@ -865,9 +865,9 @@ BREAKS = [
     # What would be on the attributes' lines (Ikar 2026-11-25: "when hovering, it seems you turn blue only the
     # individual cards, not the whole stat lists", then "go for an implementation")
     ("lines: what is under the pointer tried on a card kept open alone", STATS,
-     "        if tooltip == GameTooltip and type(data) == \"table\" and (next(pinnedStat) or Tried.AnyShown()) then\n"
+     "        if Tried.Asking(tooltip) and type(data) == \"table\" and (next(pinnedStat) or Tried.AnyShown()) then\n"
      "            local link = ns.Plain(data.hyperlink)\n",
-     "        if tooltip == GameTooltip and type(data) == \"table\" and next(pinnedStat) then\n"
+     "        if Tried.Asking(tooltip) and type(data) == \"table\" and next(pinnedStat) then\n"
      "            local link = ns.Plain(data.hyperlink)\n", "test:lines"),
     ("lines: a shut folder's lines worked out", STATS,
      "    if b and b:IsVisible() then\n", "    if b then\n", "test:lines"),
@@ -883,8 +883,8 @@ BREAKS = [
     ("lines: still said once the tooltip has gone", STATS,
      "        if s.line then\n            Hub.Set(s.item, \"text\", s.line)\n        end\n", "", "test:lines"),
     ("lines: what would be not in the blue", STATS,
-     "    return Infos.Color(plainText(figure), WOULD_HEX)\nend\n\n-- ---------- The weapons' lines",
-     "    return plainText(figure)\nend\n\n-- ---------- The weapons' lines", "test:lines"),
+     "    return Tried.WithArrow(Infos.Color(plainText(figure), WOULD_HEX), w.delta, Tried.LOWER_BETTER[s.key])\n",
+     "    return Tried.WithArrow(plainText(figure), w.delta, Tried.LOWER_BETTER[s.key])\n", "test:lines"),
     ("lines: a change smaller than the line writes said in the blue", STATS,
      "    elseif plainText(figure) == plainText((read(s))) then\n", "    elseif false then\n", "test:lines"),
     ("lines: a buff of no known figure on the spirit asks nothing of the health's regeneration", STATS,
@@ -905,8 +905,8 @@ BREAKS = [
     ("lines: the mana's line left as it is", STATS,
      "        return Stats.RegenLineWould(s, tried, w)\n", "        return nil\n", "test:lines"),
     ("lines: what would be not worked out again as the values change", STATS,
-     "    if values ~= Tried.values then\n        Tried.values = values\n        Tried.Forget()\n    end\n", "",
-     "test:lines"),
+     "    if values ~= Tried.values then\n        Tried.values = values\n        Tried.Forget()\n",
+     "    if values ~= Tried.values then\n        Tried.values = values\n", "test:lines"),
     ("lines: worked out again at each event that changes no value", STATS,
      "    if values ~= Tried.values then\n", "    if true then\n", "test:lines"),
     ("lines: the defence's most not beside what it would be", STATS,
@@ -938,8 +938,7 @@ BREAKS = [
     # a single exception. Under no cisrcumstances"): the health's regeneration by the spirit, an estimate asked; the
     # hands, their cards kept open too; the physical damage's own changes on them
     ("follow: the health's estimate not asked on its line", STATS,
-     "        return Infos.Color(text, WOULD_HEX) .. (would and would.estimate and \" \" .. UNKNOWN or \"\")\n",
-     "        return Infos.Color(text, WOULD_HEX)\n", "test:follow"),
+     "            .. (would and would.estimate and \" \" .. UNKNOWN or \"\")\n", "            .. \"\"\n", "test:follow"),
     ("follow: the health's estimate by no slope", STATS,
      "    return slope and max(0, v + slope / 2 * more) or v\n", "    return v\n", "test:follow"),
     ("follow: a class the original server hasn't said estimated", STATS,
@@ -995,8 +994,9 @@ BREAKS = [
      "            local speed = tonumber(((right:match(\"(%d+[%.,]?%d*)\") or \"\"):gsub(\",\", \".\")))\n",
      "            local speed = tonumber(right:match(\"(%d+[%.,]?%d*)\") or \"\")\n", "test:follow"),
     ("follow: a hand's estimate not asked on its line", STATS,
-     "    return Infos.Color(plainText(figure), WOULD_HEX) .. (estimate and \" \" .. UNKNOWN or \"\")\n",
-     "    return Infos.Color(plainText(figure), WOULD_HEX)\n", "test:follow"),
+     "    return Tried.WithArrow(Infos.Color(plainText(figure), WOULD_HEX), change)\n"
+     "        .. (estimate and \" \" .. UNKNOWN or \"\")\n",
+     "    return Tried.WithArrow(Infos.Color(plainText(figure), WOULD_HEX), change)\n", "test:follow"),
     ("follow: a hand's card's speed and damage a second as they are", STATS,
      "                wouldLow, wouldHigh, wouldSpeed = a, b, c\n", "", "test:follow"),
     # The gaps (Ikar 2026-11-26: "fix the gaps"): Forever's items' school and physical damage, resistance to every
@@ -1120,6 +1120,42 @@ BREAKS = [
     ("review 2026-11-26: in a fight a spell's share kept unasked", STATS,
      "    return kept and (text .. \" \" .. ask(L.STAT_WHY_FIGHT_SHARE)) or text\n", "    return text\n",
      "test:follow"),
+    # Ikar in game, the same day: "hovering a 1h weapon while having a 2h do not update as if there is the shield. And
+    # same with the shield" (the game's comparison pairs them from the bags)
+    ("in game 2026-11-26: the game's pairing from the bags left out", STATS,
+     "        if pairedSlot and pairedSlot ~= slot and paired ~= link then\n            links[pairedSlot] = paired\n",
+     "        if false then\n            links[pairedSlot] = paired\n", "test:follow"),
+    ("in game 2026-11-26: a two-handed weapon tried with the shield kept, on the lines", STATS,
+     "        if info[10] == \"INVTYPE_2HWEAPON\" then\n            links[17] = false\n        elseif",
+     "        if false then\n            links[17] = false\n        elseif", "test:follow"),
+    ("in game 2026-11-26: the tooltip's hide acted on at once, the auction house's lines back and forth", STATS,
+     "    Tried.pending = what\n    ns.Later(\"stat try\", Tried.Apply)\n",
+     "    Tried.pending = what\n    Tried.Apply()\n", "test:follow"),
+    ("in game 2026-11-26: an item's window from a link not tried", STATS,
+     "    return tooltip ~= nil and (tooltip == GameTooltip or tooltip == ItemRefTooltip)\n",
+     "    return tooltip ~= nil and tooltip == GameTooltip\n", "test:follow"),
+    ("in game 2026-11-26: an item's window tried while merely open", STATS,
+     "        Tried.asked.window = Tried.overWindow and what or nil\n", "        Tried.asked.window = what\n",
+     "test:follow"),
+    ("in game 2026-11-26: an item's window still tried once the pointer has left it", STATS,
+     "    Tried.asked.window = over and Tried.window or nil\n", "    Tried.asked.window = Tried.window\n",
+     "test:follow"),
+    ("in game 2026-11-26: an item's window shut under the pointer still taken as pointed at", STATS,
+     "            if tooltip ~= GameTooltip then\n                Tried.overWindow = false\n",
+     "            if false then\n                Tried.overWindow = false\n", "test:follow"),
+    ("arrows 2026-11-26: no arrow after a figure under the pointer", STATS,
+     "    return arrow ~= \"\" and (figure .. \" \" .. arrow) or figure\n", "    return figure\n", "test:follow"),
+    ("arrows 2026-11-26: a line better lower taken as one better higher", STATS,
+     "    local good = up ~= (lowerBetter == true)\n", "    local good = up\n", "test:follow"),
+    ("arrows 2026-11-26: both ways not said mixed", STATS,
+     "    if x * y < 0 then\n        return \"mixed\"\n", "    if false then\n        return \"mixed\"\n", "test:follow"),
+    ("in game 2026-11-26: a paired item named by its instance not read", STATS,
+     "        link = ns.Plain(ns.Call(C_Item.GetItemLinkByGUID, paired.guid))\n", "", "test:follow"),
+    ("in game 2026-11-26: the pairing the comparison shows not read", STATS,
+     "        if item.guid and guid == item.guid or item.hyperlink and hyperlink == item.hyperlink then\n"
+     "            return index\n",
+     "        if item.guid and guid == item.guid or item.hyperlink and hyperlink == item.hyperlink then\n"
+     "            return 1\n", "test:follow"),
     ("follow: a hand's card's head as it is", STATS,
      "            data.value, data.detail = figure, Infos.Color(plainText(text), WAS_HEX) .. \" \" .. ARROW\n", "",
      "test:follow"),

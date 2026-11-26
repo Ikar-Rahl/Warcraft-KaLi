@@ -963,7 +963,8 @@ local function read(s)
         ns.SafeCall(error, text)
         return nil
     end
-    return text, parts
+    -- (lowered red, where the game splits nothing: Stats.Lowered, far below)
+    return Stats.Lowered and Stats.Lowered(s, text) or text, parts
 end
 
 -- ---------- Where a value's changes come from ----------
@@ -4786,8 +4787,13 @@ do
         if text == Stats.RegenText(s.key, now.states, now.totals) then
             return nil
         end
-        -- (an estimate, the health's by the spirit tried: the game's question after it)
-        return Infos.Color(text, WOULD_HEX) .. (would and would.estimate and " " .. UNKNOWN or "")
+        -- (an estimate, the health's by the spirit tried: the game's question after it; which way, each state's sum)
+        local change = 0
+        for _, state in ipairs(tried.states) do
+            change = change + (totals[state] or 0) - (now.totals[state] or 0)
+        end
+        return Tried.WithArrow(Infos.Color(text, WOULD_HEX), change)
+            .. (would and would.estimate and " " .. UNKNOWN or "")
     end
 
     -- The card's table, and what `what` would make of it on a card kept open: its rows beside the table now (the
@@ -4993,7 +4999,54 @@ local EQUIP_SLOTS = {
     INVTYPE_SHIELD = 17, INVTYPE_WEAPONOFFHAND = 17, INVTYPE_HOLDABLE = 17, INVTYPE_RANGED = 18,
     INVTYPE_RANGEDRIGHT = 18, INVTYPE_THROWN = 18, INVTYPE_RELIC = 18, INVTYPE_TABARD = 19,
 }
-local function itemTried(link)
+-- What the game's comparison pairs with the item under the pointer (`data`, its tooltip's: C_TooltipComparison's
+-- GetItemComparisonInfo, the shopping tooltips' « (Avec Targe arctique dans votre main gauche) »): a two-handed weapon
+-- worn, a one-handed one hovered with an off-hand item from the bags, a shield, an off-hand weapon or a held item with a
+-- weapon from them (Ikar 2026-11-26, in game: "hovering a 1h weapon while having a 2h do not update as if there is the
+-- shield. And same with the shield"). The pairing the comparison shows (Tried.PairIndex), the first else. Its slot and
+-- its link; nil for none.
+function Tried.Paired(data)
+    local methods = Enum.TooltipComparisonMethod
+    if type(data) ~= "table" or not (methods and C_TooltipComparison and C_TooltipComparison.GetItemComparisonInfo) then
+        return nil
+    end
+    local guid, hyperlink = ns.Plain(data.guid), ns.Plain(data.hyperlink)
+    local item = type(guid) == "string" and guid ~= "" and { guid = guid }
+        or type(hyperlink) == "string" and hyperlink ~= "" and { hyperlink = hyperlink } or nil
+    local info = item and ns.Call(C_TooltipComparison.GetItemComparisonInfo, item)
+    if type(info) ~= "table" or type(info.additionalItems) ~= "table" then
+        return nil
+    end
+    local slot = info.method == methods.WithBagOffHandItem and 17 or info.method == methods.WithBagMainHandItem and 16
+        or nil
+    local paired = slot and (info.additionalItems[Tried.PairIndex(item)] or info.additionalItems[1])
+    if type(paired) ~= "table" then
+        return nil
+    end
+    local link = ns.Plain(paired.hyperlink)
+    if (type(link) ~= "string" or link == "") and paired.guid and C_Item.GetItemLinkByGUID then
+        link = ns.Plain(ns.Call(C_Item.GetItemLinkByGUID, paired.guid))
+    end
+    if type(link) == "string" and link ~= "" then
+        return slot, link
+    end
+end
+-- (which of them the comparison shows, Shift cycling them: its own index while it compares that item; read again as the
+-- game refreshes the item's tooltip)
+function Tried.PairIndex(item)
+    local m = TooltipComparisonManager
+    local shown = type(m) == "table" and m.comparisonItem
+    local index = type(m) == "table" and ns.Plain(m.comparisonIndex)
+    if type(shown) == "table" and type(index) == "number" then
+        local guid, hyperlink = ns.Plain(shown.guid), ns.Plain(shown.hyperlink)
+        if item.guid and guid == item.guid or item.hyperlink and hyperlink == item.hyperlink then
+            return index
+        end
+    end
+    return 1
+end
+
+local function itemTried(link, data)
     if type(link) ~= "string" or not (C_Item and C_Item.GetItemInfo) then
         return nil
     end
@@ -5021,6 +5074,11 @@ local function itemTried(link)
             if worn and ok and equip == "INVTYPE_2HWEAPON" then
                 links[16] = false
             end
+        end
+        -- (what the game's comparison pairs with it from the bags, in the other hand: Tried.Paired)
+        local pairedSlot, paired = Tried.Paired(data)
+        if pairedSlot and pairedSlot ~= slot and paired ~= link then
+            links[pairedSlot] = paired
         end
         return { links = links }
     end
@@ -5172,11 +5230,11 @@ local function showCard(owner, s, keep, again)
         if w.unsure then
             data.value, data.detail = ask(w.unsure), Infos.Color(plainText(text), WAS_HEX) .. " " .. ARROW
         elseif w.value then
-            data.value = Infos.Color(figure(w.value), WOULD_HEX)
+            data.value = Tried.WithArrow(Infos.Color(figure(w.value), WOULD_HEX), w.delta, Tried.LOWER_BETTER[s.key])
             data.detail = Infos.Color(plainText(text), WAS_HEX) .. " " .. Infos.Color(change, WOULD_HEX) .. " "
                 .. ARROW
         else
-            data.detail = Infos.Color(change, WOULD_HEX)
+            data.detail = Tried.WithArrow(Infos.Color(change, WOULD_HEX), w.delta, Tried.LOWER_BETTER[s.key])
         end
     elseif keep and text and s.would and Tried.what and not ns.InCombat() then
         -- (a hand's: what its line would say, the game's question after an estimate, said at the foot; a change it
@@ -5295,6 +5353,43 @@ Tried.FIGURES = {
     end,
 }
 
+-- Which way what is tried would take a line, after its figure in the blue (Ikar 2026-11-26: "Show up or down icon, and
+-- a third for when the stat is not strictly superior or inferior (like the combined ones)", "Maybe green red arrow ?",
+-- then "Give the arrows"): up or down the game's own arrows (the action bars' pages'), green where the line gets
+-- better, red where worse (lower better: the critical strikes and the damage taken); a yellow ± where it goes both ways
+-- (a share up and points down); none where it can't be said or doesn't change. `change`: a number, or "mixed".
+Tried.ARROWS = { up = "UI-HUD-ActionBar-PageUpArrow-Up", down = "UI-HUD-ActionBar-PageDownArrow-Up" }
+Tried.LOWER_BETTER = { CRITTAKEN = true, DAMAGETAKEN = true }
+function Tried.Arrow(change, lowerBetter)
+    if change == "mixed" then
+        return Infos.Color("±", "ffffd100")
+    elseif type(change) ~= "number" or (change < 0.005 and change > -0.005) then
+        return ""
+    end
+    local up = change > 0
+    local good = up ~= (lowerBetter == true)
+    return ("|A:%s:12:10:0:0:%d:%d:%d|a"):format(up and Tried.ARROWS.up or Tried.ARROWS.down, good and 32 or 255,
+        good and 255 or 32, 32)
+end
+function Tried.WithArrow(figure, change, lowerBetter)
+    local arrow = Tried.Arrow(change, lowerBetter)
+    return arrow ~= "" and (figure .. " " .. arrow) or figure
+end
+-- (two parts' changes as one: either way alone, or both ways, mixed)
+function Tried.Both(a, b)
+    local function sign(v)
+        return (v >= 0.005 and 1) or (v <= -0.005 and -1) or 0
+    end
+    local x, y = sign(a or 0), sign(b or 0)
+    if x * y < 0 then
+        return "mixed"
+    end
+    return x ~= 0 and x or y
+end
+Stats.Arrow = function(...)
+    return Tried.Arrow(...)
+end
+
 -- `fn` called, what its readings stand on gathered (Tried.leaned: an attribute's index, a value's key), an outer
 -- reading's getting them too: that table, then what `fn` returns.
 function Tried.Leaning(fn, ...)
@@ -5365,7 +5460,7 @@ function Tried.LineOf(s, tried)
     elseif plainText(figure) == plainText((read(s))) then
         return nil
     end
-    return Infos.Color(plainText(figure), WOULD_HEX)
+    return Tried.WithArrow(Infos.Color(plainText(figure), WOULD_HEX), w.delta, Tried.LOWER_BETTER[s.key])
 end
 
 -- ---------- The weapons' lines, what they would be ----------
@@ -5590,7 +5685,14 @@ function Tried.HandLine(s, slot, tried)
     if not figure or plainText(figure) == plainText((read(s))) then
         return nil
     end
-    return Infos.Color(plainText(figure), WOULD_HEX) .. (estimate and " " .. UNKNOWN or "")
+    -- (which way: its average hit against the one now, the game's)
+    WOULD = nil
+    local nowOk, nowLow, nowHigh = pcall(Tried.Hand, slot)
+    WOULD = was
+    local now = nowOk and type(nowLow) == "number" and type(nowHigh) == "number" and nowLow + nowHigh or 0
+    local change = (type(low) == "number" and low + high or 0) - now
+    return Tried.WithArrow(Infos.Color(plainText(figure), WOULD_HEX), change)
+        .. (estimate and " " .. UNKNOWN or "")
 end
 STAT_BY_KEY.MAINHAND_DAMAGE.would = function(tried) return Tried.HandLine(STAT_BY_KEY.MAINHAND_DAMAGE, 16, tried) end
 STAT_BY_KEY.OFFHAND_DAMAGE.would = function(tried) return Tried.HandLine(STAT_BY_KEY.OFFHAND_DAMAGE, 17, tried) end
@@ -5735,7 +5837,10 @@ function Tried.DualLine(s, tried)
     if plainText(figure) == plainText((read(s))) then
         return nil
     end
-    return Infos.Color(plainText(figure), WOULD_HEX)
+    -- (which way: the share's and the points' changes, both ways mixed)
+    local nowShare, nowPoints = Tried.DualNow(s)
+    return Tried.WithArrow(Infos.Color(plainText(figure), WOULD_HEX),
+        Tried.Both(share - (nowShare or 0), points - (nowPoints or 0)), s.dual.lower)
 end
 
 -- Its card's sources as a table, the regenerations' (Stats.RegenTable): « Part » and « Points » over two columns, each
@@ -5923,7 +6028,7 @@ function Tried.SumLine(key, name, spec, write, tip, available)
         if plainText(text) == plainText((read(s))) then
             return nil
         end
-        return Infos.Color(plainText(text), WOULD_HEX)
+        return Tried.WithArrow(Infos.Color(plainText(text), WOULD_HEX), would - now)
     end
     s.figure = function()
         return (figure(nil))
@@ -6030,7 +6135,7 @@ for _, c in ipairs(Tried.CREATURES) do
         return math.abs(power) + math.abs(spells)
     end
     s.would = function(tried)
-        local _, _, nowUnknown = figures(nil)
+        local nowPower, nowSpells, nowUnknown = figures(nil)
         local power, spells, unknown = figures(tried)
         if unknown > nowUnknown then
             return UNKNOWN
@@ -6039,7 +6144,8 @@ for _, c in ipairs(Tried.CREATURES) do
         if plainText(text) == plainText((read(s))) then
             return nil
         end
-        return Infos.Color(plainText(text), WOULD_HEX)
+        return Tried.WithArrow(Infos.Color(plainText(text), WOULD_HEX),
+            Tried.Both(power - nowPower, spells - nowSpells))
     end
     s.available = Tried.WhenSome(s.key)
     Tried.AddLine(s)
@@ -6132,7 +6238,8 @@ for _, d in ipairs({ { "MELEE_DPS", { 16, 17 } }, { "RANGED_DPS", { 18 } } }) do
         if text == plainText((read(s))) then
             return nil
         end
-        return Infos.Color(text, WOULD_HEX) .. (estimate and " " .. UNKNOWN or "")
+        return Tried.WithArrow(Infos.Color(text, WOULD_HEX), dps - (Tried.DpsOf(d[2], nil) or 0))
+            .. (estimate and " " .. UNKNOWN or "")
     end
     s.available = d[1] == "RANGED_DPS" and Stats.HasRanged or nil
     Tried.AddLine(s)
@@ -6207,7 +6314,7 @@ Tried.AddLine({ key = "ILVL", name = function() return "iLvl" end, tip = functio
         if text == plainText((read(STAT_BY_KEY.ILVL))) then
             return nil
         end
-        return Infos.Color(text, WOULD_HEX)
+        return Tried.WithArrow(Infos.Color(text, WOULD_HEX), v - equipped)
     end,
     -- its card's sources: each item worn, by slot, its level on the right; an empty slot greyed
     rows = function()
@@ -6397,8 +6504,16 @@ Tried.key = Tried.Key(nil)
 -- talent's); nothing once it has gone. The game's own way for an addon to read its tooltips (TooltipDataProcessor's
 -- post calls), read alone. Not one a card's own row shows (StatCard.lua's kaliCardTip): its talent tried there would
 -- draw the card again under the pointer, and that tooltip with it. Each line as it is at once, those that show worked
--- out again for it.
+-- out again for it. The last asked in a frame alone (`pending`): a window that sets its tooltip again each refresh (the
+-- auction house's buttons, UpdateTooltip their OnEnter) hides it first (SetOwner) and shows the same item at once; each
+-- hide had dropped what was tried and each show worked every line out anew, back and forth (Ikar 2026-11-26, in game:
+-- "when I hover an item in the auction house. It cycle back and forth").
 local function try(what)
+    Tried.pending = what
+    ns.Later("stat try", Tried.Apply)
+end
+function Tried.Apply()
+    local what = Tried.pending
     local key = Tried.Key(what)
     if key == Tried.key then
         return
@@ -6415,18 +6530,41 @@ local function try(what)
         end
     end
 end
+-- What each of the two asks: the pointer's tooltip (GameTooltip) and the window of an item or a spell opened from a
+-- link (ItemRefTooltip, its cross shutting it), which the game compares as it does the pointer's (Ikar 2026-11-26: "It
+-- should count the same when hovered. The game react to it by showing me what it will replace and what it get equiped
+-- with"), the window's only while the pointer is on it (the same day: "It should be only when hovered I said"): what
+-- it shows kept (`window`), tried as the pointer enters it, let go as it leaves or the window shuts.
+Tried.asked = {}
+function Tried.Ask(tooltip, what)
+    if tooltip == GameTooltip then
+        Tried.asked.pointer = what
+    else
+        Tried.window = what
+        Tried.asked.window = Tried.overWindow and what or nil
+    end
+    try(Tried.asked.pointer or Tried.asked.window)
+end
+function Tried.OverWindow(over)
+    Tried.overWindow = over
+    Tried.asked.window = over and Tried.window or nil
+    try(Tried.asked.pointer or Tried.asked.window)
+end
+function Tried.Asking(tooltip)
+    return tooltip ~= nil and (tooltip == GameTooltip or tooltip == ItemRefTooltip)
+end
 if TooltipDataProcessor and Enum.TooltipDataType then
     TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, ns.Guarded(function(tooltip, data)
         local owner = tooltip == GameTooltip and tooltip.GetOwner and tooltip:GetOwner()
         if owner and owner.kaliCardTip then
             return
         end
-        if tooltip == GameTooltip and type(data) == "table" and (next(pinnedStat) or Tried.AnyShown()) then
+        if Tried.Asking(tooltip) and type(data) == "table" and (next(pinnedStat) or Tried.AnyShown()) then
             local link = ns.Plain(data.hyperlink)
             if type(link) ~= "string" and TooltipUtil and TooltipUtil.GetDisplayedItem then
                 link = select(2, TooltipUtil.GetDisplayedItem(tooltip))
             end
-            try(itemTried(link))
+            Tried.Ask(tooltip, itemTried(link, data))
         end
     end))
     TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Spell, ns.Guarded(function(tooltip, data)
@@ -6434,14 +6572,28 @@ if TooltipDataProcessor and Enum.TooltipDataType then
         if owner and owner.kaliCardTip then
             return
         end
-        if tooltip == GameTooltip and type(data) == "table" and (next(pinnedStat) or Tried.AnyShown()) then
-            try(talentTried(ns.Plain(data.id)))
+        if Tried.Asking(tooltip) and type(data) == "table" and (next(pinnedStat) or Tried.AnyShown()) then
+            Tried.Ask(tooltip, talentTried(ns.Plain(data.id)))
         end
     end))
 end
-if GameTooltip and GameTooltip.HookScript then
-    GameTooltip:HookScript("OnHide", ns.Guarded(function()
-        try(nil)
+for _, tooltip in ipairs({ GameTooltip, ItemRefTooltip }) do
+    if tooltip.HookScript then
+        tooltip:HookScript("OnHide", ns.Guarded(function()
+            -- (the window shut by its cross under the pointer: no leaving said)
+            if tooltip ~= GameTooltip then
+                Tried.overWindow = false
+            end
+            Tried.Ask(tooltip, nil)
+        end))
+    end
+end
+if ItemRefTooltip and ItemRefTooltip.HookScript then
+    ItemRefTooltip:HookScript("OnEnter", ns.Guarded(function()
+        Tried.OverWindow(true)
+    end))
+    ItemRefTooltip:HookScript("OnLeave", ns.Guarded(function()
+        Tried.OverWindow(false)
     end))
 end
 
@@ -6631,6 +6783,40 @@ end
 -- What the lines would say is worked out again only when a value has changed: the bags' and the auras' events come
 -- often while an item is under the pointer, most of them changing none (a stack split, a buff of nothing the sheet
 -- shows). Each value read once.
+-- Lowered in red, every line (Ikar 2026-11-26: "All lowering should be red"): where the game splits a value, the
+-- sheet's own rule (the attributes, the attack powers, the defence: `numbers`; the hands; the lines of a share and
+-- points theirs); every other red where one of its sources lowers it (a debuff, a stance's or a talent's malus, an
+-- item's), the game's own sheet drawing armour and resistances green when raised and never red. Which lines, worked
+-- out again as the values change, out of a fight (kept in it, the auras hidden then): `lowered`.
+Tried.lowered = {}
+function Tried.Lowers(s)
+    if not s.sources or s.dual or s.numbers or Stats.IsRegen(s) then
+        return false
+    end
+    for _, e in ipairs(sourcesOf(s) or {}) do
+        if not (e.base or e.other or e.mistake or e.next or e.idle) and type(e.points) == "number" and e.points < 0 then
+            return true
+        end
+    end
+    return false
+end
+function Tried.Lowering()
+    local changed = false
+    for _, s in ipairs(LIST) do
+        local ok, lowers = pcall(Tried.Lowers, s)
+        lowers = ok and lowers or nil
+        changed = changed or (Tried.lowered[s.key] ~= lowers)
+        Tried.lowered[s.key] = lowers
+    end
+    return changed
+end
+function Stats.Lowered(s, text)
+    if type(text) == "string" and Tried.lowered[s.key] then
+        return Infos.Color(plainText(text), Infos.BAD)
+    end
+    return text
+end
+
 local function update()
     local texts, values = {}, {}
     for i, s in ipairs(LIST) do
@@ -6641,6 +6827,15 @@ local function update()
     if values ~= Tried.values then
         Tried.values = values
         Tried.Forget()
+        -- (which lines a source lowers, read again: each line read again where that changed)
+        if not ns.InCombat() and Tried.Lowering() then
+            local again = {}
+            for i, s in ipairs(LIST) do
+                texts[i] = read(s) or false
+                again[i] = tostring(texts[i])
+            end
+            Tried.values = table.concat(again, "\1")
+        end
     end
     for i, s in ipairs(LIST) do
         updateOne(s, nil, texts[i])

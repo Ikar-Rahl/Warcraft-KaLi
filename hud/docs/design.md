@@ -3524,3 +3524,18 @@ read again, the data's auras (SpellEffect) beside the lines that read them. Foun
   after it (`Tried.keptShare`, `STAT_WHY_FIGHT_SHARE`); the physical's, both the game's, already followed; the lines
   counted whole keep their last text, as every line the game hides.
 - Checked offline: the scenario `follow`, a case each; 15 breaks new, 2 changed. Not seen in game.
+- In game, the same evening (Ikar: "hovering a 1h weapon while having a 2h do not update as if there is the shield.
+  And same with the shield"; his screenshot, a two-handed mace worn, a one-handed one hovered: « (Avec Targe arctique
+  dans votre main gauche) »): the game's comparison pairs the item with one from the bags, the offline fake never had.
+  `Tried.Paired` asks it as the shopping tooltips do (C_TooltipComparison.GetItemComparisonInfo: WithBagOffHandItem,
+  WithBagMainHandItem; the item by its instance, C_Item.GetItemLinkByGUID) and puts the pair in the other hand; the
+  pairing shown, Shift cycling them, the comparison's own index (`Tried.PairIndex`, TooltipComparisonManager's, read
+  again as the bag's tooltip refreshes). With none, the off hand empty or the fists, as before. Checked offline: the
+  scenario `follow`, three breaks.
+- Ikar then: "Isn't that what I asked ? What your test is actually doing then ?". It was: "wow show you 'come with'
+  tooltip", of the shield, named the game's pairing; read as the two-handed weapon coming off, built as bare hands,
+  and the test checked that reading (the fake had no comparison to disagree), the strength alone, never the armour his
+  screenshot shows. Now the pairing's case reads the armour too (« +642 Armure »), and a two-handed weapon over a
+  weapon and a shield is checked on the lines as on the card ("it should replace both"); one break more. The lesson:
+  where Ikar names what the game shows, its code read first (here TooltipComparisonManager) and the fake made to do
+  it, before a test can say anything.

@@ -26,8 +26,10 @@ local BLUE = "|c" .. ns.Stats.WOULD_HEX
 local function object(key)
     return ns.Hub.Object("KaLiHUD_Attr_" .. key)
 end
+-- (its figure alone: the arrow after it, which way, the scenario follow's)
 local function text(key)
-    return tostring(object(key).text)
+    return (tostring(object(key).text):gsub(" |A:UI%-HUD%-ActionBar%-Page%a+Arrow%-Up:[^|]*|a", "")
+        :gsub(" |cffffd100±|r", ""))
 end
 local function blue(key, figure)
     return object(key).label .. " " .. BLUE .. figure .. "|r"

@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.9.2 (not released yet)
+## 0.9.2 (2026-11-26)
 
 - **The Attributes folder, reorganised in five columns:**
   - **General** with **iLvl** (the game's average item level; its card lists each item worn) and **Stealth** or **Stealth Detection** when your items or talents give some (in the game's points, 5 a level); then the primary attributes.
@@ -12,7 +12,9 @@
 - In a fight, each school's spell power and **Healing Done** keep following the game's points; their share, which the game hides from addons then, stays as it was before the fight, with the question mark.
 - The Critical Strike card gives the spells' chance by school where a talent sets one apart.
 - Every new line follows what you hover, as the others do.
-- With the attributes' folder open, or an attribute copied onto the bar, hovering an item, a talent or a consumable shows on each line what it would change: the new figure in **blue**, as the card kept open already did. A figure that can't be known shows the question mark.
+- Every lowered line is red: where the game splits a value (attributes, attack power, defense, weapon damage) as its character sheet does; any other (armor, resistances, chances, haste…) as soon as a debuff, a stance's or a talent's malus or an item lowers it.
+- An item's window opened from a chat link counts while the pointer is on it, as the item under the pointer, paired the same way.
+- With the attributes' folder open, or an attribute copied onto the bar, hovering an item, a talent or a consumable shows on each line what it would change: the new figure in **blue**, as the card kept open already did. After it, which way: a green arrow up where the line would get better, a red arrow down where worse (less critical strikes or damage taken is better), a yellow ± where it goes both ways (a share up, points down). A figure that can't be known shows the question mark.
 - Everything worked out from another value follows what you hover too:
   - **Damage Reduction** follows the armor it would give;
   - the blows that miss you, the critical strikes you take and all you avoid follow your defense, dodge, parry and block;
@@ -22,7 +24,7 @@
 - **Mana Regen** follows the Spirit you hover, by Forever's sum for every class (6.25 + Spirit / 8 mana a second). **Health Regeneration** follows it too, as an estimate with the question mark after it: the game gives its Spirit share only at your Spirit now, so what it would be uses the original game's sum for your class, Forever's not being known.
 - Every line follows, without exception: **Main Hand**, **Off Hand** and **Ranged** too. They follow your attack power, a weapon you hover (its damage and speed from its tooltip; a two-handed weapon or a shield leaves the off hand empty) and what changes physical damage (+20 % from a buff, +3 on each hit). What can't be read wears the question mark: an enchantment's damage, the arrows of a first bow, the off hand's share of a first weapon there. Their cards kept open follow as well, with the attack speed and the damage per second.
 - More of what Forever's items and talents carry is counted and followed under the pointer: an item's damage of one school (**Fire Damage** on the Inferno Robe, **Frost Damage** on the Icicle Rod) on that school's spell power, an item's physical damage on your weapons, an item's resistance to every school on each resistance, an item's weapon skill (+5 Swords) on your critical strike, a **quiver** or an **ammo pouch** (its ranged haste, and your bow's speed on its card) hovered in place of the one you wear. An item's own effect the game shows as a buff leaves with the item you'd take off. Serrated Blades and Weapon Mastery, which ignore a share of the armor, are named on Armor Penetration with the question mark: whether the game's figure counts them isn't known.
-- Hovering a shield, an off-hand weapon or a held item while you wield a two-handed weapon counts the two-handed weapon as taken off, as the game's comparison shows: its stats leave every line, and the main hand fights bare-handed (with the question mark: Forever's fist damage isn't known).
+- With a two-handed weapon worn, an item hovered for one hand is paired as the game's comparison pairs it from your bags (« With … in your off hand »): a one-handed weapon with the off-hand item it names, a shield, an off-hand weapon or a held item with the weapon it names, the one Shift shows if you cycle them. The two-handed weapon's stats leave every line, the pair's come. With nothing to pair, the off hand stays empty, or the main hand fights bare-handed (with the question mark: Forever's fist damage isn't known).
 - That blue, on the lines and on the cards, is darker: the game's own rare blue, no longer easy to take for the green of a raised value.
 - Folders open a fourth way, **On click, stays open**: a click elsewhere leaves the list open; a click on the folder closes it, as does opening another folder. The Attributes folder opens this way, so it stays beside your bags while you compare items.
 - **Escape** shuts an open folder list, as it does any menu, one that stays open too; in a fight, when the game lets no addon hide a list, Escape is the game's own.
