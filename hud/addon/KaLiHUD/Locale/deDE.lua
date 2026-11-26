@@ -122,6 +122,7 @@ OWN.deDE = {
     FOLDER_DIR_downright = "Unten, nach rechts",
     FOLDER_OPEN = "Öffnen",
     FOLDER_OPEN_click = "Per Klick",
+    FOLDER_OPEN_persist = "Per Klick, bleibt offen",
     FOLDER_OPEN_leave = "Per Klick, schließt sich beim Verlassen",
     FOLDER_OPEN_hover = "Bei Mouseover",
     LOOK = "Anzeige",
@@ -423,7 +424,7 @@ OWN.deDE = {
     HINT_CHARACTER = LEFT_CLICK .. " Charakterinfo",
     HINT_PIN = LEFT_CLICK .. " Karte offen halten",
     STAT_WOULD_HINT = "Zeigt auf einen Gegenstand, ein Talent oder ein Verbrauchsgut: Die Karte zeigt "
-        .. "|cff7fd4ffin Blau|r, was es ändern würde.",
+        .. "|cff0091f2in Blau|r, was es ändern würde.",
     XP_MAX = "Höchststufe",
     XP_TEXT = "EP %s",
     XP_LEVEL = "Stufe %d",

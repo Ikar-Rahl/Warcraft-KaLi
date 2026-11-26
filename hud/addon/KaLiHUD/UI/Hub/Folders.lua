@@ -28,6 +28,8 @@ local WHITE = { 1, 1, 1 }
 -- What a folder does when it says nothing of its own.
 local DEFAULTS = { style = "icons", flow = "horizontal", perLine = 5, dir = "upleft", open = "click", icon = ICON,
     iconOnly = false }
+-- The ways it opens, as its menu offers them (shutsOnLeaving says each).
+local OPENINGS = { "click", "persist", "leave", "hover" }
 -- Between the list and its folder; round each icon; between items with their text; a separator's room along its
 -- line, its rule in the middle of it.
 local GAP, PAD, SPACING, SEP = 3, 3, 10, 9
@@ -60,6 +62,19 @@ end
 -- Whether a name is a folder's id, saved or not: its button is a secure one (HubButtons.Make).
 Folders.IsId = made.IsId
 
+-- What `key` is for folder `id` when it says nothing of its own: the folders' default; how it opens, its spec's for
+-- one KaLi HUD makes (UI/Hub/Seeds.lua: the attributes' stays open), the player's choice alone being saved (`open`),
+-- a locked one's too (Ikar 2026-11-25: "users shoudl be able to set opening behaviour, even on locked folders").
+local function defaultOf(id, key)
+    if key == "open" then
+        local spec = ns.Seeds and ns.Seeds.FolderSpec(id)
+        if spec and spec.open then
+            return spec.open
+        end
+    end
+    return DEFAULTS[key]
+end
+
 -- One of its settings; which way it opens, unset, its host's for one in a folder (the way that one opens on).
 function Folders.Setting(id, key)
     local f = all()[id]
@@ -75,9 +90,18 @@ function Folders.Setting(id, key)
         end
     end
     if v == nil then
-        return DEFAULTS[key]
+        return defaultOf(id, key)
     end
     return v
+end
+
+-- How it opens and shuts (`open`): on a click, shut by a click on its button, a click elsewhere or another folder
+-- opening (`click`); the same, a click elsewhere leaving it open (`persist`; Ikar 2026-11-25: "a persist option ? when
+-- clicking outside do not close the menu"); on a click, or on hover, shut too once the pointer has left it (`leave`,
+-- `hover`: the game's auto-hide). Whether it shuts so.
+local function shutsOnLeaving(id)
+    local mode = Folders.Setting(id, "open")
+    return mode == "leave" or mode == "hover"
 end
 
 -- The folder's button as its settings say: its icon, a white glyph in the folders' colour, and its name by it; or its
@@ -343,7 +367,7 @@ function Folders.Setup()
         Hub.Changed()
     end
     for id, f in pairs(all()) do
-        if f.opened and Folders.Setting(id, "open") ~= "click" then
+        if f.opened and shutsOnLeaving(id) then
             Folders.SetOpen(id, false)
         end
     end
@@ -543,9 +567,8 @@ end
 -- In a fight, one opening on a click closes once left too while the option says so ("kali-fight-leave"; Ikar
 -- 2026-11-16: "always auto close in combat. make it an option, on by default"): the snippets ask PlayerInCombat().
 local function arm(b, id)
-    local mode = Folders.Setting(id, "open")
-    local leave = mode ~= "click" and LEAVE_DELAY or nil
-    local hover = mode == "hover" or nil
+    local leave = shutsOnLeaving(id) and LEAVE_DELAY or nil
+    local hover = Folders.Setting(id, "open") == "hover" or nil
     local fight = ns.db.options.folderCombatClose and LEAVE_DELAY or nil
     if b:GetAttribute("kali-leave") ~= leave then
         b:SetAttribute("kali-leave", leave)
@@ -567,7 +590,7 @@ local function fightStarts()
     end
     for _, id in ipairs(Folders.Ordered()) do
         local p, b = panels[id], Buttons.Get(id)
-        if p and b and p:IsShown() and Folders.Setting(id, "open") == "click" then
+        if p and b and p:IsShown() and not shutsOnLeaving(id) then
             RegisterAutoHide(p, LEAVE_DELAY)
             AddToAutoHide(p, b)
             for _, inner in ipairs(Folders.List()) do
@@ -588,7 +611,7 @@ local function fightEnds()
         return
     end
     for id, p in pairs(panels) do
-        if Folders.Setting(id, "open") == "click" and p:IsShown() then
+        if not shutsOnLeaving(id) and p:IsShown() then
             UnregisterAutoHide(p)
             p.hideAt = nil
         end
@@ -597,7 +620,8 @@ end
 
 -- A press of the mouse anywhere but on an open list shuts the open lists (Ikar 2026-11-17: "when opening a menu, a click
 -- outside should close it, regardless of the rules"), however each opens (a click, a click shutting once left, the
--- pointer): those the pointer is on stay, with those they stand in, as a menu's submenus do. A press on a folder's
+-- pointer), but one the player has made stay open (`persist`, Ikar 2026-11-25): those the pointer is on stay, with
+-- those they stand in, as a menu's submenus do. A press on a folder's
 -- button is its own click's, which opens or shuts it and shuts the others (ONE_OPEN); one on our editor, our icon
 -- library or a question of the game's (a rename, a deletion) is theirs; one while a menu of the game's is open shuts
 -- that menu first, as the game's own stacked menus do. Not in a fight, when the game lets no addon hide a secure list:
@@ -643,7 +667,7 @@ local function pressed()
         end
     end
     for _, id in ipairs(open) do
-        if not keep[id] then
+        if not keep[id] and Folders.Setting(id, "open") ~= "persist" then
             Folders.SetOpen(id, false)
         end
     end
@@ -785,8 +809,9 @@ function Folders.Menu(id)
                 func = function()
                     local f = all()[id]
                     if f then
-                        -- the default kept too by one in a folder, whose unset way is its host's
-                        f[key] = (v ~= DEFAULTS[key] or key == "dir" and Folders.Host(id)) and v or nil
+                        -- the default kept too by one in a folder, whose unset way is its host's; a spec's way of
+                        -- opening, its default, not kept either (defaultOf)
+                        f[key] = (v ~= defaultOf(id, key) or key == "dir" and Folders.Host(id)) and v or nil
                     end
                 end,
             }
@@ -801,11 +826,14 @@ function Folders.Menu(id)
     -- A locked one (UI/Hub/Seeds.lua) is only taken off the HUD whole, as what isn't ours to destroy: deleted, it
     -- couldn't be had back (Ikar 2026-11-20: "built in folder, when deleted, shoudl only be deselected, otherwise, they
     -- are unrecoverable"); the bar's menu, under « Dossiers », shows it again where it was. Nothing else of it changes
-    -- (Ikar 2026-11-23: "No edit, no reset"): what its menu says first is why, and that a drag takes a copy out.
+    -- (Ikar 2026-11-23: "No edit, no reset"): what its menu says first is why, and that a drag takes a copy out. But how
+    -- it opens, the player's (Ikar 2026-11-25: "users shoudl be able to set opening behaviour, even on locked
+    -- folders"): « Ouverture » there too, its spec's way ticked till another is chosen.
     if ns.Seeds.IsLockedFolder(id) then
         return {
             { title = L.TYPE_LOCKED_FOLDER },
             { text = L.FOLDER_LOCKED_DRAG, disabled = true, tooltip = L.FOLDER_LOCKED_TIP },
+            { text = L.FOLDER_OPEN, held = true, items = radios("open", OPENINGS, named("FOLDER_OPEN_")) },
             { divider = true },
             { text = L.ITEM_REMOVE, held = true, tooltip = L.DELETE_HIDES_TIP, func = function()
                 Folders.SetOpen(id, false)
@@ -858,7 +886,7 @@ function Folders.Menu(id)
     list[#list + 1] = { text = L.FOLDER_DIR, held = true,
         items = radios("dir", { "upleft", "upright", "downleft", "downright" }, named("FOLDER_DIR_")) }
     list[#list + 1] = { text = L.FOLDER_OPEN, held = true,
-        items = radios("open", { "click", "leave", "hover" }, named("FOLDER_OPEN_")) }
+        items = radios("open", OPENINGS, named("FOLDER_OPEN_")) }
     entries[#entries + 1] = { text = L.FOLDER_DEFAULT, held = true, checked = function()
         return all()[id] ~= nil and all()[id].default == true
     end, func = function()
@@ -1395,7 +1423,7 @@ function Folders.Layout(id, members, owner)
     showList(p, open)
     -- closing on leaving, it's in the game's auto-hide again where the layout moved it (the game drops a list that
     -- moved), not while something is dragged
-    local where = open and fb and Folders.Setting(id, "open") ~= "click" and not drag
+    local where = open and fb and shutsOnLeaving(id) and not drag
         and string.format("%.2f %.2f %.2f %.2f", x0, y0, pw, ph)
     if where and p.hideAt ~= where then
         RegisterAutoHide(p, LEAVE_DELAY)

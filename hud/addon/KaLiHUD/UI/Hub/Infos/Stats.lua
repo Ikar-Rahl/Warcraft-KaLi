@@ -959,8 +959,17 @@ local FILTERS = { "HELPFUL", "HARMFUL" }
 -- a second time with this set, through which the gear's links, the attributes and the talents are read. Nil but
 -- during that second reading.
 local WOULD
+-- What is tried on the values, in one table (this file's main chunk holds as many locals as Lua lets one, its loops'
+-- among them): `what`, what is under the pointer now, tried on the cards kept open and on the lines that show (try,
+-- far below); `leaned`, the attributes a value's readings ask for while what it would be is worked out (wouldBe): what
+-- it stands on, whose change that can't be said is its own question, and no other value's (nil but then). The lines'
+-- own far below.
+local Tried = {}
 -- An attribute's value, the one tried's change on it while what would be is read.
 local function attribute(i)
+    if Tried.leaned then
+        Tried.leaned[i] = true
+    end
     local _, effective = ns.Plain(UnitStat("player", i))
     return effective and effective + (WOULD and WOULD.attributes and WOULD.attributes[i] or 0)
 end
@@ -1510,15 +1519,30 @@ Stats.Enchanted = enchanted
 -- point of block value takes (locals of PaperDollFrameStats.lua).
 local ARMOR_PER_AGILITY = 2
 local POWER_PER_DAMAGE, PERCENT_PER_DEFENSE, STRENGTH_PER_BLOCK = 14, 0.04, 20
--- What defence past the level's most adds to the dodge, the parry and the block, or takes away below it, in points
--- of a percent (0.04 a point either way: PaperDollFrameStats.lua's GetEnemyChanceToMiss, the original server's); nil
--- while the game hides it.
-local function defenseShare()
+-- The defence with its bonus, what is tried's change on it while what would be is read (Tried.Change); nil while the
+-- game hides it.
+function Tried.Defense()
     local base, mod = ns.Plain(UnitDefenseSkill("player"))
     if base == nil then
         return nil
     end
-    local have, most = max(0, base + (mod or 0)), (UnitLevel("player") or 0) * 5
+    return max(0, max(0, base + (mod or 0)) + Tried.Change("DEFENSE"))
+end
+-- The dodge's, the parry's or the block's chance, the sheet's (TOTALS'), what is tried's change on it with it; nil
+-- while the game hides it.
+function Tried.Chance(key)
+    local v = TOTALS[key]()
+    return type(v) == "number" and v + Tried.Change(key) or nil
+end
+-- What defence past the level's most adds to the dodge, the parry and the block, or takes away below it, in points
+-- of a percent (0.04 a point either way: PaperDollFrameStats.lua's GetEnemyChanceToMiss, the original server's); nil
+-- while the game hides it.
+local function defenseShare()
+    local have = Tried.Defense()
+    if have == nil then
+        return nil
+    end
+    local most = (UnitLevel("player") or 0) * 5
     return (have - most) * PERCENT_PER_DEFENSE, have, most
 end
 -- A part worked out of a skill against the level's most, its name with its sum (the review of 2026-11-23, Ikar's rule
@@ -1532,12 +1556,14 @@ end
 local function defensePart(list, value)
     local v, have, most = defenseShare()
     if v and (v >= 0.005 or v <= -0.005) and type(value) == "number" and value > 0 then
-        list[#list + 1] = { name = Stats.PartSum(G("DEFENSE", "Defense"), have, most), points = v, percent = true }
+        list[#list + 1] = { name = Stats.PartSum(G("DEFENSE", "Defense"), have, most), points = v, percent = true,
+            match = "defense" }
     end
 end
 -- The skill line of the weapon in a slot, as the Skills tab's (WEAPON_SKILL_LINES), a druid in a form its feral
 -- combat's, nothing in the main hand its unarmed's: its value with its bonus, the level's most (five a level), its
--- name; false with no weapon of a skill there (no ranged weapon, a fishing pole), nil when it can't be read.
+-- name; false with no weapon of a skill there (no ranged weapon, a fishing pole), nil when it can't be read. The
+-- weapon tried in the slot while what would be is read (wornLink): an axe tried in place of a mace, the axes' skill.
 local SKILL_OF_WEAPON = { Sword1H = 43, Axe1H = 44, Bows = 45, Guns = 46, Mace1H = 54, Sword2H = 55, Staff = 136,
     Mace2H = 160, Axe2H = 172, Dagger = 173, Thrown = 176, Crossbow = 226, Wand = 228, Polearm = 229, Unarmed = 162 }
 local function weaponSkill(slot)
@@ -1545,7 +1571,7 @@ local function weaponSkill(slot)
     if select(2, UnitClass("player")) == "DRUID" and (ns.Call(GetShapeshiftForm) or 0) ~= 0 then
         line = 3014
     else
-        local link = GetInventoryItemLink("player", slot)
+        local link = wornLink(slot)
         if not link then
             line = slot == 16 and 162 or nil
         else
@@ -1614,6 +1640,42 @@ local function part(list, i, v, percent)
         list[#list + 1] = { name = G("SPELL_STAT" .. i .. "_NAME", ATTRIBUTE_KEYS[i]), points = v, percent = percent == true }
     end
 end
+-- The mana the spirit gives a second (GetManaRegenFromSpirit, the game's at the spirit now), what is tried's change
+-- of the spirit followed while what would be is read (Ikar 2026-11-25: "mana regen seems also to have hard time
+-- showing the new values"): Forever gives every class 6.25 + spirit / 8 a second, the original server's priests' and
+-- mages' sum (its shamans' 17 + spirit / 5 a tick: Ikar's dwarf shaman of 2026-11-23 had 13.75 at 60 spirit, this
+-- sum's, the original's 14.5; wowsims/forever's sim, which tests the sum the same for every class, and
+-- gunba/wow-forever-sim's, from the beta's hunters and paladins). The game's figure by that sum's ratio at the spirit
+-- tried, whatever share of it the game raises it by (Innervate's) followed too. The spirit read, what it stands on
+-- (Tried.leaned): an attribute's change that can't be said is its question.
+Tried.SPIRIT_MANA = { 6.25, 1 / 8 }
+function Tried.ManaFromSpirit()
+    local v = ns.Plain(GetManaRegenFromSpirit())
+    if type(v) ~= "number" then
+        return nil
+    end
+    if Tried.leaned then
+        Tried.leaned[5] = true
+    end
+    local more = WOULD and WOULD.attributes and WOULD.attributes[5] or 0
+    local _, spirit = ns.Plain(UnitStat("player", 5))
+    if more == 0 or type(spirit) ~= "number" then
+        return v
+    end
+    local sum = Tried.SPIRIT_MANA
+    return v * (sum[1] + max(0, spirit + more) * sum[2]) / (sum[1] + spirit * sum[2])
+end
+-- The dodge the agility gives, a share of one (GetDodgeChanceFromAttribute, the game's at the agility now): what is
+-- tried's change of the agility followed point for point.
+function Tried.DodgeFromAgility()
+    local v = ns.Plain(GetDodgeChanceFromAttribute())
+    local _, now = ns.Plain(UnitStat("player", 2))
+    local agility = attribute(2)
+    if type(v) == "number" and type(now) == "number" and now > 0 and agility and agility ~= now then
+        v = v * agility / now
+    end
+    return type(v) == "number" and v or nil
+end
 local PARTS = {
     HEALTH = function()
         local list, stamina = {}, attribute(3)
@@ -1666,20 +1728,14 @@ local PARTS = {
             local v = have and (have - most) * PERCENT_PER_DEFENSE
             if v and (v >= 0.005 or v <= -0.005) then
                 list[#list + 1] = { name = Stats.PartSum(string.format(L.STAT_SKILL_PART, name), have, most),
-                    points = v, percent = true }
+                    points = v, percent = true, match = "skill" }
             end
         end
         return list
     end,
     DODGE = function()
         local list = {}
-        local v = ns.Plain(GetDodgeChanceFromAttribute())
-        -- what would be: the agility's dodge follows it point for point, the game giving it at the agility now
-        local _, now = ns.Plain(UnitStat("player", 2))
-        local agility = attribute(2)
-        if v and type(now) == "number" and now > 0 and agility and agility ~= now then
-            v = v * agility / now
-        end
+        local v = Tried.DodgeFromAgility()
         part(list, 2, v and v * 100, true)
         defensePart(list, TOTALS.DODGE())
         return list
@@ -1698,7 +1754,7 @@ local PARTS = {
     REGEN = function()
         local list = {}
         if hasMana() then
-            local v = ns.Plain(GetManaRegenFromSpirit())
+            local v = Tried.ManaFromSpirit()
             part(list, 5, v and floor(v * 5 + 1e-6))
         end
         return list
@@ -1751,9 +1807,11 @@ local PARTS = {
     end,
     -- the defence's column's four, against an enemy of the character's level: each its sum (Ikar 2026-11-23: "add
     -- the 4"; "I told you to mark any formulas no ?"), the armour's the game's own figure of the armour it names
+    -- (each row the same by what it is, its figures beside it changing: `match`, the card kept open's mergeRows)
     ARMORCUT = function()
         local cut, armor = Stats.ArmorCut()
-        return cut and { { name = G("STAT_ARMOR", "Armor") .. " " .. number(armor), points = cut, percent = true } } or {}
+        return cut and { { name = G("STAT_ARMOR", "Armor") .. " " .. number(armor), points = cut, percent = true,
+            match = "armor" } } or {}
     end,
     MISSED = function()
         local t = Stats.Taken()
@@ -1763,7 +1821,7 @@ local PARTS = {
         local list = { { name = L.STAT_BASE, points = t.miss - (t.have - t.most) * PERCENT_PER_DEFENSE, percent = true } }
         if t.have ~= t.most then
             list[2] = { name = Stats.PartSum(G("DEFENSE", "Defense"), t.have, t.most),
-                points = (t.have - t.most) * PERCENT_PER_DEFENSE, percent = true }
+                points = (t.have - t.most) * PERCENT_PER_DEFENSE, percent = true, match = "defense" }
         end
         return list
     end,
@@ -1775,18 +1833,19 @@ local PARTS = {
         local list = { { name = L.STAT_BASE, points = t.crit + (t.have - t.most) * PERCENT_PER_DEFENSE, percent = true } }
         if t.have ~= t.most then
             list[2] = { name = Stats.PartSum(G("DEFENSE", "Defense"), t.have, t.most),
-                points = -(t.have - t.most) * PERCENT_PER_DEFENSE, percent = true }
+                points = -(t.have - t.most) * PERCENT_PER_DEFENSE, percent = true, match = "defense" }
         end
         return list
     end,
+    -- (the dodge, the parry and the block with what is tried's change of each: Tried.Change)
     AVOIDANCE = function()
         local t = Stats.Taken()
         if not t then
             return {}
         end
         local list = {}
-        for _, r in ipairs({ { L.STAT_MISSED, t.miss }, { G("STAT_DODGE", "Dodge"), ns.Plain(GetDodgeChance()) },
-            { G("STAT_PARRY", "Parry"), ns.Plain(GetParryChance()) }, { G("STAT_BLOCK", "Block"), ns.Plain(GetBlockChance()) } }) do
+        for _, r in ipairs({ { L.STAT_MISSED, t.miss }, { G("STAT_DODGE", "Dodge"), Tried.Chance("DODGE") },
+            { G("STAT_PARRY", "Parry"), Tried.Chance("PARRY") }, { G("STAT_BLOCK", "Block"), Tried.Chance("BLOCK") } }) do
             if type(r[2]) == "number" and r[2] > 0 then
                 list[#list + 1] = { name = r[1], points = r[2], percent = true }
             end
@@ -1925,10 +1984,12 @@ local function sourcesOf(s, withNext, full)
             return nil
         end
     end
-    -- the kind of attack the value shows, for one that is the best of three
+    -- the kind of attack the value shows, for one that is the best of three; one asked (Tried.Change's, a card's
+    -- effects for each kind)
     local channel
     if spec.channel then
-        channel = spec.channel()
+        local asked = Tried.channel
+        channel = asked and asked[1] == s.key and asked[2] or spec.channel()
         if not channel then
             return nil
         end
@@ -1956,7 +2017,7 @@ local function sourcesOf(s, withNext, full)
         local named = 0
         for _, p in ipairs(parts) do
             list[#list + 1] = { name = p.name, points = p.points, percent = p.percent == true, base = true,
-                item = p.item, slot = p.slot, asks = p.asks, tip = p.tip }
+                item = p.item, slot = p.slot, asks = p.asks, tip = p.tip, match = p.match }
             if not p.percent then
                 named = named + p.points
             end
@@ -2805,7 +2866,7 @@ local GIVES = {
     AGILITY = function()
         local list, v = {}, attribute(2)
         if v then
-            local crit, dodge = ns.Plain(GetCritChanceFromStat(2, v)), ns.Plain(GetDodgeChanceFromAttribute())
+            local crit, dodge = ns.Plain(GetCritChanceFromStat(2, v)), Tried.DodgeFromAgility()
             tile(list, chance(crit and crit * 100), G("STAT_CRITICAL_STRIKE", "Critical Strike"))
             tile(list, chance(dodge and dodge * 100), G("STAT_DODGE", "Dodge"))
             tile(list, whole(v * ARMOR_PER_AGILITY), G("STAT_ARMOR", "Armor"))
@@ -2835,27 +2896,43 @@ local GIVES = {
         end
         return list
     end,
-    -- standing, as the sheet takes it: three quarters of the spirit's health
+    -- standing, as the sheet takes it: three quarters of the spirit's health; what the spirit tried would give of it
+    -- the game's question, its share given at the spirit now alone (untold), the mana's followed (Tried.ManaFromSpirit)
     SPIRIT = function()
         local list = {}
+        -- both figures stand on the spirit, the mana's or not: a change of it that can't be said is their question
+        -- (the review of 2026-11-26: a class without mana had its health said as it is under such a buff)
+        if Tried.leaned then
+            Tried.leaned[5] = true
+        end
         local health = ns.Plain(GetHealthRegenFromSpirit())
-        -- (cut to a whole as the sheet's « %d » writes them, the regenerations' cards the same)
-        tile(list, whole(health and floor(health * 0.75 * 5 + 1e-6)), G("ITEM_MOD_HEALTH_REGEN_SHORT", "Health per 5 sec."))
+        local caption = G("ITEM_MOD_HEALTH_REGEN_SHORT", "Health per 5 sec.")
+        if WOULD and WOULD.attributes and (WOULD.attributes[5] or 0) ~= 0 then
+            tile(list, ask(L.STAT_WHY_SPIRIT), caption)
+        else
+            -- (cut to a whole as the sheet's « %d » writes them, the regenerations' cards the same)
+            tile(list, whole(health and floor(health * 0.75 * 5 + 1e-6)), caption)
+        end
         if hasMana() then
-            local manaOf = ns.Plain(GetManaRegenFromSpirit())
+            local manaOf = Tried.ManaFromSpirit()
             tile(list, whole(manaOf and floor(manaOf * 5 + 1e-6)), G("MANA_REGEN", "Mana Regen"))
         end
         return list
     end,
+    -- (what is tried's change of the value with it while what would be is read: Tried.Change, the card kept open's
+    -- effects, Tried.Effects; the same in all of these)
     ATTACK_AP = function()
-        return perSecond(CHANNEL_WORDS.m, ns.Plain(UnitAttackPower("player")))
+        local base, pos, neg = ns.Plain(UnitAttackPower("player"))
+        return perSecond(CHANNEL_WORDS.m, base and base + Tried.Change("ATTACK_AP"), pos, neg)
     end,
     RANGED_ATTACK_AP = function()
-        return perSecond(CHANNEL_WORDS.r, ns.Plain(UnitRangedAttackPower("player")))
+        local base, pos, neg = ns.Plain(UnitRangedAttackPower("player"))
+        return perSecond(CHANNEL_WORDS.r, base and base + Tried.Change("RANGED_ATTACK_AP"), pos, neg)
     end,
     ARMOR = function()
         local list = {}
         local _, effective = ns.Plain(UnitArmor("player"))
+        effective = effective and max(0, effective + Tried.Change("ARMOR"))
         if effective and C_PaperDollInfo then
             local taken = ns.Plain(ns.Call(C_PaperDollInfo.GetArmorEffectiveness, effective, UnitEffectiveLevel("player")))
             tile(list, taken and Format.PercentOf(taken * 100, 2), L.STAT_GIVES_PHYSICAL)
@@ -2876,23 +2953,32 @@ local function byKind(m, r, s)
     end
     return list
 end
+-- Each kind's with what is tried's change on it (Tried.Change, that kind's sources read).
+function Tried.ByKind(key, m, r, s)
+    local function with(v, channel)
+        return type(v) == "number" and v + Tried.Change(key, channel) or v
+    end
+    return byKind(with(m, "m"), with(r, "r"), with(s, "s"))
+end
 GIVES.HITCHANCE = function()
-    return byKind(hitBy())
+    return Tried.ByKind("HITCHANCE", hitBy())
 end
 GIVES.CRITCHANCE = function()
-    return byKind(critBy())
+    return Tried.ByKind("CRITCHANCE", critBy())
 end
 GIVES.HASTE = function()
-    return byKind(hasteBy())
+    return Tried.ByKind("HASTE", hasteBy())
 end
 -- what a block takes off a blow: on the block's card, and the block value's own
 GIVES.BLOCKVALUE = function()
     local list, v = {}, ns.Plain(GetShieldBlock())
+    v = type(v) == "number" and v + Tried.Change("BLOCKVALUE") or v
     tile(list, type(v) == "number" and v > 0 and ("-" .. number(v)) or nil, L.STAT_GIVES_BLOCKED)
     return list
 end
 GIVES.BLOCK = function()
     local list, v = {}, ns.Plain(GetShieldBlock())
+    v = type(v) == "number" and v + Tried.Change("BLOCKVALUE") or v
     tile(list, type(v) == "number" and v > 0 and number(v) or nil, G("ITEM_MOD_BLOCK_VALUE_SHORT", "Block Value"))
     return list
 end
@@ -2905,9 +2991,9 @@ end
 -- 0.08 % more to be hit)
 GIVES.DEFENSE = function()
     local list = {}
-    local base, mod = ns.Plain(UnitDefenseSkill("player"))
-    if base then
-        local share = (max(0, base + (mod or 0)) - level() * 5) * PERCENT_PER_DEFENSE
+    local have = Tried.Defense()
+    if have then
+        local share = (have - level() * 5) * PERCENT_PER_DEFENSE
         local function signedPercent(v)
             return (v > 0.004 and "+" or v < -0.004 and "-" or "") .. Format.PercentOf(math.abs(v), 2)
         end
@@ -3137,11 +3223,13 @@ end
 for _, s in ipairs(LIST) do
     s.ratios = RATIOS[s.school and "RESISTANCE" or s.key]
     s.gives = GIVES[s.key]
-    -- a resistance: what it resists on average, against one of the character's level
+    -- a resistance: what it resists on average, against one of the character's level (what is tried's change with
+    -- it while what would be is read)
     if s.school then
         s.gives = function()
             local list = {}
             local _, _, effective = ns.Plain(UnitResistance("player", s.school))
+            effective = effective and effective + Tried.Change(s.key)
             local lvl = level()
             if effective and effective > 0 and lvl > 0 then
                 tile(list, Format.Percent(floor(0.75 * effective / (lvl * 5) * 100) / 100),
@@ -3218,7 +3306,7 @@ end
 -- nothing.
 local ENEMY = { crit = 5, miss = 5, crushFrom = 15, suppress = 0.2 }
 function ENEMY.blows(have, at)
-    local dodge, parry, block = ns.Plain(GetDodgeChance()), ns.Plain(GetParryChance()), ns.Plain(GetBlockChance())
+    local dodge, parry, block = Tried.Chance("DODGE"), Tried.Chance("PARRY"), Tried.Chance("BLOCK")
     if type(dodge) ~= "number" or type(parry) ~= "number" or type(block) ~= "number" then
         return nil
     end
@@ -3238,13 +3326,13 @@ end
 -- What an enemy of the character's level gets against it (the defence's column; ENEMY.blows): its crit, all it
 -- doesn't land, and its chance to miss, 5 % and 0.04 % a point of defence either way of the level's most, as the
 -- game's own sheet works it out (Camelot's GetEnemyChanceToMiss, never shown there); the defence and its most for the
--- sums; nil while the game hides them.
+-- sums; nil while the game hides them. What is tried's changes on the defence, the dodge, the parry and the block with
+-- them while what would be is read (Tried.Change).
 function Stats.Taken()
-    local base, mod = ns.Plain(UnitDefenseSkill("player"))
-    if type(base) ~= "number" then
+    local have, at = Tried.Defense(), level()
+    if have == nil then
         return nil
     end
-    local have, at = max(0, base + (mod or 0)), level()
     local t = ENEMY.blows(have, at)
     if t then
         t.have, t.most = have, at * 5
@@ -3253,9 +3341,11 @@ function Stats.Taken()
     return t
 end
 -- What the armour takes off the blows of an enemy of the character's level, in percent, the game's own (the sheet's
--- armour tooltip); and the armour.
+-- armour tooltip); and the armour. The armour what is tried would make while what would be is read, the game's own
+-- call taking any (Ikar 2026-11-25: "damage reduction too").
 function Stats.ArmorCut()
     local _, effective = ns.Plain(UnitArmor("player"))
+    effective = type(effective) == "number" and max(0, effective + Tried.Change("ARMOR")) or effective
     local share = type(effective) == "number"
         and ns.Plain(ns.Call(C_PaperDollInfo.GetArmorEffectiveness, effective, UnitEffectiveLevel("player")))
     return type(share) == "number" and share * 100 or nil, effective
@@ -3665,7 +3755,7 @@ local function sourceRows(s, list)
     end
     for _, e in ipairs(stands) do
         if not e.other then
-            rows[#rows + 1] = { left = e.name, right = rightOf(e), tip = e.tip }
+            rows[#rows + 1] = { left = e.name, right = rightOf(e), tip = e.tip, match = e.match }
         end
     end
     -- what the card can't account for of the game's base, in red, the foot saying it's the addon's to be reported
@@ -3806,11 +3896,13 @@ end
 -- (Ikar 2026-11-19: "even better, update with a different color on an item, talent, consumable hover"; of the colour,
 -- on the sketches, "go for the light blue".) While a card is kept open, what is under the pointer is tried on its
 -- value: an item that could be worn, in its slot; a talent, at its next rank; a consumable, drunk. The value's sources
--- are read a second time with it in place (WOULD), the rows that differ said in the light blue (what goes: its figure
+-- are read a second time with it in place (WOULD), the rows that differ said in the blue (what goes: its figure
 -- greyed, an arrow, 0; what comes: its row; what changes: both figures), and the card's head says the value as it is,
 -- by how much it would change and what it would be. Worked out from what the sources name: a figure that can't be,
--- the game's own question mark in its place.
-local WOULD_HEX, WAS_HEX = "ff7fd4ff", "ff808080"
+-- the game's own question mark in its place. The blue the game's own darker one (GlobalColor's RARE_BLUE_COLOR, 0.27
+-- of light where the sheet's green has 0.72; Ikar 2026-11-25, of the light blue's 0.59: "the blue is hard to
+-- differenciate with the green, maybe let's make it darker").
+local WOULD_HEX, WAS_HEX = "ff0091f2", "ff808080"
 Stats.WOULD_HEX = WOULD_HEX
 
 local STAT_BY_KEY = {}
@@ -3818,11 +3910,13 @@ for _, s in ipairs(LIST) do
     STAT_BY_KEY[s.key] = s
 end
 
--- A value's sources as they are (`what` nil) or with `what` in place, all tallied, and the tally.
+-- A value's sources as they are (`what` nil) or with `what` in place, all tallied, and the tally. What was being read
+-- put back after: a value worked out inside another's reading (Tried.Change).
 local function tallyWith(s, what)
+    local was = WOULD
     WOULD = what
     local ok, list, _, t = pcall(sourcesOf, s, true, true)
-    WOULD = nil
+    WOULD = was
     if not ok then
         error(list, 0)
     end
@@ -3863,13 +3957,17 @@ local function changeOf(s, what)
     -- (why it can't be said, the question the head's mark asks: a source more without a figure, a share without base)
     local unsure = wouldUnknown > nowUnknown and L.STAT_WHY_WOULD or (would.open and not now.open) and L.STAT_WHY_SHARE
         or nil
+    -- (the value as it is, read so inside another's reading too: the damage reduction's, Tried.Change)
     local base, effective
+    local was = WOULD
+    WOULD = nil
     if s.numbers then
         base, effective = s.numbers()
     elseif s.total then
         -- (no base: what it would be is its whole and the change, the change from its sources alone)
         effective = s.total()
     end
+    WOULD = was
     local delta
     if base and effective then
         -- the same sum as sourcesOf's: the base it shows, the items' own raised by the shares of the base with it
@@ -3892,9 +3990,62 @@ local function changeOf(s, what)
     return delta, unsure, nowList, wouldList, now, effective
 end
 
--- What `what` would change of each attribute, for the values that stand on them.
+-- By how much the value of `key` would change with what is tried, while what would be is read (WOULD; 0 else): the
+-- figures worked out of another value follow it (Ikar 2026-11-25: "when hovering an item, it doesn't seems to update
+-- everything, the output for example", then "damage reduction too"): the damage reduction its armour's, the misses
+-- and critical strikes taken their defence's, the avoidance its dodge's, parry's and block's, these three their
+-- defence's share, a card kept open's effects their value's (Tried.Effects). The same sum as the value's own line
+-- (changeOf), once for what is tried (its `changes`), its question where it can't be said with it (`changeDoubts`),
+-- which what stands on it asks (Tried.leaned, wouldBe). `channel`: a kind of attack's, of a value that is the best of
+-- three (a card's effects, each kind's: sourcesOf reads that kind's). With what is tried as it comes (no attributes
+-- worked out yet: Tried.With's own readings), nothing, and nothing kept in it (Tried.With copies it).
+function Tried.Change(key, channel)
+    local w = WOULD
+    if not (w and w.attributes) then
+        return 0
+    end
+    local id = channel and (key .. " " .. channel) or key
+    if Tried.leaned then
+        Tried.leaned[id] = true
+    end
+    w.changes, w.changeDoubts = w.changes or {}, w.changeDoubts or {}
+    if w.changes[id] == nil then
+        local s = STAT_BY_KEY[key]
+        -- (0 while it is worked out: a value standing on itself reads its own as it is)
+        w.changes[id] = 0
+        if s and s.sources then
+            local asked = Tried.channel
+            Tried.channel = channel and { key, channel } or nil
+            local ok, delta, doubt = pcall(changeOf, s, w)
+            WOULD, Tried.channel = w, asked
+            if not ok then
+                w.changes[id] = nil
+                error(delta, 0)
+            end
+            w.changes[id], w.changeDoubts[id] = delta or 0, doubt or nil
+        end
+    end
+    return w.changes[id]
+end
+-- The first question of what a figure stands on (`stands`, Tried.leaned's: an attribute's index, a value's key), in
+-- what is tried's doubts; nil where every change it stands on can be said.
+function Tried.DoubtOf(tried, stands)
+    for i = 1, #ATTRIBUTE_KEYS do
+        if stands[i] and tried.doubts and tried.doubts[i] then
+            return tried.doubts[i]
+        end
+    end
+    for id in pairs(stands) do
+        local doubt = type(id) == "string" and tried.changeDoubts and tried.changeDoubts[id]
+        if doubt then
+            return doubt
+        end
+    end
+end
+
+-- What `what` would change of each attribute, for the values that stand on them, and why each change can't be said.
 local function attributesWith(what)
-    local deltas, unsure = {}, nil
+    local deltas, doubts = {}, {}
     for i, key in ipairs(ATTRIBUTE_KEYS) do
         local a = STAT_BY_KEY[key]
         local delta, doubt = nil, nil
@@ -3902,29 +4053,48 @@ local function attributesWith(what)
             delta, doubt = changeOf(a, what)
         end
         deltas[i] = delta or 0
-        unsure = unsure or doubt
+        doubts[i] = doubt or nil
     end
-    return deltas, unsure
+    return deltas, doubts
 end
 
--- A value the sources can't follow a change of: the regeneration, the game giving the spirit's share of it at the
--- spirit now alone, which doesn't follow it point for point (the dodge's agility does: PARTS.DODGE); the question.
-local function untold(s, attributes)
-    return (s.key == "REGEN" or s.key == "HEALTH_REGEN") and attributes[5] ~= 0 and L.STAT_WHY_SPIRIT or nil
-end
-
--- The value `s` with `what` in place: nil when nothing of it would change; else its sources then (list), those now
--- (now), by how much it would change (delta), what it would be where the game gives its number (value), and whether
--- that can't be said (unsure).
-local function wouldBe(s, what)
-    local attributes, doubt = attributesWith(what)
+-- `what` with what it would change of the attributes (`attributes`) and why each change can't be said (`doubts`):
+-- worked out once for every value it is tried on.
+function Tried.With(what)
     local tried = {}
     for k, v in pairs(what) do
         tried[k] = v
     end
-    tried.attributes = attributes
-    local delta, unsure, nowList, wouldList, _, effective = changeOf(s, tried)
-    unsure = unsure or doubt or untold(s, attributes)
+    tried.attributes, tried.doubts = attributesWith(what)
+    return tried
+end
+
+-- A value the sources can't follow a change of: the health's regeneration, the game giving the spirit's share of it
+-- at the spirit now alone, and no sum of Forever's known to follow it with (the original server's, its shamans'
+-- spirit x 0.28 - 3.6 a tick, isn't Ikar's dwarf shaman's: 33 in 5 s standing at 64 spirit, where it gives 34); the
+-- question, the spirit's own where its change can't be said (the share being the game's figure, the regeneration's
+-- readings never ask for the spirit, wouldBe's `stands`). The mana's follows it (Tried.ManaFromSpirit).
+local function untold(s, tried)
+    if s.key == "HEALTH_REGEN" and (tried.attributes[5] ~= 0 or tried.doubts[5]) then
+        return tried.doubts[5] or L.STAT_WHY_SPIRIT
+    end
+end
+
+-- The value `s` with `what` in place (`tried`: Tried.With's of it, when already had): nil when nothing of it would
+-- change; else its sources then (list), those now (now), by how much it would change (delta), what it would be where
+-- the game gives its number (value), and whether that can't be said (unsure): its own question, or an attribute's it
+-- stands on (one a consumable's buff of no known figure would change asks nothing of the resistances).
+local function wouldBe(s, what, tried)
+    tried = tried or Tried.With(what)
+    local was = Tried.leaned
+    Tried.leaned = {}
+    local ok, delta, unsure, nowList, wouldList, _, effective = pcall(changeOf, s, tried)
+    local stands = Tried.leaned
+    Tried.leaned = was
+    if not ok then
+        error(delta, 0)
+    end
+    unsure = unsure or Tried.DoubtOf(tried, stands) or untold(s, tried)
     -- what the game's sums leave over is the value's as it is: the same in both
     for _, e in ipairs(nowList) do
         if e.other then
@@ -3962,12 +4132,16 @@ local function became(old, new)
     return Infos.Color(old, WAS_HEX) .. " " .. ARROW .. " " .. Infos.Color(new, WOULD_HEX)
 end
 
--- The rows as they would be, beside those as they are (a row is the same by its name): one that would come, its
--- figure in the light blue; one whose figure would change, both; one that would go, after the row it follows now,
+-- The rows as they would be, beside those as they are (a row is the same by its name, or by what it is where its name
+-- holds a figure of what is tried: `match`, the armour of the damage reduction, the defence in a sum): one that would
+-- come, its figure in the blue; one whose figure would change, both; one that would go, after the row it follows now,
 -- greyed, its figure down to 0. A row of a table (the regenerations', `cells`: a figure a state), each of its figures
 -- so.
 local function mergeRows(now, would)
     local function keyOf(row)
+        if row.match then
+            return "\2" .. row.match
+        end
         return row.left and (plainText(row.left) .. (row.group and "\1" or "")) or nil
     end
     -- what would come: blue; what changes: what is, the arrow, what would be; what goes: down to 0
@@ -4228,10 +4402,11 @@ do
         end
         local mana, states = key == "REGEN", r.states
         local inner = mana and "cast" or "fight"
-        -- the spirit's part out of casting or standing, seated (the game's call, the sheet's three quarters)
+        -- the spirit's part out of casting or standing, seated (the game's call, the sheet's three quarters); the
+        -- mana's with the spirit tried, while the table tried is read (regenTried)
         local spirit
         if mana then
-            spirit = ns.Plain(GetManaRegenFromSpirit())
+            spirit = Tried.ManaFromSpirit()
         else
             spirit = ns.Plain(GetHealthRegenFromSpirit())
         end
@@ -4388,20 +4563,27 @@ do
                 or { L.STAT_COL_STANDING, L.STAT_COL_SEATED, L.STAT_COL_FIGHT } }
     end
 
-    -- The card's table, and what `what` would make of it on a card kept open: its rows beside the table now (the
-    -- light blue), its totals, the head's (`data.regenWould`). Out of casting or standing by what the tally would
-    -- change (wouldBe's), casting or in a fight by what the flat changes and the shares kept would, and the gains tried.
-    function Stats.RegenCard(data, s, list, what, would)
+    -- What `what` would make of the table of `s` (its tally `list`; `would`, wouldBe's): the table now, the table
+    -- tried, each state's total; no totals where nothing of it would change. Out of casting or standing by what the
+    -- tally would change, casting or in a fight by what the flat changes and the shares kept would, and the gains
+    -- tried. With them why the totals can't be said: a gain tried of no known figure, which they leave out (its row
+    -- asks it). `what` with the attributes' changes (Tried.With's): the table tried read with it in place (WOULD), the
+    -- spirit's share and what is kept of it while casting the spirit tried's (Tried.ManaFromSpirit).
+    local function regenTried(s, list, what, would)
         local now = Stats.RegenTable(s, list or {}, nil)
-        if not now then
-            return false
+        local tried
+        if now and what then
+            local was = WOULD
+            WOULD = what
+            local ok, t = pcall(Stats.RegenTable, s, would and would.list or list or {}, what, now)
+            WOULD = was
+            if not ok then
+                error(t, 0)
+            end
+            tried = t
         end
-        data.sourcesTitle = L.STAT_SOURCES .. " ("
-            .. ((s.key == "REGEN" and Stats.PerSecond()) and L.STAT_PER_SECOND or L.STAT_PER_5S) .. ")"
-        data.sources, data.columns = now.rows, now.captions
-        local tried = what and Stats.RegenTable(s, would and would.list or list or {}, what, now)
         if not (tried and (would or #tried.gains > #now.gains)) then
-            return true
+            return now
         end
         local inner = s.key == "REGEN" and "cast" or "fight"
         local totals = {}
@@ -4411,10 +4593,45 @@ do
             totals[state] = tried.totals[state] + change
             tried.rows[#tried.rows].cells[i] = figure(s.key, totals[state])
         end
+        local unknown
+        for _, g in ipairs(tried.gains) do
+            if g.tried and not g.per5 then
+                unknown = unknown or g.why
+            end
+        end
+        return now, tried, totals, would and would.unsure or unknown
+    end
+
+    -- The line's figures as `what` would make them (`would`, wouldBe's), in the blue; the game's question mark
+    -- where they can't be said; nil where they wouldn't change.
+    function Stats.RegenLineWould(s, what, would)
+        local now, tried, totals, unsure = regenTried(s, would and would.now or sourcesOf(s, true, false), what, would)
+        if not totals then
+            return nil
+        elseif unsure then
+            return UNKNOWN
+        end
+        local text = Stats.RegenText(s.key, tried.states, totals)
+        return text ~= Stats.RegenText(s.key, now.states, now.totals) and Infos.Color(text, WOULD_HEX) or nil
+    end
+
+    -- The card's table, and what `what` would make of it on a card kept open: its rows beside the table now (the
+    -- blue), its totals, the head's (`data.regenWould`).
+    function Stats.RegenCard(data, s, list, what, would)
+        local now, tried, totals, unsure = regenTried(s, list, what, would)
+        if not now then
+            return false
+        end
+        data.sourcesTitle = L.STAT_SOURCES .. " ("
+            .. ((s.key == "REGEN" and Stats.PerSecond()) and L.STAT_PER_SECOND or L.STAT_PER_5S) .. ")"
+        data.sources, data.columns = now.rows, now.captions
+        if not totals then
+            return true
+        end
         data.sources, data.wide = mergeRows(now.rows, tried.rows), true
         local was = Infos.Color(Stats.RegenText(s.key, now.states, now.totals), WAS_HEX) .. " " .. ARROW
-        if would and would.unsure then
-            data.regenWould = { value = ask(would.unsure), detail = was }
+        if unsure then
+            data.regenWould = { value = ask(unsure), detail = was }
         else
             data.regenWould = { value = Infos.Color(Stats.RegenText(s.key, tried.states, totals), WOULD_HEX),
                 detail = was }
@@ -4533,17 +4750,20 @@ function Stats.RepBonuses(id)
 end
 
 -- The left of the card: where the value comes from, the kind of attack after the column's title for a value that is
--- the best of three (« Sources (Mêlée) »). With `what`, the card kept open's: what it would change beside it.
--- `again`: the card drawn again, no new look at it.
+-- the best of three (« Sources (Mêlée) »). With `what`, the card kept open's (what is tried, Tried.what): what it
+-- would change beside it, worked out anew at each drawing (an aura come or gone may change it, no value with it), kept
+-- for its effects (`data.tried`, Tried.Effects). `again`: the card drawn again, no new look at it.
 local function cardSources(data, s, what, again)
-    local would = what and wouldBe(s, what)
+    local tried = what and Tried.With(what)
+    data.tried = tried
+    local would = tried and wouldBe(s, what, tried)
     local list, channel = sourcesOf(s, true, would ~= nil)
     -- (what it can't account for kept for the bug report, apart: a failure there leaves the card whole)
     if list and ns.StatCheck then
         ns.SafeCall(ns.StatCheck.Note, s, list, channel, nil, nil, again)
     end
     -- the regenerations: a table, a figure a state (Stats.RegenCard)
-    if Stats.IsRegen(s) and Stats.RegenCard(data, s, list, what, would) then
+    if Stats.IsRegen(s) and Stats.RegenCard(data, s, list, tried, would) then
         return
     end
     if would then
@@ -4663,8 +4883,49 @@ local function talentTried(spell)
     return { talents = list }
 end
 
--- What is tried now on the card kept open.
-local trying
+-- The card kept open's effects as what is tried would make them (Ikar 2026-11-25: "when hovering an item, it doesn't
+-- seems to update everything, the output for example"): its figures read again with it in place (WOULD), each the
+-- same by what it is a figure of, as the sources' rows (mergeRows): one that would change, what is greyed, the arrow
+-- and what would be in the blue; one that would come, in the blue; one that would go, down to 0; the game's question
+-- mark where its change can't be said (an attribute's or a value's it stands on: Tried.DoubtOf; the health the
+-- spirit would give, GIVES.SPIRIT). What is tried worked out anew, as its sources' (cardSources' `data.tried`).
+function Tried.Effects(data, s)
+    local tried = data.tried or Tried.With(Tried.what)
+    local was, leaned = WOULD, Tried.leaned
+    WOULD, Tried.leaned = tried, {}
+    local ok, list = pcall(s.gives)
+    local stands = Tried.leaned
+    WOULD, Tried.leaned = was, leaned
+    if not ok then
+        error(list, 0)
+    end
+    local doubt = Tried.DoubtOf(tried, stands)
+    local by, out, seen = {}, {}, {}
+    for _, t in ipairs(list or {}) do
+        by[plainText(t.caption)] = t
+    end
+    for _, t in ipairs(data.tiles) do
+        local key, old = plainText(t.caption), plainText(t.figure)
+        local new = by[key]
+        seen[key] = true
+        local figure = t.figure
+        if doubt or (new and new.figure == UNKNOWN) then
+            figure = Infos.Color(old, WAS_HEX) .. " " .. ARROW .. " " .. ask(doubt)
+        elseif not new then
+            figure = became(old, "0")
+        elseif plainText(new.figure) ~= old then
+            figure = became(old, plainText(new.figure))
+        end
+        out[#out + 1] = { figure = figure, caption = t.caption }
+    end
+    for _, t in ipairs(list or {}) do
+        if not seen[plainText(t.caption)] then
+            out[#out + 1] = { figure = doubt and ask(doubt) or Infos.Color(plainText(t.figure), WOULD_HEX),
+                caption = t.caption }
+        end
+    end
+    data.tiles = out
+end
 
 -- The card of the value `s` over `owner`. What failed once isn't read again this session, as read's. With `keep`, the
 -- card a click keeps open: its foot without what a click does nor the hub's hints, the pointer not being on it.
@@ -4683,9 +4944,13 @@ local function showCard(owner, s, keep, again)
         data.about, data.effects, data.tiles = {}, {}, {}
     end
     if text and s.sources and not brokenSources[s.key]
-        and not ns.SafeCall(cardSources, data, s, keep and trying or nil, again) then
+        and not ns.SafeCall(cardSources, data, s, keep and Tried.what or nil, again) then
         brokenSources[s.key] = true
         data.sources, data.would = {}, nil
+    end
+    -- what it gives with what is tried, on the card kept open (Tried.Effects): what failed once left as it is
+    if keep and Tried.what and #data.tiles > 0 and s.gives and not Tried.brokenEffects[s.key] and not ns.InCombat() then
+        Tried.brokenEffects[s.key] = not ns.SafeCall(Tried.Effects, data, s) or nil
     end
     -- its head with what would be: the value as it is, greyed, by how much it would change, then what it would be;
     -- the game's question mark where that can't be said; the change alone where the game gives no number of the value.
@@ -4767,14 +5032,189 @@ ns.On("PLAYER_TARGET_CHANGED", function()
     ns.Later("stat card", redraw)
 end)
 
--- What the game's tooltip shows, tried on the cards kept open: an item's, a spell's (a talent's); nothing once it has
--- gone. The game's own way for an addon to read its tooltips (TooltipDataProcessor's post calls), read alone. Not
--- one a card's own row shows (StatCard.lua's kaliCardTip): its talent tried there would draw the card again under the
--- pointer, and that tooltip with it.
+-- ---------- What would be, on the lines ----------
+-- (Ikar 2026-11-25, of the light blue on the cards kept open alone: "when hovering, it seems you turn blue only the
+-- individual cards, not the whole stat lists", then "go for an implementation".) What is under the pointer is tried on
+-- the lines that show too, a card kept open or not: the attributes' folder open, a copy of one of them on the bar or
+-- in a list. Each says what its value would be, its figure alone in the blue, written as the line writes it,
+-- where its card's head says it (the same sum, wouldBe's); the game's question mark where that can't be said; as it is
+-- where nothing of it would change. Its name and its numeral stay, the thresholds read at the value as it is, as the
+-- card's « À savoir »: the line keeps its place (Ikar 2026-11-15: no shape changed by the game's doing). Worked out
+-- once for what is tried, not again each time the game refreshes its tooltip (five times a second: GameTooltip's
+-- OnUpdate asks its owner's UpdateTooltip), a few lines a frame.
+
+-- The lines' part of what is tried (Tried). How a line writes its figure where it isn't a whole or a chance to a
+-- tenth (LIST's values, `FIGURES`): a share whole, the defence's most beside it, the off hand's expertise beside the
+-- main's (every source of it the two hands': SOURCES.EXPERTISE). What each line would say of what is tried now, by its
+-- value's key (`lines`, false for nothing), worked out when first asked; what is tried with the attributes' changes
+-- (`full`, Tried.With's, the other values' as they are asked: Tried.Change), once for them all: both let go when what
+-- is tried changes and as the values are read again (a card kept open works its own out anew). A line whose working
+-- out raised an error isn't worked out again this session (`broken`), nor a card's effects (`brokenEffects`). The
+-- lines waiting to be worked out, in the list's order, a few each frame (`queue`: a whole folder's, some fifty
+-- readings of the sources, took a few frames' time of the game's in one).
+Tried.lines, Tried.broken, Tried.queue, Tried.queued, Tried.WAIT, Tried.PER_FRAME = {}, {}, {}, {}, {}, 8
+Tried.brokenEffects = {}
+function Tried.Full()
+    Tried.full = Tried.full or Tried.With(Tried.what)
+    return Tried.full
+end
+Tried.FIGURES = {
+    BLOCK = function(v)
+        return Format.Percent(v / 100)
+    end,
+    MOVESPEED = function(v)
+        return Format.Percent(v / 100)
+    end,
+    DEFENSE = function(v)
+        return number(floor(v + 0.5)) .. " / " .. number((UnitLevel("player") or 0) * 5)
+    end,
+    EXPERTISE = function(v, delta)
+        local _, off = ns.Plain(GetExpertise())
+        local _, offSpeed = ns.Plain(UnitAttackSpeed("player"))
+        return percent(v) .. ((offSpeed and type(off) == "number") and (" / " .. percent(off + delta)) or "")
+    end,
+    -- (the line's « %d »: no thousands' mark, cut to a whole, not rounded)
+    ARMORPEN = function(v)
+        return string.format("%d", v)
+    end,
+}
+
+-- What the line of `s` would say of its value with what is tried in place (`tried`, Tried.With's): its figure in the
+-- blue, the game's question mark where it can't be said, nil where it wouldn't change, or where the line's
+-- figure wouldn't (a change smaller than its tenth or its whole: the card kept open says it).
+function Tried.LineOf(s, tried)
+    local w = wouldBe(s, Tried.what, tried)
+    if Stats.IsRegen(s) then
+        return Stats.RegenLineWould(s, tried, w)
+    elseif not w then
+        return nil
+    elseif w.unsure then
+        return UNKNOWN
+    elseif w.delta < 0.005 and w.delta > -0.005 then
+        return nil
+    end
+    local figure
+    if w.value then
+        local write = Tried.FIGURES[s.key]
+        figure = write and write(w.value, w.delta) or s.sources.percent and percent(w.value)
+            or number(floor(w.value + 0.5))
+    else
+        -- (a value its sources alone make, the healing's shares: read again with what is tried in place)
+        WOULD = tried
+        local ok, text = pcall(s.value)
+        WOULD = nil
+        if not ok then
+            error(text, 0)
+        end
+        figure = text
+    end
+    if not figure then
+        return UNKNOWN
+    elseif plainText(figure) == plainText((read(s))) then
+        return nil
+    end
+    return Infos.Color(plainText(figure), WOULD_HEX)
+end
+
+-- Whether the line of `s` shows: its own button (the attributes' folder open), or a copy's; whether any does. Asked
+-- at each of the game's tooltips of an item or a spell, with no saved data too (refused, as a newer version's is, all
+-- session long, or not loaded yet: Core/Main.lua): no copy then.
+function Tried.Shown(s)
+    local b = ns.HubButtons.Get(s.item)
+    if b and b:IsVisible() then
+        return true
+    end
+    for id, c in pairs(ns.db and ns.db.copies or {}) do
+        local copy = c.of == s.item and ns.HubButtons.Get(id)
+        if copy and copy:IsVisible() then
+            return true
+        end
+    end
+    return false
+end
+function Tried.AnyShown()
+    for _, s in ipairs(LIST) do
+        if s.sources and Tried.Shown(s) then
+            return true
+        end
+    end
+    return false
+end
+
+-- What the line of `s` says of what is tried: its figure (LineOf's), false for nothing, WAIT while it isn't worked
+-- out yet (`work`: worked out now).
+function Tried.Line(s, work)
+    if not Tried.what or not s.sources or Tried.broken[s.key] or ns.InCombat() then
+        return false
+    end
+    local got = Tried.lines[s.key]
+    if got ~= nil then
+        return got
+    elseif not Tried.Shown(s) then
+        return false
+    elseif not work then
+        return Tried.WAIT
+    end
+    local ok, figure = ns.SafeCall(function()
+        return Tried.LineOf(s, Tried.Full())
+    end)
+    Tried.broken[s.key] = not ok or nil
+    got = ok and figure or false
+    Tried.lines[s.key] = got
+    return got
+end
+
+-- Each line's figure let go, to be worked out again; `all`, those waiting too.
+function Tried.Forget(all)
+    wipe(Tried.lines)
+    Tried.full = nil
+    if all then
+        wipe(Tried.queue)
+        wipe(Tried.queued)
+    end
+end
+function Tried.Queue(s)
+    if not Tried.queued[s.key] then
+        Tried.queued[s.key] = true
+        Tried.queue[#Tried.queue + 1] = s
+    end
+    ns.Later("stat lines", Tried.Pass)
+end
+
+-- What is tried, written whole, so that the same again changes nothing.
+function Tried.Key(v)
+    if type(v) ~= "table" then
+        return tostring(v)
+    end
+    local parts = {}
+    for k, x in pairs(v) do
+        parts[#parts + 1] = tostring(k) .. "=" .. Tried.Key(x)
+    end
+    table.sort(parts)
+    return "{" .. table.concat(parts, ",") .. "}"
+end
+Tried.key = Tried.Key(nil)
+
+-- What the game's tooltip shows, tried on the cards kept open and the lines that show: an item's, a spell's (a
+-- talent's); nothing once it has gone. The game's own way for an addon to read its tooltips (TooltipDataProcessor's
+-- post calls), read alone. Not one a card's own row shows (StatCard.lua's kaliCardTip): its talent tried there would
+-- draw the card again under the pointer, and that tooltip with it. Each line as it is at once, those that show worked
+-- out again for it.
 local function try(what)
-    if what or trying then
-        trying = what
-        ns.Later("stat card", redraw)
+    local key = Tried.Key(what)
+    if key == Tried.key then
+        return
+    end
+    Tried.key, Tried.what = key, what
+    ns.Later("stat card", redraw)
+    Tried.Forget(true)
+    for _, s in ipairs(LIST) do
+        if s.line then
+            Hub.Set(s.item, "text", s.line)
+        end
+        if what and s.sources and not ns.InCombat() and Tried.Shown(s) then
+            Tried.Queue(s)
+        end
     end
 end
 if TooltipDataProcessor and Enum.TooltipDataType then
@@ -4783,7 +5223,7 @@ if TooltipDataProcessor and Enum.TooltipDataType then
         if owner and owner.kaliCardTip then
             return
         end
-        if next(pinnedStat) and tooltip == GameTooltip and type(data) == "table" then
+        if tooltip == GameTooltip and type(data) == "table" and (next(pinnedStat) or Tried.AnyShown()) then
             local link = ns.Plain(data.hyperlink)
             if type(link) ~= "string" and TooltipUtil and TooltipUtil.GetDisplayedItem then
                 link = select(2, TooltipUtil.GetDisplayedItem(tooltip))
@@ -4796,7 +5236,7 @@ if TooltipDataProcessor and Enum.TooltipDataType then
         if owner and owner.kaliCardTip then
             return
         end
-        if next(pinnedStat) and tooltip == GameTooltip and type(data) == "table" then
+        if tooltip == GameTooltip and type(data) == "table" and (next(pinnedStat) or Tried.AnyShown()) then
             try(talentTried(ns.Plain(data.id)))
         end
     end))
@@ -4933,12 +5373,17 @@ local brokenCaps = {}
 -- Each read again; one the game hides now keeps its last text, its name and a dash until it has one (a reload in a
 -- fight).
 -- The line wears, after its value, the numeral of the highest level of enemy whose thresholds it reaches (Ikar
--- 2026-11-20: "chiffre romain"), in gold; none for one that reaches none, or has none.
-local function updateOne(s)
-    local text, name = read(s), s.name()
+-- 2026-11-20: "chiffre romain"), in gold; none for one that reaches none, or has none. With what is tried, its figure
+-- what it would be (Tried.Line), once worked out: till then the line stays as it was (`work`: worked out now); worked
+-- out again once the line reads otherwise (the speed's, read each second with no event of the game's: in the water,
+-- what it would be running is no longer it). `known`: its text, read already (update's), false for none.
+local function updateOne(s, work, known)
+    local text, name = known, s.name()
+    if text == nil then
+        text = read(s)
+    end
     Hub.Set(s.item, "label", name)
     if text then
-        s.shown = true
         local ok, mark = false, nil
         if s.caps and not brokenCaps[s.key] then
             ok, mark = ns.SafeCall(function()
@@ -4946,15 +5391,55 @@ local function updateOne(s)
             end)
             brokenCaps[s.key] = not ok or nil
         end
-        Hub.Set(s.item, "text", name .. " " .. text .. (mark and (" " .. Infos.Color(mark, TIER)) or ""))
-    elseif not s.shown then
+        local tail = ok and mark and (" " .. Infos.Color(mark, TIER)) or ""
+        -- (the line as it is: said again once what is tried has gone, and while a fight hides the value)
+        local line = name .. " " .. text .. tail
+        if line ~= s.line then
+            Tried.lines[s.key] = nil
+        end
+        s.line = line
+        local would = Tried.Line(s, work)
+        if would == Tried.WAIT then
+            Tried.Queue(s)
+        else
+            Hub.Set(s.item, "text", would and (name .. " " .. would .. tail) or s.line)
+        end
+    elseif s.line then
+        Hub.Set(s.item, "text", s.line)
+    else
         Hub.Set(s.item, "text", name .. " —")
     end
 end
+function Tried.Pass()
+    for _ = 1, Tried.PER_FRAME do
+        local s = table.remove(Tried.queue, 1)
+        if not s then
+            return
+        end
+        Tried.queued[s.key] = nil
+        updateOne(s, true)
+    end
+    if Tried.queue[1] then
+        ns.Later("stat lines", Tried.Pass)
+    end
+end
 
+-- What the lines would say is worked out again only when a value has changed: the bags' and the auras' events come
+-- often while an item is under the pointer, most of them changing none (a stack split, a buff of nothing the sheet
+-- shows). Each value read once.
 local function update()
-    for _, s in ipairs(LIST) do
-        updateOne(s)
+    local texts, values = {}, {}
+    for i, s in ipairs(LIST) do
+        texts[i] = read(s) or false
+        values[i] = tostring(texts[i])
+    end
+    values = table.concat(values, "\1")
+    if values ~= Tried.values then
+        Tried.values = values
+        Tried.Forget()
+    end
+    for i, s in ipairs(LIST) do
+        updateOne(s, nil, texts[i])
     end
     redraw()
 end

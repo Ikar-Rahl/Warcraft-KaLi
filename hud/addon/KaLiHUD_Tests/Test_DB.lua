@@ -252,10 +252,10 @@ T.Add("db", "folders: their settings put right, an item in a folder gone back to
         gold = {},
         folders = {
             KaLiHUD_Folder1 = { name = "Outils", style = "grid", perLine = 40, dir = "upleft", opened = "yes",
-                icon = icon, iconOnly = true },
+                icon = icon, iconOnly = true, open = "sticky" },
             KaLiHUD_Folder2 = { name = "" },
             KaLiHUD_Folder3 = 5,
-            KaLiHUD_Folder4 = { name = "Sacs", icon = "INV_Misc_Bag_08", iconOnly = 1 },
+            KaLiHUD_Folder4 = { name = "Sacs", icon = "INV_Misc_Bag_08", iconOnly = 1, open = "persist" },
         },
         items = {
             a = { side = "folder", folder = "KaLiHUD_Folder1", order = 10 },
@@ -272,9 +272,11 @@ T.Add("db", "folders: their settings put right, an item in a folder gone back to
     T.Eq(f and f.opened, nil, "open, not true")
     T.Eq(f and f.icon, icon, "an icon of the library")
     T.Eq(f and f.iconOnly, true, "its icon alone")
+    T.Eq(f and f.open, nil, "a way of opening it doesn't have")
     local bags = db.folders.KaLiHUD_Folder4
     T.Eq(bags and bags.icon, nil, "an icon the library hasn't")
     T.Eq(bags and bags.iconOnly, nil, "its icon alone, not true")
+    T.Eq(bags and bags.open, "persist", "staying open, kept")
     T.Eq(db.folders.KaLiHUD_Folder2, nil, "a folder without a name")
     T.Eq(db.folders.KaLiHUD_Folder3, nil, "a folder that isn't a table")
     T.Eq(db.items.a and db.items.a.folder, "KaLiHUD_Folder1", "an item in a folder")
@@ -282,7 +284,7 @@ T.Add("db", "folders: their settings put right, an item in a folder gone back to
     T.Eq(db.items.c and db.items.c.last, "folder", "a hidden item's way back into its folder")
     T.Eq(db.buttonsLeft.X, true, "a button left to its addon")
     T.Eq(db.buttonsLeft.Y, nil, "a wrong one")
-    T.Eq(info.fixed, 9, "repairs counted")
+    T.Eq(info.fixed, 10, "repairs counted")
 end)
 
 -- The review of 2026-11-18: a folder saved under another key had a plain button where its code takes a secure one

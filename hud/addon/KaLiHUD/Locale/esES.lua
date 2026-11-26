@@ -124,6 +124,7 @@ OWN.esES = {
     FOLDER_DIR_downright = "Abajo, a la derecha",
     FOLDER_OPEN = "Apertura",
     FOLDER_OPEN_click = "Con un clic",
+    FOLDER_OPEN_persist = "Con un clic; sigue abierta",
     FOLDER_OPEN_leave = "Con un clic; se cierra al salir de ella",
     FOLDER_OPEN_hover = "Al pasar el ratón",
     LOOK = "Mostrar",
@@ -425,7 +426,7 @@ OWN.esES = {
     HINT_CHARACTER = LEFT_CLICK .. " información del personaje",
     HINT_PIN = LEFT_CLICK .. " mantener la tarjeta abierta",
     STAT_WOULD_HINT = "Pasa el ratón sobre un objeto, un talento o un consumible: la tarjeta muestra "
-        .. "|cff7fd4ffen azul|r lo que cambiaría.",
+        .. "|cff0091f2en azul|r lo que cambiaría.",
     XP_MAX = "Nivel máximo",
     XP_TEXT = "PE %s",
     XP_LEVEL = "Nivel %d",

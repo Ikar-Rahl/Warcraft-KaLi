@@ -3203,3 +3203,190 @@ Checked offline: the family's whole run, ALL PASS in 19 s; the enums check alone
 before and after the move, the same; a block cut short, said; the three smokes' blocks, the same as before; every
 deliberate break against its link, 1,004 of 1,004 caught (shared 95, quest 67, recipe 84, hud 758). Nothing to see
 in game.
+
+## What would be on the lines, 2026-11-25
+
+Ikar, of the light blue: "when hovering, it seems you turn blue only the individual cards, not the whole stat lists, is
+that true ?" It was: what is under the pointer was tried on the cards kept open alone. Then "go for an
+implementation", after the two points I had put to him: what it costs, and a line that would widen ("120 → 130") on
+the game's doing, which the static rule forbids (the figure alone keeps the line's room).
+
+- **Each line that shows says what its value would be**, a card kept open or not: the attributes' folder open (it
+  opens on a click by default, and stays open while the pointer is in the bags), or a copy of one of them on the bar
+  or in a folder (`Tried.Shown`: its button visible). Its figure alone in the light blue (`7fd4ff`), written as the
+  line writes it (a chance to a tenth, the block's and the speed's whole, the defence's most beside it, the off
+  hand's expertise beside the main's), where the card's head says it: the same sum (`wouldBe`). The game's question
+  mark where that can't be said; the line as it is where nothing of it would change. Its name and its numeral stay,
+  the thresholds read at the value as it is, as the card's « À savoir » (mine). The mana's and the health's
+  regenerations say their two states as their line does (`Stats.RegenLineWould`, whose sum the card's head shares);
+  the healing's shares, which their sources alone make, are read again with it in place.
+- **Worked out once for what is tried.** The game refreshes an item's tooltip five times a second (GameTooltip's
+  OnUpdate asks its owner's `UpdateTooltip`), and each refresh had tried the same item again and drawn the cards kept
+  open again. What is tried is now written whole (`Tried.Key`): the same again changes nothing, for the cards as for
+  the lines. The lines that show are then worked out eight a frame, the attributes' changes once for them all
+  (`Tried.With`): a whole folder is some fifty readings of the sources, about 40 ms in the tests' game, which in one
+  go would have stalled a frame or three at each item. Worked out again as the values are read again (the sheet's
+  events); nothing in a fight, and a line the fight hides says what it was before anything was tried.
+- **A question only where the value stands on it** (mine, found by the lines): an attribute whose change can't be said
+  (a consumable's buff of no known figure on the stamina) put the question mark on every value tried, the resistances
+  too, and would have put it on every line. The attributes a value's readings ask for are noted (`Tried.leaned`, in
+  `attribute`): the question is the stamina's and the health's alone, on the cards kept open too.
+- **Stats.lua is at Lua's limit** of 200 locals in its main chunk, a loop's five among them (it was at 195): what is
+  tried holds in one table (`Tried`), in place of the local that held it.
+- **The fake game's `IsVisible`** said a button visible while the list it stands in was shut; it asks the frames it
+  stands in now, as the game does (`tools/lua/fakewow.lua`).
+- The line's numeral showed an error's text the one time its thresholds raised one (`ns.SafeCall` gives `false,
+  err`); none then.
+
+Checked offline: a scenario of its own (`hud/tools/lua/scenarios/lines.lua`): a shut folder works nothing out; open,
+the lines the item changes, in the light blue, the defence's « x / most »; the same item again reads nothing; the
+lines as they are once the tooltip has gone; a copy follows, the folder shut; a buff of no known figure asks on the
+stamina's and the health's lines alone; the healing taken by points; the mana's two states; values read again under
+it; a fight. The smoke's consumable whose buff is on now sends the buff's coming, as the game does, before it is
+hovered again. 13 breaks, all caught, and the 53 of what would be, the cards kept open and the regenerations again.
+**To see in the game:** the folder open, items hovered in the bags: whether the lines fill without a stutter, and
+whether the light blue reads on them.
+
+**Reviewed the same evening** (Ikar: "do a ful lreview of the changes. Make sure they are correct"). Six things found,
+each confirmed in the code, each fixed:
+
+- A buff of no known figure on the spirit asked nothing of the regenerations any more: their spirit's share is the
+  game's figure, which no reading of the attribute's says, so the question taken to what a value stands on had left
+  them out. `untold` asks the spirit's own question now.
+- A drink or a meal tried whose gain every few seconds has no known figure: its row asked it, but the totals left it
+  out, so the card's head said the regeneration as it is, in the light blue, and the line said nothing. Both ask it now
+  (`regenTried`'s fourth result); the head's had been so since 2026-11-19.
+- A change smaller than the line writes (1 agility, 0.01 % of critical strike) turned the line light blue on the same
+  figure; the line stays as it is then, the card kept open saying the change to the hundredth.
+- The armour penetration's figure is written as its line writes it, with no thousands' mark (`%d`).
+- Each of the sheet's events under an item worked every line out again; most change no value (a stack split, an aura
+  of nothing the sheet shows): only an event after which a value reads otherwise does now (`Tried.values`).
+- A value its sources alone make, read again with what is tried, kept an error to itself: it is raised, so the line
+  is let go for the session and the error kept, as any other.
+
+Checked offline: the scenario's new cases (the spirit, the drink on the line and on the head, the change too small, an
+event that changes nothing), the six breaks that undo them, all caught, with the 70 of the lines, what would be, the
+cards kept open and the regenerations; the family's whole run, ALL PASS in 13 s.
+
+## A folder that stays open, and a darker blue, 2026-11-25
+
+Ikar: "can we add another option for menu, on top of default, auto hide, a persist option ? when clicking outside do
+not close the menu ? and make it default for stats. What are the other options currently ?", and while it was built,
+"the blue is hard to differenciate with the green, maybe let's make it darker".
+
+- **A fourth way of opening, « Au clic, reste ouvert »** (`persist`), after « Au clic » in the folder's « Liste »,
+  « Ouverture »: opened by a click, a press elsewhere leaves it open (`pressed`); a click on its button shuts it.
+  Mine, to rule if they matter: another folder opening shuts it still, the one-at-a-time rule (Ikar 2026-11-16) being
+  about menus opened, not clicks elsewhere, and two lists opening up from neighbouring buttons would stand on each
+  other; in a fight, « Fermer les dossiers en combat » shuts it as one opening on a click, once the pointer has been
+  on it and left (the option's own words: "même s'il s'ouvre au clic"). A login keeps it open, as « Au clic ». What
+  shuts on leaving is said in one place now (`shutsOnLeaving`: « Au clic, se referme quand on le quitte » and « Au
+  survol »), where five tests of « not click » would each have taken the new way for one that shuts so.
+- **The attributes' folder opens so** (its spec's `open`): a locked folder shows no settings (Ikar 2026-11-23: "No
+  edit, no reset"), so the way it opens is the code's, set again at each login by `settle`, which had cleared a
+  spec's way of opening without taking it. No save conversion: the spec reaches every game at its next login.
+- **The blue of what would be is darker**: the game's own `RARE_BLUE_COLOR` (`0091f2`, this build's GlobalColor
+  table), 0.27 of light where the sheet's green (`20ff20`) has 0.72 and the light blue (`7fd4ff`) had 0.59: the two
+  now as far apart as 2.4 to 1 where they were 1.2 to 1, and the blue still 5.4 to 1 on the dark floor. The
+  bluer of the game's blues of that lightness (`HIGHLIGHT_LIGHT_BLUE`, `3e91ff`, the same), and the item quality's
+  rare blue (`0070dd`) is darker still: not in this build's tables. The cards' hint « en bleu » wears it in each
+  language.
+
+Checked offline: a scenario of its own (`hud/tools/lua/scenarios/persist.lua`): the attributes' folder stays open; a
+press elsewhere leaves it open and shuts one opening on a click; another folder opening shuts it; its button shuts it;
+the pointer gone, it stays; a login keeps it; a fight's rule; the menu's choice after « Au clic », which then stays
+open. The saved data keeps the new way and drops one it doesn't know (KaLiHUD_Tests). 8 breaks, all caught, with
+the folders', the presses elsewhere', the lines' and what would be's: 87 of 87. **To see in the game:** the folder
+open beside the bags, and whether the darker blue reads on the lines and the cards.
+
+**How a locked folder opens is the player's** (Ikar, the same evening: "users shoudl be able to set opening behaviour,
+even on locked folders"), the one exception to "No edit, no reset" (2026-11-23). Its menu has « Ouverture » under the
+note that a drag takes a copy, the four ways, its spec's ticked till another is chosen. What is saved (`open`) is the
+player's choice alone; unset, a folder KaLi HUD makes opens as its spec says (`defaultOf`: the attributes' « Au clic,
+reste ouvert », the others « Au clic »), so a later build's spec reaches a game where nothing was chosen, and the
+spec's way chosen again is saved as nothing. The making again at each login (`settle`) no longer clears it, nor
+writes the spec's way in it, which it had done since the afternoon only, in no published build: no save to convert.
+
+Checked offline: the scenario's new case (the attributes' menu offers the four, its spec's ticked; « Au clic » chosen
+holds through `Seeds.Sync` and a press elsewhere then shuts it; its spec's chosen again saves nothing), 3 breaks for
+it, all caught, with the folders' and the stays-open's: 52 of 52.
+
+**Reviewed again the same evening** (Ikar: "review your changes"). The folders' and the locked folders' changes were
+found right; four things in the lines', each confirmed in the code, each fixed:
+
+- Each of the game's tooltips of an item or a spell now asks whether a line shows (`Tried.AnyShown`), a card kept open
+  or not, and a copy's line through the saved data. With none (refused, as a newer version's is, all session long),
+  each erred, five times a second under an item. No copy is asked of then.
+- The speed's line, read each second with no event of the game's, kept what it would be as first worked out: into the
+  water with a potion of swiftness under the pointer, it still said the running's. A line that reads otherwise has
+  what it would be worked out again (`updateOne`). What every line stands on (`Tried.full`, the attributes' changes)
+  is still worked out again with them all as any value changes; a new case needs it now (a share of the strength
+  come: the attack power's line, whose own figure stays), the old one passing on the line's own change.
+- Each of the sheet's events read every value twice (to see whether one changed, then for the lines): once now.
+- The armour penetration's figure was rounded where its line cuts (`%d`): cut now.
+- What still said the light blue (the scenario's words, the smoke's, three breaks' names and their link) says the
+  blue.
+
+Checked offline: the scenario's three new cases (the water, no saved data, the strength's share); 2 new breaks, all
+caught with the 17 other breaks of the lines, the one the speed's fix had let pass caught again by the share's case;
+the two breaks whose text or name moved, caught; the family's whole run, ALL PASS in 26 s, each of the 1,034 breaks
+still applying where it goes.
+
+**In game the same night** (Ikar, hovering items with cards kept open: "when hovering an item, it doesn't seems to
+update everything, the output for example", "mana regen seems also to have hard time showing the new values, see the
+rest", "damage reduction too"). Three kinds of figure read the game's at the values as they are, never what is tried:
+
+- The card's « Effets » (the output, Ikar's word of 2026-11-20 for the right column): each figure the value gives
+  (`GIVES`) read its value from the game. Now read again with what is tried in place (`Tried.Effects`), each beside
+  what it is, the arrow and what it would be in the blue, as the sources' rows: the attack power and the block value
+  of the strength, the dodge of the agility (followed point for point, `Tried.DodgeFromAgility`), the damage
+  reduction of the armour, each kind of attack's hit, critical strike and haste (their own kind's sources read:
+  `Tried.channel`), the block value, the defence's share, the resistances'. The game's sentences in that column for
+  the values without figures (the dodge's, the expertise's: the value itself, which the head says) stay as they are.
+- What is worked out of another value: the damage reduction its armour (« Réduction des dégâts »), the misses and
+  critical strikes taken their defence, all they don't land the dodge, the parry and the block, which take the
+  defence's share. Each reading now adds what is tried's change of the value it stands on (`Tried.Change`: the same
+  sum as that value's own line, once for what is tried, its question with it, which what stands on it asks); the
+  critical strike's weapon skill is the weapon tried's (`weaponSkill` through `wornLink`: an axe tried where a sword
+  is, no swords' skill). A row whose name holds a figure of what is tried (« Armure 1 540 », « Défense (153 - 115) x
+  0,04 % ») keeps its place, its figure changing (`match`), no longer a row gone and another come.
+- The spirit's share of the regenerations: the game gives it at the spirit now alone (`GetManaRegenFromSpirit`), and
+  what would be had worn the question mark since 2026-11-19. Searched (Ikar's rule of 2026-11-23, "hunt the data"):
+  Forever gives every class 6.25 + spirit / 8 mana a second, the original game's priests' and mages' sum, in both of
+  Forever's sims (wowsims/forever's sim/core/mana.go, which tests it the same for every class; gunba/wow-forever-sim,
+  from the beta's hunters and paladins); Ikar's dwarf shaman had 13.75 at 60 spirit on 2026-11-23 (its statChecks),
+  this sum's to the hundredth, where the original game's shamans' 17 + spirit / 5 a tick gives 14.5. One reading
+  can't tell its slope (15.5 + spirit / 5 a tick gives 13.75 at 60 too): the sims' says it. The mana's share now
+  follows the spirit tried (`Tried.ManaFromSpirit`: the game's figure by the sum's ratio, so that a share the game
+  raises it by is followed), on the line, the card's table and the spirit's card. The health's keeps its question:
+  no sum of Forever's found (neither sim models it), and the original server's (a shaman's spirit x 0.28 - 3.6 a
+  tick) isn't Ikar's readings (33 in 5 s standing at 64 spirit, where it gives 34).
+
+On the way, a mistake caught by the smoke: the card had first taken what the lines worked out (`Tried.full`), which
+waits for a value to change; an aura come with none (the smoke's consumable drunk under the pointer) left its effects
+saying the buff again. The card works its own out anew at each drawing, its effects with it (`data.tried`).
+
+Checked offline: the lines' scenario's new cases (a chest's 10 defence on the misses, the critical strikes taken, the
+dodge, the parry and the avoidance, the block at 0 and the damage reduction left as they are; a chest's 200 armour on
+the armour and its damage reduction; the armour's, the strength's, the damage reduction's, the critical strike's and
+the spirit's cards kept open; an axe tried where a sword is; a helm's 10 spirit on the mana's line, the health's
+asking); 13 new breaks, all caught, with the 24 others of what would be and of the lines; the 12 whose text had moved,
+retargeted, caught; the family's whole run, ALL PASS, each of the 1,047 breaks still applying. Not seen in game.
+
+**Reviewed on 2026-11-26** by the session that took the work over (Ikar: "take over the work of the previous session
+... And do a ful lreview of what was done"): the family's whole run (ALL PASS, 14 s) and every deliberate break run
+once, not only those named. Three things found, each confirmed in the code or by a run, each fixed:
+
+- The spirit's card kept open said its health as it is under a consumable whose spirit has no known figure, for a
+  class without mana: its effects' readings named the spirit through the mana's alone (`Tried.ManaFromSpirit`).
+  `GIVES.SPIRIT` says now that both its figures stand on the spirit (`Tried.leaned[5]`); a case of the lines' scenario
+  (no mana, the card kept open, the question on the health) and a break.
+- The break "lines: still said once the tooltip has gone" was caught by nothing: the scenario looked at the lines only
+  after an aura's event, which reads them all again. In the game they would have kept the blue till the next event.
+  The scenario looks at them as the tooltip goes, before any event.
+- The break "editor place: a shut list's member taken for shown, by its last place" was caught no more since the
+  fake's `IsVisible` asks the frames a button stands in (this evening's): `b:IsVisible()` already says a shut list's
+  member isn't shown, so the list's own test beside it is a second guard of the same, and undoing it alone changes
+  nothing. The code is right as it is; the break undoes both guards now, the defect it is named for.
+
+Not seen in game, as the rest.

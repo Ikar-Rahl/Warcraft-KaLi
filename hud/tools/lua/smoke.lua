@@ -4646,7 +4646,7 @@ do
         end
         -- Ikar 2026-11-19: "even better, update with a different color on an item, talent, consumable hover", then, of
         -- the colour, "go for the light blue". While a card is kept open, what the game's tooltip shows is tried on its
-        -- value: the card says what would change, in the light blue
+        -- value: the card says what would change, in the blue (darker since, Ikar 2026-11-25: Stats.lua's WOULD_HEX)
         do
             local BLUE, WAS = ns.Stats.WOULD_HEX, "ff808080"
             -- (the game's arrow, the font having no "→")
@@ -4701,7 +4701,7 @@ do
             expect(after("Objet 5", became(Number(300), "0")) and after("|cff1eff00Objet 42|r", Color(Number(450), BLUE))
                 and after(ns.G("SPELL_STAT2_NAME", "AGILITY"), became(Number(160), Number(180)))
                 and after(L.STAT_GEAR, became(Number(500), Number(650))),
-                "the rows that would go, come or change aren't said so, in the light blue: " .. t)
+                "the rows that would go, come or change aren't said so, in the blue: " .. t)
             expect(after(L.STAT_OTHER, Color("+" .. Number(680), GOOD)),
                 "what the game's sums leave over isn't as it was beside what would be: " .. t)
             expect(card:GetWidth() >= narrow + 80, "the card isn't wider for two figures a row")
@@ -4746,7 +4746,9 @@ do
                 and not t:find(ns.Stats.UNKNOWN, 1, true),
                 "a consumable under the pointer isn't tried on the card kept open, or its fixed figure is marked: "
                 .. t)
+            -- (drunk under the pointer: the buff's coming draws the card again, the tooltip's refresh tries the same)
             F.auras.HELPFUL[1] = { name = "Bu", spellId = 14803, points = { 200 } }
+            F.Fire("UNIT_AURA", "player")
             t = hover("Item", { id = 3001, hyperlink = link(3001, 77) })
             expect(not t:find(ARROW, 1, true), "a consumable whose buff is on is said to add it again: " .. t)
             F.auras.HELPFUL[1], ns.ITEM_USES[3001], F.items[3001] = nil, nil, nil
@@ -6220,7 +6222,8 @@ do
 
     -- A locked folder (UI/Hub/Seeds.lua; Ikar 2026-11-23: "No edit, no reset, user can delete them whole (and bring
     -- back) and if they drag and drop, it create a copy"; "The type shoudl be also "locked folder""): its menu says so
-    -- and takes it off the HUD, nothing else; nothing goes into it; its type says it's locked.
+    -- and takes it off the HUD, nothing else but how it opens (scenarios/persist.lua); nothing goes into it; its type
+    -- says it's locked.
     local stats = Folders.ByRole("stats")
     local menu = hubMenu(stats)
     local why = F.MenuItem(L.FOLDER_LOCKED_DRAG, menu)

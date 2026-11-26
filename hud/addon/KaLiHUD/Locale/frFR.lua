@@ -127,6 +127,7 @@ OWN.frFR = {
     FOLDER_DIR_downright = "Le bas, à droite",
     FOLDER_OPEN = "Ouverture",
     FOLDER_OPEN_click = "Au clic",
+    FOLDER_OPEN_persist = "Au clic, reste ouvert",
     FOLDER_OPEN_leave = "Au clic, se referme quand on le quitte",
     FOLDER_OPEN_hover = "Au survol",
     LOOK = "Affichage",
@@ -430,7 +431,7 @@ OWN.frFR = {
     HINT_CHARACTER = LEFT_CLICK .. " la fiche du personnage",
     HINT_PIN = LEFT_CLICK .. " garder la carte ouverte",
     STAT_WOULD_HINT = "Passez la souris sur un objet, un talent ou un consommable : la carte montre "
-        .. "|cff7fd4ffen bleu|r ce qu'il changerait.",
+        .. "|cff0091f2en bleu|r ce qu'il changerait.",
     XP_MAX = "Niveau max",
     XP_TEXT = "XP %s",
     XP_LEVEL = "Niveau %d",

@@ -3434,6 +3434,12 @@
    "part": "smoke"
   }
  },
+ "would be: a card kept open worked out with the lines' readings, an aura come since left out": {
+  "hud": {
+   "at": "a consumable whose buff is on is said to add it again:",
+   "part": "smoke"
+  }
+ },
  "would be: a consumable under the pointer tried on nothing": {
   "hud": {
    "at": "a consumable under the pointer isn't tried on the card kept open: Armor",
@@ -3448,19 +3454,19 @@
  },
  "would be: a figure that would change given as the new one alone": {
   "hud": {
-   "at": "the rows that would go, come or change aren't said so, in the light blue: Armor",
+   "at": "the rows that would go, come or change aren't said so, in the blue: Armor",
    "part": "smoke"
   }
  },
- "would be: a row that would come not in the light blue": {
+ "would be: a row that would come not in the blue": {
   "hud": {
-   "at": "the rows that would go, come or change aren't said so, in the light blue: Armor",
+   "at": "the rows that would go, come or change aren't said so, in the blue: Armor",
    "part": "smoke"
   }
  },
  "would be: a row that would go left as it is": {
   "hud": {
-   "at": "the rows that would go, come or change aren't said so, in the light blue: Armor",
+   "at": "the rows that would go, come or change aren't said so, in the blue: Armor",
    "part": "smoke"
   }
  },
@@ -3526,7 +3532,7 @@
  },
  "would be: the item tried in the colour of the one worn": {
   "hud": {
-   "at": "the rows that would go, come or change aren't said so, in the light blue: Armor",
+   "at": "the rows that would go, come or change aren't said so, in the blue: Armor",
    "part": "smoke"
   }
  },

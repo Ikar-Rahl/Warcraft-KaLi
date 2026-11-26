@@ -122,6 +122,7 @@ OWN.enUS = {
     FOLDER_DIR_downright = "Down, to the right",
     FOLDER_OPEN = "Opening",
     FOLDER_OPEN_click = "On click",
+    FOLDER_OPEN_persist = "On click, stays open",
     FOLDER_OPEN_leave = "On click, closes when you leave it",
     FOLDER_OPEN_hover = "On hover",
     LOOK = "Show",
@@ -422,7 +423,7 @@ OWN.enUS = {
     REPAIR_NONE = "nothing to repair",
     HINT_CHARACTER = LEFT_CLICK .. " character sheet",
     HINT_PIN = LEFT_CLICK .. " keep the card open",
-    STAT_WOULD_HINT = "Point at an item, a talent or a consumable: the card shows |cff7fd4ffin blue|r what "
+    STAT_WOULD_HINT = "Point at an item, a talent or a consumable: the card shows |cff0091f2in blue|r what "
         .. "it would change.",
     XP_MAX = "Max level",
     XP_TEXT = "XP %s",

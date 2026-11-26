@@ -240,8 +240,16 @@ function frameMethods:GetTop()
     end
     return self.top
 end
+-- Shown, and every frame it stands in shown too, as in game: a button in a shut folder's list is shown, not visible.
 function frameMethods:IsVisible()
-    return self.shown ~= false
+    local f = self
+    while type(f) == "table" do
+        if f.shown == false then
+            return false
+        end
+        f = f.parent
+    end
+    return true
 end
 function frameMethods:IsProtected()
     return false, false

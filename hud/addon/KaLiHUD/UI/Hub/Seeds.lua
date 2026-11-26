@@ -16,8 +16,10 @@
 -- with no step of their own, where each change had needed one (eleven of them by then, each a migration with its
 -- tests). None is renamed, given another icon or settings, filled or emptied, nor reset; taken off the HUD whole from
 -- its menu, it comes back from the bar's menu; what is dragged out of one lands as a copy (Seeds.Copy), the folder
--- keeping its own. A spec saying `locked` makes one; « Add-ons » and « Suite », made here too, are none: they hold
--- what lands in them, other addons' buttons among it, which can't be copied.
+-- keeping its own. How it opens alone is the player's (Ikar 2026-11-25: "users shoudl be able to set opening
+-- behaviour, even on locked folders"): its spec's way till another is chosen (UI/Hub/Folders.lua's defaultOf), kept
+-- through each login's making it again. A spec saying `locked` makes one; « Add-ons » and « Suite », made here too, are
+-- none: they hold what lands in them, other addons' buttons among it, which can't be copied.
 local _, ns = ...
 
 local Seeds = {}
@@ -93,7 +95,9 @@ for i, spec in ipairs(FOLDERS) do
     spec.locked = true
     spec.align, spec.dim = VALUES[spec.role] and true or nil, VALUES[spec.role] == "dim" or nil
     if spec.role == "stats" then
-        spec.perLine = Seeds.STATS_PER_LINE
+        -- open beside what is tried on its lines, a click elsewhere leaving it (Ikar 2026-11-25: "make it default for
+        -- stats")
+        spec.perLine, spec.open = Seeds.STATS_PER_LINE, "persist"
     end
 end
 -- a character knows some forty factions: the most to a column
@@ -178,8 +182,9 @@ function Seeds.ContentsOf(role)
     return list
 end
 
--- The settings a spec gives a folder.
-local SETTINGS = { "icon", "style", "flow", "perLine", "dir", "open", "iconOnly", "nameOnly", "align", "dim" }
+-- The settings a spec gives a folder; how it opens not among them, the player's (its spec's way the folder's
+-- default: UI/Hub/Folders.lua's defaultOf).
+local SETTINGS = { "icon", "style", "flow", "perLine", "dir", "iconOnly", "nameOnly", "align", "dim" }
 
 -- Folder f as `spec` makes it: its name, icon and settings, what the spec doesn't say the folders' default.
 local function settle(f, spec)

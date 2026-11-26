@@ -174,7 +174,7 @@ DB.FOLDER_CHOICES = {
     style = { icons = true, text = true, names = true },
     flow = { horizontal = true, vertical = true },
     dir = { upleft = true, upright = true, downleft = true, downright = true },
-    open = { click = true, leave = true, hover = true },
+    open = { click = true, persist = true, leave = true, hover = true },
     icon = {},
 }
 for _, icon in ipairs(ns.ICONS) do

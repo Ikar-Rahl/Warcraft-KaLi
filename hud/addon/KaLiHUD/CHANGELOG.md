@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.9.2 (not released yet)
+
+- With the attributes' folder open, or an attribute copied onto the bar, hovering an item, a talent or a consumable shows on each line what it would change: the new figure in **blue**, as the card kept open already did. A figure that can't be known shows the question mark.
+- Everything worked out from another value follows what you hover too:
+  - **Damage Reduction** follows the armor it would give;
+  - the blows that miss you, the critical strikes you take and all you avoid follow your defense, dodge, parry and block;
+  - the dodge, parry and block follow the defense's share of them;
+  - the critical strike follows the skill of a weapon of another kind.
+- On a card kept open, **Effects** shows what each figure would become: the attack power from strength, the damage reduction from armor, each kind of attack's hit, critical strike and haste.
+- **Mana Regen** follows the Spirit you hover, by Forever's sum for every class (6.25 + Spirit / 8 mana a second). **Health Regeneration** keeps the question mark: the game gives its Spirit share only at your Spirit now, and no sum of Forever's is known for it.
+- That blue, on the lines and on the cards, is darker: the game's own rare blue, no longer easy to take for the green of a raised value.
+- Folders open a fourth way, **On click, stays open**: a click elsewhere leaves the list open; a click on the folder closes it, as does opening another folder. The Attributes folder opens this way, so it stays beside your bags while you compare items.
+- The built-in folders' menu has **Opening** too: choose how each opens, as for your own folders. Your choice stays through updates; their contents and other settings remain KaLi HUD's.
+- A buff of unknown amount on one attribute (an elixir of stamina) puts the question mark only on what depends on it (health, stamina), no longer on every value: the cards kept open too.
+- Fixed: a drink or a food whose regeneration has no known amount showed the regeneration as it is on its card kept open, in blue; it shows the question mark.
+
 ## 0.9.1 (2026-11-24)
 
 - **No GitHub account?** The bug report's window gives KaLi's mail address under the GitHub link; a click selects it, to copy. A mail with the report becomes an issue, published without your address: you get its link, and the answers come back by mail, in your language. Once the report is copied, the window says to paste it into the issue or into your mail.
